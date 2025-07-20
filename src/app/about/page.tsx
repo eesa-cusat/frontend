@@ -44,7 +44,7 @@ export default function AboutPage() {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/core/team-members/`
       );
-      
+
       if (response.ok) {
         const data = await response.json();
         // Handle paginated response format
@@ -89,7 +89,7 @@ export default function AboutPage() {
         position: "President",
         bio: "Leading the EESA community with vision and dedication",
         image: "",
-        email: "president@eesa.org",
+        email: "presidentkotta@eesa.org",
         linkedin_url: "",
         github_url: "",
         team_type: "eesa",
@@ -380,7 +380,8 @@ export default function AboutPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold mb-6">Get in Touch</h2>
           <p className="text-xl mb-8 max-w-2xl mx-auto">
-            Have questions or want to get involved? We&apos;d love to hear from you!
+            Have questions or want to get involved? We&apos;d love to hear from
+            you!
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
