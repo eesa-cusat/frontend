@@ -68,93 +68,18 @@ export default function AboutPage() {
             .sort((a: TeamMember, b: TeamMember) => a.order - b.order)
         );
       } else {
-        // If API fails, use fallback data
-        setFallbackTeamData();
+        // If API fails, show empty state
+        setEesaTeam([]);
+        setTechTeam([]);
       }
     } catch (error) {
       console.error("Error fetching team data:", error);
-      // Use fallback data on error
-      setFallbackTeamData();
+      // On error, show empty state
+      setEesaTeam([]);
+      setTechTeam([]);
     } finally {
       setLoading(false);
     }
-  };
-
-  const setFallbackTeamData = () => {
-    // Fallback team data when API is not available
-    const fallbackEesaTeam: TeamMember[] = [
-      {
-        id: 1,
-        name: "EESAAA President",
-        position: "President",
-        bio: "Leading the EESA community with vision and dedication",
-        image: "",
-        email: "presidentkotta@eesa.org",
-        linkedin_url: "",
-        github_url: "",
-        team_type: "eesa",
-        is_active: true,
-        order: 1,
-      },
-      {
-        id: 2,
-        name: "EESA Vice President",
-        position: "Vice President",
-        bio: "Supporting the organization's mission and goals",
-        image: "",
-        email: "vicepresident@eesa.org",
-        linkedin_url: "",
-        github_url: "",
-        team_type: "eesa",
-        is_active: true,
-        order: 2,
-      },
-      {
-        id: 3,
-        name: "EESA Secretary",
-        position: "Secretary",
-        bio: "Managing communications and administrative tasks",
-        image: "",
-        email: "secretary@eesa.org",
-        linkedin_url: "",
-        github_url: "",
-        team_type: "eesa",
-        is_active: true,
-        order: 3,
-      },
-    ];
-
-    const fallbackTechTeam: TeamMember[] = [
-      {
-        id: 4,
-        name: "Tech Lead",
-        position: "Technical Lead",
-        bio: "Overseeing technical projects and development",
-        image: "",
-        email: "techlead@eesa.org",
-        linkedin_url: "",
-        github_url: "",
-        team_type: "tech",
-        is_active: true,
-        order: 1,
-      },
-      {
-        id: 5,
-        name: "Web Developer",
-        position: "Full Stack Developer",
-        bio: "Building and maintaining the EESA platform",
-        image: "",
-        email: "developer@eesa.org",
-        linkedin_url: "",
-        github_url: "",
-        team_type: "tech",
-        is_active: true,
-        order: 2,
-      },
-    ];
-
-    setEesaTeam(fallbackEesaTeam);
-    setTechTeam(fallbackTechTeam);
   };
 
   const TeamMemberCard = ({ member }: { member: TeamMember }) => (
