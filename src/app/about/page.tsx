@@ -42,7 +42,7 @@ export default function AboutPage() {
     try {
       // Try to fetch from the API first
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/core/team-members/`
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/accounts/team-members/`
       );
 
       if (response.ok) {
