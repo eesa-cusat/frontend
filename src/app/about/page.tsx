@@ -85,7 +85,7 @@ export default function AboutPage() {
     const fallbackEesaTeam: TeamMember[] = [
       {
         id: 1,
-        name: "EESA President",
+        name: "EESAAA President",
         position: "President",
         bio: "Leading the EESA community with vision and dedication",
         image: "",
