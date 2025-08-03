@@ -3,6 +3,8 @@
  * Handles like/unlike functionality for academic resources
  */
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
+
 export interface LikeResult {
   liked: boolean;
   likeCount: number;
@@ -21,11 +23,11 @@ export interface ResourceLikeInfo {
  */
 export const toggleResourceLike = async (resourceId: number): Promise<LikeResult> => {
   try {
-    const response = await fetch(`http://localhost:8000/api/academics/resources/${resourceId}/like/`, {
+    const response = await fetch(`${API_BASE_URL}/academics/resources/${resourceId}/like/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Referer': 'http://localhost:3000/',
+        'Referer': typeof window !== 'undefined' ? window.location.origin : '',
       },
       mode: 'cors',
       credentials: 'include'
@@ -52,7 +54,7 @@ export const toggleResourceLike = async (resourceId: number): Promise<LikeResult
  */
 export const getResourceWithLikes = async (resourceId: number): Promise<ResourceLikeInfo> => {
   try {
-    const response = await fetch(`http://localhost:8000/api/academics/resources/${resourceId}/`);
+    const response = await fetch(`${API_BASE_URL}/academics/resources/${resourceId}/`);
     if (!response.ok) {
       throw new Error('Failed to fetch resource');
     }

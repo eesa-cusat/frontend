@@ -60,32 +60,11 @@ export default function Home() {
       }
     };
 
-    // Get featured upcoming events
-    const getFeaturedUpcomingEvents = async () => {
-      try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/events/events/?is_featured=true&upcoming=true`
-        );
-        const data = await response.json();
-        return data.results || data;
-      } catch (error) {
-        console.error("Error fetching featured upcoming events:", error);
-        return [];
-      }
-    };
-
     const fetchFeaturedData = async () => {
       try {
-        // Fetch featured upcoming events (prioritize upcoming events)
-        const upcomingEvents = await getFeaturedUpcomingEvents();
-
-        // If no upcoming featured events, fall back to all featured events
-        if (upcomingEvents.length === 0) {
-          const allFeaturedEvents = await getFeaturedEvents();
-          setFeaturedEvents(allFeaturedEvents);
-        } else {
-          setFeaturedEvents(upcomingEvents);
-        }
+        // Fetch featured events (regardless of timing)
+        const allFeaturedEvents = await getFeaturedEvents();
+        setFeaturedEvents(allFeaturedEvents);
 
         // Fetch featured projects
         try {
@@ -278,35 +257,39 @@ export default function Home() {
                           }}
                           className="w-full flex-shrink-0 px-2"
                         >
-                          <div className="w-full h-48 bg-gray-900 rounded-3xl border border-gray-200 p-6 flex flex-col justify-between overflow-hidden relative hover:bg-gray-800 transition-colors cursor-pointer">
+                          <div className="w-full h-48 bg-gray-900 rounded-3xl border-2 border-gray-900 p-6 flex flex-col justify-between text-white relative overflow-hidden cursor-pointer hover:bg-gray-800 transition-colors">
                             <div>
-                              <h3 className="text-white text-lg font-medium mb-2 line-clamp-2">
+                              <h3 className="text-xl font-semibold mb-2 line-clamp-2">
                                 {event.title}
                               </h3>
-                              <p className="text-gray-300 text-sm line-clamp-2 mb-3">
+                              <p className="text-gray-300 text-sm line-clamp-3">
                                 {event.description}
                               </p>
                               {event.event_type && (
-                                <span className="inline-block bg-lime-400 text-black px-2 py-1 rounded-full text-xs font-medium mb-2">
+                                <span className="inline-block bg-lime-400 text-black px-2 py-1 rounded-full text-xs font-medium mt-2">
                                   {event.event_type.charAt(0).toUpperCase() +
                                     event.event_type.slice(1)}
                                 </span>
                               )}
                             </div>
-                            <div className="flex items-center gap-4 text-xs text-gray-400">
-                              <div className="flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
-                                {new Date(event.start_date).toLocaleDateString()}
+                            {(event.venue || event.location || event.start_date) && (
+                              <div className="flex items-center gap-4 text-xs text-gray-400 mt-2">
+                                {event.start_date && (
+                                  <div className="flex items-center gap-1">
+                                    <Calendar className="w-3 h-3" />
+                                    {new Date(event.start_date).toLocaleDateString()}
+                                  </div>
+                                )}
+                                {(event.venue || event.location) && (
+                                  <div className="flex items-center gap-1">
+                                    <MapPin className="w-3 h-3" />
+                                    <span className="truncate">
+                                      {event.venue || event.location}
+                                    </span>
+                                  </div>
+                                )}
                               </div>
-                              {(event.venue || event.location) && (
-                                <div className="flex items-center gap-1">
-                                  <MapPin className="w-3 h-3" />
-                                  <span className="truncate">
-                                    {event.venue || event.location}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -323,36 +306,40 @@ export default function Home() {
                         onClick={() => {
                           window.open(`/events/${event.id}`, "_blank");
                         }}
-                        className="w-full h-48 bg-gray-900 rounded-3xl border border-gray-200 p-6 flex flex-col justify-between overflow-hidden relative hover:bg-gray-800 transition-colors cursor-pointer"
+                        className="w-full h-48 bg-gray-900 rounded-3xl border-2 border-gray-900 p-6 flex flex-col justify-between text-white relative overflow-hidden cursor-pointer hover:bg-gray-800 transition-colors"
                       >
                         <div>
-                          <h3 className="text-white text-lg font-medium mb-2 line-clamp-2">
+                          <h3 className="text-xl font-semibold mb-2 line-clamp-2">
                             {event.title}
                           </h3>
-                          <p className="text-gray-300 text-sm line-clamp-2 mb-3">
+                          <p className="text-gray-300 text-sm line-clamp-3">
                             {event.description}
                           </p>
                           {event.event_type && (
-                            <span className="inline-block bg-lime-400 text-black px-2 py-1 rounded-full text-xs font-medium mb-2">
+                            <span className="inline-block bg-lime-400 text-black px-2 py-1 rounded-full text-xs font-medium mt-2">
                               {event.event_type.charAt(0).toUpperCase() +
                                 event.event_type.slice(1)}
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-4 text-xs text-gray-400">
-                          <div className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            {new Date(event.start_date).toLocaleDateString()}
+                        {(event.venue || event.location || event.start_date) && (
+                          <div className="flex items-center gap-4 text-xs text-gray-400 mt-2">
+                            {event.start_date && (
+                              <div className="flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                {new Date(event.start_date).toLocaleDateString()}
+                              </div>
+                            )}
+                            {(event.venue || event.location) && (
+                              <div className="flex items-center gap-1">
+                                <MapPin className="w-3 h-3" />
+                                <span className="truncate">
+                                  {event.venue || event.location}
+                                </span>
+                              </div>
+                            )}
                           </div>
-                          {(event.venue || event.location) && (
-                            <div className="flex items-center gap-1">
-                              <MapPin className="w-3 h-3" />
-                              <span className="truncate">
-                                {event.venue || event.location}
-                              </span>
-                            </div>
-                          )}
-                        </div>
+                        )}
                       </div>
                     ))}
                   </div>

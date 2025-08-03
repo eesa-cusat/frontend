@@ -2,6 +2,8 @@
  * Download Service for Academic Resources
  */
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
+
 export interface DownloadResponse {
   success: boolean;
   downloadCount: number;
@@ -20,7 +22,7 @@ export interface Resource {
  */
 export const getResourceWithDownloads = async (resourceId: number): Promise<Resource | null> => {
   try {
-    const response = await fetch(`http://localhost:8000/api/academics/resources/${resourceId}/`, {
+    const response = await fetch(`${API_BASE_URL}/academics/resources/${resourceId}/`, {
       method: 'GET',
       mode: 'cors',
       credentials: 'include'
@@ -44,7 +46,7 @@ export const getResourceWithDownloads = async (resourceId: number): Promise<Reso
 export const incrementDownloadCount = async (resourceId: number): Promise<boolean> => {
   try {
     // Attempt to download - this will increment the counter if successful
-    const response = await fetch(`http://localhost:8000/api/academics/resources/${resourceId}/download/`, {
+    const response = await fetch(`${API_BASE_URL}/academics/resources/${resourceId}/download/`, {
       method: 'GET',
       mode: 'cors',
       credentials: 'include'
@@ -95,7 +97,7 @@ export const downloadResourceFile = async (resourceId: number, fileName?: string
     }
 
     // Attempt the download
-    const response = await fetch(`http://localhost:8000/api/academics/resources/${resourceId}/download/`, {
+    const response = await fetch(`${API_BASE_URL}/academics/resources/${resourceId}/download/`, {
       method: 'GET',
       mode: 'cors',
       credentials: 'include'

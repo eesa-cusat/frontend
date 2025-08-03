@@ -13,12 +13,14 @@ interface LikeButtonProps {
   onLikeChange?: (newCount: number) => void;
 }
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
+
 // API Functions
 const toggleLike = async (resourceId: number) => {
   try {
     const headers = await getCSRFHeaders();
     
-    const response = await fetch(`http://localhost:8000/api/academics/resources/${resourceId}/like/`, {
+    const response = await fetch(`${API_BASE_URL}/academics/resources/${resourceId}/like/`, {
       method: 'POST',
       headers,
       mode: 'cors',
@@ -38,7 +40,7 @@ const toggleLike = async (resourceId: number) => {
         clearCSRFToken();
         
         const retryHeaders = await getCSRFHeaders();
-        const retryResponse = await fetch(`http://localhost:8000/api/academics/resources/${resourceId}/like/`, {
+        const retryResponse = await fetch(`${API_BASE_URL}/academics/resources/${resourceId}/like/`, {
           method: 'POST',
           headers: retryHeaders,
           mode: 'cors',
@@ -64,7 +66,7 @@ const toggleLike = async (resourceId: number) => {
 
 const getResourceWithLikes = async (resourceId: number) => {
   try {
-    const response = await fetch(`http://localhost:8000/api/academics/resources/${resourceId}/`);
+    const response = await fetch(`${API_BASE_URL}/academics/resources/${resourceId}/`);
     if (!response.ok) {
       throw new Error('Failed to fetch resource');
     }

@@ -3,6 +3,8 @@
  * Handles CSRF token retrieval and management for Django backend
  */
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
+
 let csrfToken: string | null = null;
 
 /**
@@ -36,7 +38,7 @@ export const getCSRFTokenFromMeta = (): string | null => {
  */
 export const fetchCSRFToken = async (): Promise<string | null> => {
   try {
-    const response = await fetch('http://localhost:8000/api/academics/resources/', {
+    const response = await fetch(`${API_BASE_URL}/academics/resources/`, {
       method: 'GET',
       credentials: 'include',
     });
@@ -90,7 +92,7 @@ export const clearCSRFToken = (): void => {
  */
 export const initializeSession = async (): Promise<void> => {
   try {
-    await fetch('http://localhost:8000/api/academics/resources/', {
+    await fetch(`${API_BASE_URL}/academics/resources/`, {
       method: 'GET',
       credentials: 'include',
     });
