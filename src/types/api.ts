@@ -150,6 +150,8 @@ export interface Event {
   registration_count: number;
   registration_fee: string;
   banner_image?: string;
+  poster_image?: string;
+  image?: string;
   created_by_name: string;
   is_active?: boolean;
   is_featured: boolean;
@@ -173,6 +175,7 @@ export interface EventCreate {
   registration_deadline?: string;
   max_participants?: number;
   image?: File;
+  poster_image?: File;
 }
 
 export interface CareerOpportunity {

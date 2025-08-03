@@ -6,17 +6,35 @@ import {
   MapPin,
   Users,
   Clock,
-  Filter,
   Plus,
   UserPlus,
-  Search,
   ChevronLeft,
   ChevronRight,
+  Star,
+  Zap,
+  Target,
+  Trophy,
+  Lightbulb,
+  Rocket,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Event, GuestRegistrationData } from "@/types/api";
 import Link from "next/link";
+import Image from "next/image";
+
+// Helper function to get random icon and color for each event
+const getEventIcon = (eventId: number) => {
+  const icons = [
+    { Icon: Star, color: "bg-orange-500" },
+    { Icon: Zap, color: "bg-lime-400" },
+    { Icon: Target, color: "bg-blue-500" },
+    { Icon: Trophy, color: "bg-yellow-500" },
+    { Icon: Lightbulb, color: "bg-purple-500" },
+    { Icon: Rocket, color: "bg-red-500" },
+  ];
+  return icons[eventId % icons.length];
+};
 
 // Events Carousel Component
 interface EventsCarouselProps {
@@ -30,36 +48,16 @@ const EventsCarousel: React.FC<EventsCarouselProps> = ({ events, onRegister, reg
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
   const totalSlides = Math.ceil(events.length / 3);
-  const visibleEvents = events.slice(currentIndex * 3, (currentIndex + 1) * 3);
 
-  // Auto-advance carousel
   useEffect(() => {
     if (!isAutoPlaying || totalSlides <= 1) return;
 
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % totalSlides);
-    }, 5000);
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [isAutoPlaying, totalSlides]);
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
-  };
 
   const nextSlide = () => {
     setCurrentIndex((prev) => (prev + 1) % totalSlides);
@@ -69,275 +67,134 @@ const EventsCarousel: React.FC<EventsCarouselProps> = ({ events, onRegister, reg
     setCurrentIndex((prev) => (prev - 1 + totalSlides) % totalSlides);
   };
 
-  const goToSlide = (index: number) => {
-    setCurrentIndex(index);
-  };
-
-  if (events.length === 0) {
-    return (
-      <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-        <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">
-          No events found
-        </h3>
-        <p className="text-gray-600">
-          There are no upcoming events at the moment
-        </p>
-      </div>
-    );
-  }
+  const currentEvents = events.slice(currentIndex * 3, (currentIndex + 1) * 3);
 
   return (
     <div className="relative">
-      {/* Mobile: Single card view with horizontal scrolling */}
-      <div className="block md:hidden">
-        <div 
-          className="flex transition-transform duration-300 ease-in-out"
-          style={{ transform: `translateX(-${currentIndex * 100}%)` }}
-          onMouseEnter={() => setIsAutoPlaying(false)}
-          onMouseLeave={() => setIsAutoPlaying(true)}
-        >
-          {events.map((event) => (
-            <div key={event.id} className="w-full flex-shrink-0 px-2">
-              <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
-                      {event.title}
-                    </h3>
-                    {event.registration_required && (
-                      <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Registration Required
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                    {event.description}
-                  </p>
-
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center text-sm text-gray-500">
-                      <Calendar className="w-4 h-4 mr-2" />
-                      <span>
-                        {formatDate(event.start_date)}
-                        {event.start_date !== event.end_date &&
-                          ` - ${formatDate(event.end_date)}`}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center text-sm text-gray-500">
-                      <Clock className="w-4 h-4 mr-2" />
-                      <span>
-                        {formatTime(event.start_date)} -{" "}
-                        {formatTime(event.end_date)}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center text-sm text-gray-500">
-                      <MapPin className="w-4 h-4 mr-2" />
-                      <span>{event.location}</span>
-                    </div>
-
-                    {event.max_participants && (
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Users className="w-4 h-4 mr-2" />
-                        <span>
-                          {event.registration_count || 0} /{" "}
-                          {event.max_participants} participants
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Link
-                      href={`/events/${event.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1"
-                    >
-                      <Button variant="outline" className="w-full">
-                        View Details
-                      </Button>
-                    </Link>
-                    {event.registration_required && (
-                      <Button
-                        onClick={() => onRegister(event)}
-                        disabled={
-                          registering ||
-                          (event.max_participants &&
-                            (event.registration_count || 0) >=
-                              event.max_participants) ||
-                          new Date(event.end_date) < new Date()
-                        }
-                        className="flex-1"
-                        variant={
-                          event.max_participants &&
-                          (event.registration_count || 0) >=
-                            event.max_participants
-                            ? "secondary"
-                            : "default"
-                        }
-                      >
-                        <UserPlus className="w-4 h-4 mr-2" />
-                        {event.max_participants &&
-                        (event.registration_count || 0) >= event.max_participants
-                          ? "Full"
-                          : new Date(event.end_date) < new Date()
-                          ? "Event Ended"
-                          : registering
-                          ? "Registering..."
-                          : "Register"}
-                      </Button>
-                    )}
-                  </div>
-                </div>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {currentEvents.map((event) => {
+          const { Icon, color } = getEventIcon(event.id);
+          return (
+            <div
+              key={event.id}
+              className="group relative bg-white/10 backdrop-blur-sm border border-white/20 shadow-xl overflow-hidden hover:shadow-2xl hover:bg-white/20 transition-all duration-300"
+            >
+              {/* Electrical Circuit Background */}
+              <div className="absolute inset-0 opacity-20">
+                <svg viewBox="0 0 100 100" className="w-full h-full">
+                  <defs>
+                    <pattern id={`circuit-${event.id}`} x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                      <circle cx="10" cy="10" r="1" fill="#3b82f6" opacity="0.3"/>
+                      <path d="M2,10 L18,10 M10,2 L10,18" stroke="#3b82f6" strokeWidth="0.5" opacity="0.3"/>
+                    </pattern>
+                  </defs>
+                  <rect width="100%" height="100%" fill={`url(#circuit-${event.id})`}/>
+                </svg>
               </div>
-            </div>
-          ))}
-        </div>
-      </div>
 
-      {/* Desktop: 3-card view */}
-      <div className="hidden md:block">
-        <div 
-          className="grid grid-cols-3 gap-6 transition-all duration-500 ease-in-out"
-          onMouseEnter={() => setIsAutoPlaying(false)}
-          onMouseLeave={() => setIsAutoPlaying(true)}
-        >
-          {visibleEvents.map((event) => (
-            <div key={event.id} className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
-                    {event.title}
-                  </h3>
-                  {event.registration_required && (
-                    <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      Registration Required
-                    </span>
-                  )}
+              <div className="relative z-10 p-6">
+                {/* Event Image */}
+                {event.poster_image && (
+                  <div className="h-40 mb-4 overflow-hidden">
+                    <Image
+                      src={event.poster_image}
+                      alt={event.title}
+                      width={300}
+                      height={160}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                )}
+
+                {/* Event Icon */}
+                <div className={`w-12 h-12 ${color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                  <Icon className="w-6 h-6 text-white" />
                 </div>
 
-                <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                  {event.description}
-                </p>
+                <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+                  {event.title}
+                </h3>
+
+                <p className="text-gray-600 mb-4 line-clamp-3">{event.description}</p>
 
                 <div className="space-y-2 mb-4">
                   <div className="flex items-center text-sm text-gray-500">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    <span>
-                      {formatDate(event.start_date)}
-                      {event.start_date !== event.end_date &&
-                        ` - ${formatDate(event.end_date)}`}
-                    </span>
+                    <Calendar className="w-4 h-4 mr-2 text-blue-500" />
+                    {new Date(event.start_date).toLocaleDateString()}
                   </div>
-
                   <div className="flex items-center text-sm text-gray-500">
-                    <Clock className="w-4 h-4 mr-2" />
-                    <span>
-                      {formatTime(event.start_date)} -{" "}
-                      {formatTime(event.end_date)}
-                    </span>
+                    <Clock className="w-4 h-4 mr-2 text-green-500" />
+                    {new Date(event.start_date).toLocaleTimeString()}
                   </div>
-
                   <div className="flex items-center text-sm text-gray-500">
-                    <MapPin className="w-4 h-4 mr-2" />
-                    <span>{event.location}</span>
+                    <MapPin className="w-4 h-4 mr-2 text-red-500" />
+                    {event.location}
                   </div>
-
-                  {event.max_participants && (
+                  {event.registration_count !== undefined && event.max_participants && (
                     <div className="flex items-center text-sm text-gray-500">
-                      <Users className="w-4 h-4 mr-2" />
-                      <span>
-                        {event.registration_count || 0} /{" "}
-                        {event.max_participants} participants
-                      </span>
+                      <Users className="w-4 h-4 mr-2 text-purple-500" />
+                      {event.registration_count}/{event.max_participants} registered
                     </div>
                   )}
                 </div>
 
                 <div className="flex gap-2">
-                  <Link
-                    href={`/events/${event.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1"
+                  <Button
+                    className="flex-1 bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                    onClick={() => onRegister(event)}
+                    disabled={registering}
                   >
-                    <Button variant="outline" className="w-full">
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    {registering ? 'Registering...' : 'Register'}
+                  </Button>
+                  <Link href={`/events/${event.id}`}>
+                    <Button variant="outline" className="border-blue-300 text-blue-600 hover:bg-blue-50">
                       View Details
                     </Button>
                   </Link>
-                  {event.registration_required && (
-                    <Button
-                      onClick={() => onRegister(event)}
-                      disabled={
-                        registering ||
-                        (event.max_participants &&
-                          (event.registration_count || 0) >=
-                            event.max_participants) ||
-                        new Date(event.end_date) < new Date()
-                      }
-                      className="flex-1"
-                      variant={
-                        event.max_participants &&
-                        (event.registration_count || 0) >=
-                          event.max_participants
-                          ? "secondary"
-                          : "default"
-                      }
-                    >
-                      <UserPlus className="w-4 h-4 mr-2" />
-                      {event.max_participants &&
-                      (event.registration_count || 0) >= event.max_participants
-                        ? "Full"
-                        : new Date(event.end_date) < new Date()
-                        ? "Event Ended"
-                        : registering
-                        ? "Registering..."
-                        : "Register"}
-                    </Button>
-                  )}
                 </div>
               </div>
             </div>
-          ))}
-        </div>
+          );
+        })}
       </div>
 
-      {/* Navigation buttons - only show if more than 1 slide */}
+      {/* Navigation Controls */}
       {totalSlides > 1 && (
-        <>
+        <div className="flex justify-center items-center mt-8 gap-4">
           <button
             onClick={prevSlide}
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 w-10 h-10 bg-white rounded-full shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
+            className="p-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 hover:bg-white/30 transition-all duration-300"
+            onMouseEnter={() => setIsAutoPlaying(false)}
+            onMouseLeave={() => setIsAutoPlaying(true)}
           >
-            <ChevronLeft className="w-5 h-5 text-gray-600" />
+            <ChevronLeft className="w-5 h-5 text-gray-700" />
           </button>
+
+          <div className="flex gap-2">
+            {Array.from({ length: totalSlides }).map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentIndex(index)}
+                className={`w-3 h-3 transition-all duration-300 ${
+                  index === currentIndex 
+                    ? 'bg-blue-600 scale-125' 
+                    : 'bg-white/60 hover:bg-white/80'
+                }`}
+                onMouseEnter={() => setIsAutoPlaying(false)}
+                onMouseLeave={() => setIsAutoPlaying(true)}
+              />
+            ))}
+          </div>
+
           <button
             onClick={nextSlide}
-            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 w-10 h-10 bg-white rounded-full shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
+            className="p-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 hover:bg-white/30 transition-all duration-300"
+            onMouseEnter={() => setIsAutoPlaying(false)}
+            onMouseLeave={() => setIsAutoPlaying(true)}
           >
-            <ChevronRight className="w-5 h-5 text-gray-600" />
+            <ChevronRight className="w-5 h-5 text-gray-700" />
           </button>
-        </>
-      )}
-
-      {/* Dots Navigation - only show if more than 1 slide */}
-      {totalSlides > 1 && (
-        <div className="flex justify-center mt-6 space-x-2">
-          {Array.from({ length: totalSlides }).map((_, index) => (
-            <button
-              key={index}
-              onClick={() => goToSlide(index)}
-              className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                index === currentIndex
-                  ? "bg-gray-800 scale-110"
-                  : "bg-gray-300 hover:bg-gray-400"
-              }`}
-            />
-          ))}
         </div>
       )}
     </div>
@@ -345,178 +202,111 @@ const EventsCarousel: React.FC<EventsCarouselProps> = ({ events, onRegister, reg
 };
 
 export default function EventsPage() {
-  // Remove authentication - now public access only
   const [events, setEvents] = useState<Event[]>([]);
-  const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
+  const [currentFeaturedIndex, setCurrentFeaturedIndex] = useState(0);
   const [showPastEvents, setShowPastEvents] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [registrationModal, setRegistrationModal] = useState<{
-    isOpen: boolean;
-    event: Event | null;
-  }>({ isOpen: false, event: null });
-  const [guestFormData, setGuestFormData] = useState<GuestRegistrationData>({
+  const [registering, setRegistering] = useState(false);
+  const [registrationData, setRegistrationData] = useState<GuestRegistrationData>({
     guest_name: "",
     guest_email: "",
     guest_phone: "",
-    guest_semester: undefined,
-    guest_department: undefined,
+    guest_department: "electrical",
   });
-  const [registering, setRegistering] = useState(false);
+  const [canCreateEvents, setCanCreateEvents] = useState(false);
 
-  // For demo purposes, we'll hide the create event button
-  // In production, this would be controlled by staff login
-  const canCreateEvents = false; // Always false for public access
-
-  // Use environment variable for API base URL (no hardcoded localhost)
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
-
-  // Fetch events from API
+  // Auto-rotate featured events
   useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await fetch(`${API_BASE_URL}/events/events/`);
-        if (response.ok) {
-          const data = await response.json();
-          // Handle both paginated and non-paginated responses
-          const eventsArray = data.results || data.events || data || [];
-          setEvents(Array.isArray(eventsArray) ? eventsArray : []);
-        } else {
-          setError("Failed to load events");
-          setEvents([]);
-        }
-      } catch {
-        setError("Failed to connect to server");
-        setEvents([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (featuredEvents.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentFeaturedIndex((prev) => (prev + 1) % featuredEvents.length);
+      }, 5000); // Change every 5 seconds
 
+      return () => clearInterval(interval);
+    }
+  }, [featuredEvents.length]);
+
+  useEffect(() => {
     fetchEvents();
-  }, [API_BASE_URL]);
+    checkUserPermissions();
+  }, []);
 
-  // Filter events based on search term and past events toggle
-  useEffect(() => {
-    let filtered = events;
-
-    // Filter by search term
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (event) =>
-          event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          event.location.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+  const fetchEvents = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/events");
+      if (response.ok) {
+        const data = await response.json();
+        setEvents(data);
+        setFeaturedEvents(data.filter((event: Event) => event.is_featured).slice(0, 5));
+      }
+    } catch (error) {
+      console.error("Error fetching events:", error);
+    } finally {
+      setLoading(false);
     }
-
-    // Filter by past events
-    const now = new Date();
-    if (!showPastEvents) {
-      filtered = filtered.filter((event) => new Date(event.end_date) >= now);
-    }
-
-    // Sort by date (upcoming first)
-    filtered.sort(
-      (a, b) =>
-        new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
-    );
-
-    setFilteredEvents(filtered);
-  }, [events, searchTerm, showPastEvents]);
-
-  const handleRegister = async (event: Event) => {
-    if (!event.registration_required) return;
-
-    // For public access, always show guest registration modal
-    setRegistrationModal({ isOpen: true, event });
   };
 
-  const handleGuestRegistration = async () => {
-    if (!registrationModal.event) return;
+  const checkUserPermissions = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const response = await fetch("/api/auth/check", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      if (response.ok) {
+        const userData = await response.json();
+        setCanCreateEvents(userData.canCreateEvents || false);
+      }
+    } catch (error) {
+      console.error("Error checking permissions:", error);
+    }
+  };
+
+  const handleRegister = async (event: Event) => {
+    if (!registrationData.guest_name || !registrationData.guest_email) {
+      alert("Please fill in your name and email");
+      return;
+    }
 
     try {
       setRegistering(true);
-
-      // Convert guest form data to the format expected by backend
-      const registrationData = {
-        name: guestFormData.guest_name,
-        email: guestFormData.guest_email,
-        mobile_number: guestFormData.guest_phone || "",
-        department: guestFormData.guest_department || "",
-        year_of_study: guestFormData.guest_semester
-          ? guestFormData.guest_semester.toString()
-          : "",
-      };
-
-      const response = await fetch(
-        `${API_BASE_URL}/events/events/${registrationModal.event.id}/register/`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(registrationData),
-        }
-      );
+      const response = await fetch(`/api/events/${event.id}/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(registrationData),
+      });
 
       if (response.ok) {
         alert("Registration successful!");
-        setRegistrationModal({ isOpen: false, event: null });
-        setGuestFormData({
-          guest_name: "",
-          guest_email: "",
-          guest_phone: "",
-          guest_semester: undefined,
-          guest_department: undefined,
-        });
-        // Refresh events
-        const eventsResponse = await fetch(`${API_BASE_URL}/events/events/`);
-        if (eventsResponse.ok) {
-          const data = await eventsResponse.json();
-          const eventsArray = data.results || data.events || data || [];
-          setEvents(Array.isArray(eventsArray) ? eventsArray : []);
-        }
+        setRegistrationData({ guest_name: "", guest_email: "", guest_phone: "", guest_department: "electrical" });
+        fetchEvents();
       } else {
-        const errorData = await response.json();
-        alert(errorData.error || "Registration failed");
+        const error = await response.json();
+        alert(error.message || "Registration failed");
       }
-    } catch {
-      alert("Registration failed");
+    } catch (error) {
+      console.error("Registration error:", error);
+      alert("Registration failed. Please try again.");
     } finally {
       setRegistering(false);
     }
   };
 
+  const currentFeaturedEvent = featuredEvents[currentFeaturedIndex];
+  const upcomingEvents = events.filter(event => event.is_upcoming);
+  const pastEvents = events.filter(event => event.is_past);
+  const displayEvents = showPastEvents ? pastEvents : upcomingEvents;
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-            <div className="flex">
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">Error</h3>
-                <div className="mt-2 text-sm text-red-700">
-                  <p>{error}</p>
-                </div>
-              </div>
-            </div>
-          </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading events...</p>
         </div>
       </div>
     );
@@ -524,222 +314,287 @@ export default function EventsPage() {
 
   return (
     <>
-      <div className="py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header */}
-        <div className="flex justify-between items-center mb-8 border-b border-gray-200 pb-4">
-            <div>
-              <h1 className="text-3xl font-bold text-black">Events</h1>
-              <p className="mt-2 text-gray-600">
-                Discover and participate in upcoming events
-            </p>
+      {/* Background SVG Pattern */}
+      <div className="fixed inset-0 pointer-events-none opacity-5 z-0">
+        <svg width="100%" height="100%" viewBox="0 0 1000 1000" className="absolute inset-0">
+          <defs>
+            <pattern id="electrical-grid" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
+              <path d="M10,10 L90,10 L90,90 L10,90 Z" fill="none" stroke="#3b82f6" strokeWidth="1" opacity="0.3"/>
+              <circle cx="50" cy="50" r="3" fill="#3b82f6" opacity="0.4"/>
+              <path d="M50,10 L50,90 M10,50 L90,50" stroke="#3b82f6" strokeWidth="0.5" opacity="0.3"/>
+              <circle cx="20" cy="20" r="1.5" fill="#10b981" opacity="0.4"/>
+              <circle cx="80" cy="80" r="1.5" fill="#f59e0b" opacity="0.4"/>
+              <path d="M20,20 L35,35 M65,65 L80,80" stroke="#8b5cf6" strokeWidth="1" opacity="0.3"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#electrical-grid)"/>
+        </svg>
+      </div>
+
+      {/* Hero Section with Featured Event */}
+      {currentFeaturedEvent && (
+        <section className="relative min-h-screen flex items-center py-12 px-4 sm:px-6 lg:px-8 overflow-hidden">
+          {/* Background Blur Container */}
+          <div className="absolute inset-0">
+            {/* Blurred Background Image */}
+            {currentFeaturedEvent.poster_image && (
+              <div className="absolute inset-0">
+                <Image
+                  src={currentFeaturedEvent.poster_image}
+                  alt={currentFeaturedEvent.title}
+                  fill
+                  className="object-cover blur-2xl scale-110 opacity-30"
+                  priority
+                />
+              </div>
+            )}
+            
+            {/* Glass overlay */}
+            <div className="absolute inset-0 bg-white/20 backdrop-blur-sm"></div>
+            
+            {/* Electrical Circuit Overlay */}
+            <div className="absolute inset-0 opacity-10">
+              <svg viewBox="0 0 1000 1000" className="w-full h-full">
+                <defs>
+                  <pattern id="hero-circuit" x="0" y="0" width="50" height="50" patternUnits="userSpaceOnUse">
+                    <circle cx="25" cy="25" r="2" fill="#3b82f6"/>
+                    <path d="M5,25 L45,25 M25,5 L25,45" stroke="#3b82f6" strokeWidth="1"/>
+                    <rect x="20" y="20" width="10" height="10" fill="none" stroke="#10b981" strokeWidth="0.5"/>
+                  </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#hero-circuit)"/>
+              </svg>
+            </div>
           </div>
-          {canCreateEvents && (
-            <Button className="bg-indigo-600 hover:bg-indigo-700">
-              <Plus className="w-4 h-4 mr-2" />
-              Create Event
-            </Button>
-          )}
+
+          <div className="relative z-10 max-w-7xl mx-auto w-full">
+            <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+              {/* Left Column - Event Poster */}
+              <div className="flex flex-col items-start space-y-4">
+                {/* Event Poster */}
+                <div className="w-32 md:w-48 lg:w-64 aspect-[3/4] overflow-hidden shadow-2xl backdrop-blur-md bg-white/40 border border-white/30">
+                  {currentFeaturedEvent.poster_image ? (
+                    <Image
+                      src={currentFeaturedEvent.poster_image}
+                      alt={currentFeaturedEvent.title}
+                      width={256}
+                      height={340}
+                      className="w-full h-full object-cover"
+                      priority
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                      <Calendar className="w-16 h-16 text-white" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Register Button */}
+                <Button
+                  onClick={() => handleRegister(currentFeaturedEvent)}
+                  disabled={registering}
+                  className="w-32 md:w-48 lg:w-64 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 shadow-lg backdrop-blur-md border border-white/30 transition-all duration-300"
+                >
+                  <UserPlus className="w-5 h-5 mr-2" />
+                  {registering ? 'Registering...' : 'Register Now'}
+                </Button>
+              </div>
+
+              {/* Right Column - Event Content */}
+              <div className="space-y-6">
+                <div>
+                  <h1 className="text-4xl lg:text-6xl font-bold text-gray-900 mb-4">
+                    {currentFeaturedEvent.title}
+                  </h1>
+                  
+                  <p className="text-lg lg:text-xl text-gray-700 leading-relaxed">
+                    {currentFeaturedEvent.description}
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Date Badge */}
+                  <div className="inline-flex items-center px-4 py-2 backdrop-blur-md bg-white/40 border border-white/30 shadow-lg">
+                    <Calendar className="w-5 h-5 mr-3 text-blue-600" />
+                    <span className="font-semibold text-gray-900">{new Date(currentFeaturedEvent.start_date).toLocaleDateString()}</span>
+                  </div>
+
+                  {/* Time */}
+                  <div className="flex items-center text-gray-800">
+                    <Clock className="w-5 h-5 mr-3 text-green-600" />
+                    <span className="text-lg font-medium">{new Date(currentFeaturedEvent.start_date).toLocaleTimeString()}</span>
+                  </div>
+
+                  {/* Location Badge */}
+                  <div className="inline-flex items-center px-4 py-2 backdrop-blur-md bg-white/40 border border-white/30 shadow-lg">
+                    <MapPin className="w-5 h-5 mr-3 text-red-600" />
+                    <span className="font-semibold text-gray-900">{currentFeaturedEvent.location}</span>
+                  </div>
+
+                  {/* Capacity */}
+                  {currentFeaturedEvent.registration_count !== undefined && currentFeaturedEvent.max_participants && (
+                    <div className="flex items-center text-gray-800">
+                      <Users className="w-5 h-5 mr-3 text-purple-600" />
+                      <span className="text-lg font-medium">
+                        {currentFeaturedEvent.registration_count}/{currentFeaturedEvent.max_participants} registered
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            {/* Centered Event Navigation Dots */}
+            {featuredEvents.length > 1 && (
+              <div className="flex justify-center py-6">
+                <div className="flex items-center gap-3 p-4 backdrop-blur-md bg-white/40 border border-white/30 shadow-lg">
+                  <div className="flex gap-2">
+                    {featuredEvents.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setCurrentFeaturedIndex(index)}
+                        className={`w-3 h-3 transition-all duration-300 ${
+                          index === currentFeaturedIndex 
+                            ? 'bg-blue-600 scale-125 shadow-lg' 
+                            : 'bg-white/60 backdrop-blur-sm hover:bg-white/80'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Registration Form Section */}
+      <section className="py-12 px-4 sm:px-6 lg:px-8 relative">
+        {/* Circuit Board Background */}
+        <div className="absolute inset-0 opacity-5">
+          <svg viewBox="0 0 800 600" className="w-full h-full">
+            <defs>
+              <pattern id="registration-circuit" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+                <circle cx="20" cy="20" r="1.5" fill="#3b82f6"/>
+                <path d="M5,20 L35,20 M20,5 L20,35" stroke="#3b82f6" strokeWidth="0.8"/>
+                <rect x="15" y="15" width="10" height="10" fill="none" stroke="#10b981" strokeWidth="0.5"/>
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#registration-circuit)"/>
+          </svg>
         </div>
 
-        {/* Search and Filters */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-          {/* Search Bar */}
-          <div className="mb-6">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+        <div className="max-w-md mx-auto relative z-10">
+          <div className="bg-white/10 backdrop-blur-sm border border-white/20 shadow-xl p-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Quick Registration</h2>
+            
+            <div className="space-y-4">
               <Input
                 type="text"
-                placeholder="Search events by title, description, or location..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 w-full"
+                placeholder="Your Name"
+                value={registrationData.guest_name}
+                onChange={(e) => setRegistrationData({...registrationData, guest_name: e.target.value})}
+                className="bg-white/50 border-white/30"
               />
-            </div>
-          </div>
-
-          {/* Filters */}
-          <div className="flex flex-wrap gap-4 items-center">
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-gray-500" />
-              <span className="text-sm font-medium text-gray-700">
-                Filter by:
-              </span>
-            </div>
-
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={showPastEvents}
-                onChange={(e) => setShowPastEvents(e.target.checked)}
-                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              
+              <Input
+                type="email"
+                placeholder="Email Address"
+                value={registrationData.guest_email}
+                onChange={(e) => setRegistrationData({...registrationData, guest_email: e.target.value})}
+                className="bg-white/50 border-white/30"
               />
-              <span className="text-sm text-gray-700">Show past events</span>
-            </label>
+              
+              <Input
+                type="tel"
+                placeholder="Phone Number (Optional)"
+                value={registrationData.guest_phone}
+                onChange={(e) => setRegistrationData({...registrationData, guest_phone: e.target.value})}
+                className="bg-white/50 border-white/30"
+              />
+              
+              <select
+                value={registrationData.guest_department}
+                onChange={(e) => setRegistrationData({...registrationData, guest_department: e.target.value as 'electrical' | 'electronics' | 'computer' | 'mechanical' | 'civil' | 'other'})}
+                className="w-full px-3 py-2 bg-white/50 border border-white/30 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="electrical">Electrical Engineering</option>
+                <option value="electronics">Electronics Engineering</option>
+                <option value="computer">Computer Engineering</option>
+                <option value="mechanical">Mechanical Engineering</option>
+                <option value="civil">Civil Engineering</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
           </div>
         </div>
+      </section>
 
-        {/* Events Grid */}
-        {filteredEvents.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-            <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No events found
-            </h3>
-            <p className="text-gray-600">
-              {searchTerm
-                ? "Try adjusting your search criteria"
-                : "There are no upcoming events at the moment"}
-            </p>
+      {/* Events Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 relative">
+        {/* Circuit Board Background */}
+        <div className="absolute inset-0 opacity-10">
+          <svg viewBox="0 0 1200 800" className="w-full h-full">
+            <defs>
+              <pattern id="events-circuit" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+                <circle cx="30" cy="30" r="2" fill="#3b82f6"/>
+                <path d="M10,30 L50,30 M30,10 L30,50" stroke="#3b82f6" strokeWidth="1"/>
+                <circle cx="15" cy="15" r="1" fill="#10b981"/>
+                <circle cx="45" cy="45" r="1" fill="#f59e0b"/>
+                <path d="M15,15 L25,25 M35,35 L45,45" stroke="#8b5cf6" strokeWidth="0.8"/>
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#events-circuit)"/>
+          </svg>
+        </div>
+
+        <div className="max-w-7xl mx-auto relative z-10">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              {showPastEvents ? 'Past Events' : 'Upcoming Events'}
+            </h2>
+            
+            <div className="flex justify-center gap-4 mb-8">
+              {canCreateEvents && (
+                <Link href="/admin/events/create">
+                  <Button className="bg-green-600 hover:bg-green-700 text-white">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Event
+                  </Button>
+                </Link>
+              )}
+              
+              <Button
+                variant="outline"
+                onClick={() => setShowPastEvents(!showPastEvents)}
+                className="border-blue-300 text-blue-600 hover:bg-blue-50"
+              >
+                {showPastEvents ? 'View Upcoming' : 'View Past Events'}
+              </Button>
+            </div>
           </div>
-        ) : (
-          <EventsCarousel events={filteredEvents} onRegister={handleRegister} registering={registering} />
-        )}
 
-        {/* Guest Registration Modal */}
-        {registrationModal.isOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg max-w-md w-full p-6">
-              <h3 className="text-lg font-semibold mb-4">
-                Register for {registrationModal.event?.title}
+          {displayEvents.length > 0 ? (
+            <EventsCarousel
+              events={displayEvents}
+              onRegister={handleRegister}
+              registering={registering}
+            />
+          ) : (
+            <div className="text-center py-12">
+              <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                No {showPastEvents ? 'past' : 'upcoming'} events found
               </h3>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name *
-                  </label>
-                  <Input
-                    type="text"
-                    value={guestFormData.guest_name}
-                    onChange={(e) =>
-                      setGuestFormData({
-                        ...guestFormData,
-                        guest_name: e.target.value,
-                      })
-                    }
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email *
-                  </label>
-                  <Input
-                    type="email"
-                    value={guestFormData.guest_email}
-                    onChange={(e) =>
-                      setGuestFormData({
-                        ...guestFormData,
-                        guest_email: e.target.value,
-                      })
-                    }
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone
-                  </label>
-                  <Input
-                    type="tel"
-                    value={guestFormData.guest_phone}
-                    onChange={(e) =>
-                      setGuestFormData({
-                        ...guestFormData,
-                        guest_phone: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Semester
-                  </label>
-                  <select
-                    value={guestFormData.guest_semester || ""}
-                    onChange={(e) =>
-                      setGuestFormData({
-                        ...guestFormData,
-                        guest_semester: e.target.value
-                          ? parseInt(e.target.value)
-                          : undefined,
-                      })
-                    }
-                    className="w-full p-2 border border-gray-300 rounded-md"
-                  >
-                    <option value="">Select Semester</option>
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
-                      <option key={sem} value={sem}>
-                        Semester {sem}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Department
-                  </label>
-                  <select
-                    value={guestFormData.guest_department || ""}
-                    onChange={(e) =>
-                      setGuestFormData({
-                        ...guestFormData,
-                        guest_department: e.target.value
-                          ? (e.target.value as
-                              | "electrical"
-                              | "electronics"
-                              | "computer"
-                              | "mechanical"
-                              | "civil"
-                              | "other")
-                          : undefined,
-                      })
-                    }
-                    className="w-full p-2 border border-gray-300 rounded-md"
-                  >
-                    <option value="">Select Department</option>
-                    <option value="electrical">Electrical</option>
-                    <option value="electronics">Electronics</option>
-                    <option value="computer">Computer</option>
-                    <option value="mechanical">Mechanical</option>
-                    <option value="civil">Civil</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    setRegistrationModal({ isOpen: false, event: null })
-                  }
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleGuestRegistration}
-                  disabled={
-                    registering ||
-                    !guestFormData.guest_name ||
-                    !guestFormData.guest_email
-                  }
-                  className="flex-1"
-                >
-                  {registering ? "Registering..." : "Register"}
-                </Button>
-              </div>
+              <p className="text-gray-500">
+                {showPastEvents
+                  ? 'No past events to display.'
+                  : 'Stay tuned for exciting upcoming events!'}
+              </p>
             </div>
-          </div>
-        )}
+          )}
         </div>
-      </div>
+      </section>
     </>
   );
 }
