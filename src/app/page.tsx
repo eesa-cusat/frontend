@@ -1,185 +1,322 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Calendar, BookOpen, Users, Briefcase, ArrowRight, Sparkles, Star } from "lucide-react";
+import { Linkedin, Facebook, Twitter } from "lucide-react";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-white font-sans">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800 text-white">
-        <div className="absolute inset-0 bg-black/10"></div>
-        
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
-          <div className="text-center">
-            <div className="inline-flex items-center px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-sm font-medium mb-8 border border-white/20">
-              <Sparkles className="w-4 h-4 mr-2" />
-              Premier Engineering Platform
-            </div>
-
-            <h1 className="text-5xl md:text-7xl font-bold mb-8 leading-tight">
-              Welcome to{" "}
-              <span className="bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
-                EESA
-              </span>
-            </h1>
-            
-            <p className="text-xl md:text-2xl mb-12 max-w-4xl mx-auto opacity-90 leading-relaxed">
-              The premier platform for Electrical and Electronics Engineering students, 
-              teachers, and alumni to connect, collaborate, and grow together in the 
-              digital age of innovation.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-              <Link href="/events">
-                <Button
-                  size="lg"
-                  className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
-                >
-                  <Calendar className="w-5 h-5 mr-2" />
-                  Explore Events
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </Link>
-              <Link href="/academics">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="border-white/30 text-white hover:bg-white/10 px-8 py-4 text-lg font-semibold rounded-xl backdrop-blur-sm transition-all duration-300 transform hover:-translate-y-1"
-                >
-                  <BookOpen className="w-5 h-5 mr-2" />
-                  Academic Resources
-                </Button>
-              </Link>
-            </div>
-
-            {/* Quick Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
-              {[
-                { number: "500+", label: "Active Members", icon: Users },
-                { number: "1000+", label: "Study Materials", icon: BookOpen },
-                { number: "50+", label: "Events Hosted", icon: Calendar },
-                { number: "200+", label: "Career Placements", icon: Briefcase }
-              ].map((stat, index) => (
-                <div key={index} className="text-center group">
-                  <div className="w-16 h-16 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-3 group-hover:bg-white/20 transition-colors">
-                    <stat.icon className="w-8 h-8 text-white" />
-                  </div>
-                  <div className="text-2xl md:text-3xl font-bold mb-1">{stat.number}</div>
-                  <div className="text-sm opacity-80">{stat.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-20 bg-gradient-to-br from-gray-50 to-blue-50">
+      <section className="bg-white py-12 md:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-6">
-              Everything You Need in One Place
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Discover all the tools and resources designed to enhance your
-              academic and professional journey in electrical engineering.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-8">
-            {[
-              {
-                icon: BookOpen,
-                title: "Digital Library",
-                description: "Access comprehensive study materials, notes, and academic resources shared by peers and faculty.",
-                href: "/academics"
-              },
-              {
-                icon: Calendar,
-                title: "Events & Workshops",
-                description: "Stay updated with cutting-edge workshops, seminars, and technical events in the EE community.",
-                href: "/events"
-              },
-              {
-                icon: Briefcase,
-                title: "Career Opportunities",
-                description: "Discover internships, job openings, and career guidance from industry professionals and alumni.",
-                href: "/career"
-              },
-              {
-                icon: Users,
-                title: "Community Projects",
-                description: "Collaborate on innovative projects and showcase your work to the global engineering community.",
-                href: "/projects"
-              },
-            ].map((feature, index) => (
-              <div
-                key={index}
-                className="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 border border-gray-100"
-              >
-                <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <feature.icon className="w-8 h-8 text-blue-600" />
-                </div>
-                
-                <h3 className="text-2xl font-bold text-gray-900 mb-4 group-hover:text-blue-600 transition-colors">
-                  {feature.title}
-                </h3>
-                
-                <p className="text-gray-600 mb-6 leading-relaxed">
-                  {feature.description}
-                </p>
-                
-                <Link href={feature.href}>
-                  <Button
-                    variant="outline"
-                    className="group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 transition-all duration-300"
-                  >
-                    Explore
-                    <ArrowRight className="w-4 h-4 ml-2" />
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            {/* Left Content */}
+            <div className="space-y-6 lg:space-y-8 order-2 lg:order-1">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-medium text-black leading-tight">
+                Electrical Engineering Students Association, CUSAT
+              </h1>
+              
+              <p className="text-base md:text-lg lg:text-xl text-black leading-relaxed">
+                EESA is a vibrant student-led body under the Department of Electrical Engineering, CUSAT, that fosters innovation, leadership, and technical excellence through dynamic academic and co-curricular initiatives.
+              </p>
+              
+              <div className="pt-4">
+                <Link href="/events">
+                  <Button className="bg-black text-white hover:bg-gray-800 px-6 lg:px-8 py-3 lg:py-4 text-base lg:text-lg font-medium rounded-xl transition-colors">
+                    Explore Now
                   </Button>
                 </Link>
               </div>
-            ))}
+            </div>
+            
+            {/* Right Graphic - Electrical Tower */}
+            <div className="relative order-1 lg:order-2 flex justify-center">
+              <div className="relative">
+                <Image
+                  src="/electrical-tower.svg"
+                  alt="Electrical Tower"
+                  width={300}
+                  height={400}
+                  className="w-64 h-80 lg:w-80 lg:h-96"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Call to Action */}
-      <section className="py-20 bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800 relative overflow-hidden">
-        <div className="absolute inset-0 bg-black/10"></div>
-        
-        <div className="relative max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <div className="inline-flex items-center px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-sm font-medium mb-8 border border-white/20">
-            <Star className="w-4 h-4 mr-2" />
-            Join Our Community
+      {/* Marquee Notifications */}
+      <section className="py-4 bg-white overflow-hidden">
+        <div className="whitespace-nowrap animate-marquee">
+          <span className="text-black text-lg md:text-xl font-medium mx-4">
+            🎉 Welcome to EESA CUSAT - Join our upcoming tech fest registration open now
+          </span>
+          <span className="text-black text-lg md:text-xl font-medium mx-4">
+            📚 New study materials uploaded for Electrical Engineering semester exams
+          </span>
+          <span className="text-black text-lg md:text-xl font-medium mx-4">
+            🔬 Research paper submission deadline extended till August 15th
+          </span>
+          <span className="text-black text-lg md:text-xl font-medium mx-4">
+            💼 Campus placement drive by leading companies starting next week
+          </span>
+          <span className="text-black text-lg md:text-xl font-medium mx-4">
+            🎓 Alumni meetup scheduled for August 20th - register now
+          </span>
+        </div>
+      </section>
+
+      {/* Events Section */}
+      <section className="py-12 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-8">
+            <div className="inline-block bg-lime-400 text-black px-6 py-2 rounded-full text-lg font-medium mb-6">
+              Events
+            </div>
+            
+            {/* Events Description Text */}
+            <div className="max-w-4xl mx-auto text-left space-y-4 mb-8">
+              <p className="text-lg text-gray-600 leading-relaxed">
+                Discover upcoming workshops, seminars, and technical events designed to enhance your engineering skills and career prospects.
+              </p>
+              <p className="text-lg text-gray-600 leading-relaxed">
+                From industry expert talks to hands-on coding sessions, join us for exciting learning opportunities.
+              </p>
+            </div>
           </div>
           
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-            Ready to Explore EESA?
-          </h2>
-          <p className="text-xl text-blue-100 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Connect with the community, access resources, and stay updated with
-            the latest events and opportunities in electrical engineering.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/events">
-              <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                <Calendar className="w-5 h-5 mr-2" />
-                Explore Events
-              </Button>
-            </Link>
-            <Link href="/academics">
-              <Button size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10 px-8 py-4 text-lg font-semibold rounded-xl backdrop-blur-sm transition-all duration-300 transform hover:-translate-y-1">
-                <BookOpen className="w-5 h-5 mr-2" />
-                Browse Resources
-              </Button>
-            </Link>
+          {/* Events Container - 3 Fixed Cards */}
+          <div className="relative">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              {/* Card 1 */}
+              <div className="w-full h-48 bg-gray-900 rounded-3xl border border-gray-200 flex items-center justify-center overflow-hidden relative">
+                <div className="animate-carousel-left-1-set1 absolute inset-0 flex items-center justify-center">
+                  <span className="text-white text-lg font-medium">Tech Workshop</span>
+                </div>
+                <div className="animate-carousel-left-1-set2 absolute inset-0 flex items-center justify-center">
+                  <span className="text-white text-lg font-medium">Industry Talk</span>
+                </div>
+                <div className="animate-carousel-left-1-set3 absolute inset-0 flex items-center justify-center">
+                  <span className="text-white text-lg font-medium">Hackathon 2024</span>
+                </div>
+                <div className="animate-carousel-left-1-set4 absolute inset-0 flex items-center justify-center">
+                  <span className="text-white text-lg font-medium">Career Fair</span>
+                </div>
+                <div className="animate-carousel-left-1-set5 absolute inset-0 flex items-center justify-center">
+                  <span className="text-white text-lg font-medium">Alumni Meet</span>
+                </div>
+                <div className="animate-carousel-left-1-set6 absolute inset-0 flex items-center justify-center">
+                  <span className="text-white text-lg font-medium">Research Expo</span>
+                </div>
+              </div>
+              
+              {/* Card 2 - Hidden on mobile */}
+              <div className="hidden sm:flex w-full h-48 bg-gray-900 rounded-3xl border border-gray-200 items-center justify-center overflow-hidden relative">
+                <div className="animate-carousel-left-2-set1 absolute inset-0 flex items-center justify-center">
+                  <span className="text-white text-lg font-medium">Industry Talk</span>
+                </div>
+                <div className="animate-carousel-left-2-set2 absolute inset-0 flex items-center justify-center">
+                  <span className="text-white text-lg font-medium">Hackathon 2024</span>
+                </div>
+                <div className="animate-carousel-left-2-set3 absolute inset-0 flex items-center justify-center">
+                  <span className="text-white text-lg font-medium">Career Fair</span>
+                </div>
+                <div className="animate-carousel-left-2-set4 absolute inset-0 flex items-center justify-center">
+                  <span className="text-white text-lg font-medium">Alumni Meet</span>
+                </div>
+                <div className="animate-carousel-left-2-set5 absolute inset-0 flex items-center justify-center">
+                  <span className="text-white text-lg font-medium">Research Expo</span>
+                </div>
+                <div className="animate-carousel-left-2-set6 absolute inset-0 flex items-center justify-center">
+                  <span className="text-white text-lg font-medium">Tech Workshop</span>
+                </div>
+              </div>
+              
+              {/* Card 3 - Hidden on mobile */}
+              <div className="hidden sm:flex w-full h-48 bg-gray-900 rounded-3xl border border-gray-200 items-center justify-center overflow-hidden relative">
+                <div className="animate-carousel-left-3-set1 absolute inset-0 flex items-center justify-center">
+                  <span className="text-white text-lg font-medium">Hackathon 2024</span>
+                </div>
+                <div className="animate-carousel-left-3-set2 absolute inset-0 flex items-center justify-center">
+                  <span className="text-white text-lg font-medium">Career Fair</span>
+                </div>
+                <div className="animate-carousel-left-3-set3 absolute inset-0 flex items-center justify-center">
+                  <span className="text-white text-lg font-medium">Alumni Meet</span>
+                </div>
+                <div className="animate-carousel-left-3-set4 absolute inset-0 flex items-center justify-center">
+                  <span className="text-white text-lg font-medium">Research Expo</span>
+                </div>
+                <div className="animate-carousel-left-3-set5 absolute inset-0 flex items-center justify-center">
+                  <span className="text-white text-lg font-medium">Tech Workshop</span>
+                </div>
+                <div className="animate-carousel-left-3-set6 absolute inset-0 flex items-center justify-center">
+                  <span className="text-white text-lg font-medium">Industry Talk</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Dots Indicator */}
+            <div className="flex justify-center space-x-2 mt-6">
+              <div className="w-3 h-3 bg-gray-900 rounded-full animate-dot-6-1"></div>
+              <div className="w-3 h-3 bg-gray-300 rounded-full animate-dot-6-2"></div>
+              <div className="w-3 h-3 bg-gray-300 rounded-full animate-dot-6-3"></div>
+              <div className="w-3 h-3 bg-gray-300 rounded-full animate-dot-6-4"></div>
+              <div className="w-3 h-3 bg-gray-300 rounded-full animate-dot-6-5"></div>
+              <div className="w-3 h-3 bg-gray-300 rounded-full animate-dot-6-6"></div>
+            </div>
           </div>
         </div>
       </section>
+
+      {/* Projects Section */}
+      <section className="py-12 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-8">
+            <div className="inline-block bg-lime-400 text-black px-6 py-2 rounded-full text-lg font-medium mb-6">
+              Projects
+            </div>
+            
+            {/* Projects Description Text */}
+            <div className="max-w-4xl mx-auto text-left space-y-4 mb-8">
+              <p className="text-lg text-gray-600 leading-relaxed">
+                Explore innovative student projects ranging from IoT solutions to renewable energy systems and smart grid technologies.
+              </p>
+              <p className="text-lg text-gray-600 leading-relaxed">
+                Join collaborative research initiatives and contribute to cutting-edge developments in electrical engineering.
+              </p>
+            </div>
+          </div>
+          
+          {/* Projects Container - 3 Fixed Cards */}
+          <div className="relative">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              {/* Card 1 */}
+              <div className="w-full h-48 bg-gray-900 rounded-3xl border-2 border-gray-900 overflow-hidden relative">
+                <div className="animate-carousel-left-1-set1 absolute inset-0 flex items-center justify-center">
+                  <span className="text-white text-lg font-medium">Smart Grid IoT</span>
+                </div>
+                <div className="animate-carousel-left-1-set2 absolute inset-0 flex items-center justify-center">
+                  <span className="text-white text-lg font-medium">Solar Tracker</span>
+                </div>
+                <div className="animate-carousel-left-1-set3 absolute inset-0 flex items-center justify-center">
+                  <span className="text-white text-lg font-medium">EV Charger</span>
+                </div>
+                <div className="animate-carousel-left-1-set4 absolute inset-0 flex items-center justify-center">
+                  <span className="text-white text-lg font-medium">Power Monitor</span>
+                </div>
+                <div className="animate-carousel-left-1-set5 absolute inset-0 flex items-center justify-center">
+                  <span className="text-white text-lg font-medium">Home Automation</span>
+                </div>
+                <div className="animate-carousel-left-1-set6 absolute inset-0 flex items-center justify-center">
+                  <span className="text-white text-lg font-medium">Wind Turbine</span>
+                </div>
+              </div>
+              
+              {/* Card 2 - Hidden on mobile */}
+              <div className="hidden sm:flex w-full h-48 bg-gray-50 rounded-3xl border-2 border-gray-900 items-center justify-center overflow-hidden relative">
+                <div className="animate-carousel-left-2-set1 absolute inset-0 flex items-center justify-center">
+                  <span className="text-black text-lg font-medium">Solar Tracker</span>
+                </div>
+                <div className="animate-carousel-left-2-set2 absolute inset-0 flex items-center justify-center">
+                  <span className="text-black text-lg font-medium">EV Charger</span>
+                </div>
+                <div className="animate-carousel-left-2-set3 absolute inset-0 flex items-center justify-center">
+                  <span className="text-black text-lg font-medium">Power Monitor</span>
+                </div>
+                <div className="animate-carousel-left-2-set4 absolute inset-0 flex items-center justify-center">
+                  <span className="text-black text-lg font-medium">Home Automation</span>
+                </div>
+                <div className="animate-carousel-left-2-set5 absolute inset-0 flex items-center justify-center">
+                  <span className="text-black text-lg font-medium">Wind Turbine</span>
+                </div>
+                <div className="animate-carousel-left-2-set6 absolute inset-0 flex items-center justify-center">
+                  <span className="text-black text-lg font-medium">Smart Grid IoT</span>
+                </div>
+              </div>
+              
+              {/* Card 3 - Hidden on mobile */}
+              <div className="hidden sm:flex w-full h-48 bg-lime-400 rounded-3xl border-2 border-gray-900 items-center justify-center overflow-hidden relative">
+                <div className="animate-carousel-left-3-set1 absolute inset-0 flex items-center justify-center">
+                  <span className="text-black text-lg font-medium">EV Charger</span>
+                </div>
+                <div className="animate-carousel-left-3-set2 absolute inset-0 flex items-center justify-center">
+                  <span className="text-black text-lg font-medium">Power Monitor</span>
+                </div>
+                <div className="animate-carousel-left-3-set3 absolute inset-0 flex items-center justify-center">
+                  <span className="text-black text-lg font-medium">Home Automation</span>
+                </div>
+                <div className="animate-carousel-left-3-set4 absolute inset-0 flex items-center justify-center">
+                  <span className="text-black text-lg font-medium">Wind Turbine</span>
+                </div>
+                <div className="animate-carousel-left-3-set5 absolute inset-0 flex items-center justify-center">
+                  <span className="text-black text-lg font-medium">Smart Grid IoT</span>
+                </div>
+                <div className="animate-carousel-left-3-set6 absolute inset-0 flex items-center justify-center">
+                  <span className="text-black text-lg font-medium">Solar Tracker</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Dots Indicator */}
+            <div className="flex justify-center space-x-2 mt-6">
+              <div className="w-3 h-3 bg-gray-900 rounded-full animate-dot-6-1"></div>
+              <div className="w-3 h-3 bg-gray-300 rounded-full animate-dot-6-2"></div>
+              <div className="w-3 h-3 bg-gray-300 rounded-full animate-dot-6-3"></div>
+              <div className="w-3 h-3 bg-gray-300 rounded-full animate-dot-6-4"></div>
+              <div className="w-3 h-3 bg-gray-300 rounded-full animate-dot-6-5"></div>
+              <div className="w-3 h-3 bg-gray-300 rounded-full animate-dot-6-6"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+            {/* Logo and Contact */}
+            <div className="space-y-6 text-center md:text-left">
+              <div className="flex items-center justify-center md:justify-start">
+                <Image
+                  src="/eesa-logo.svg"
+                  alt="EESA Logo"
+                  width={40}
+                  height={40}
+                  className="w-10 h-10 filter invert"
+                />
+                <span className="ml-3 text-xl font-bold">EESA</span>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="inline-block bg-lime-400 text-black px-4 py-2 rounded-full text-sm font-medium">
+                  Contact us:
+                </div>
+                <p className="text-gray-300">Email: info@eesa.cusat.ac.in</p>
+              </div>
+            </div>
+            
+            {/* Social Media */}
+            <div className="flex items-center justify-center space-x-4">
+              <a href="#" className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-700 transition-colors border border-gray-700">
+                <Linkedin className="w-5 h-5" />
+              </a>
+              <a href="#" className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-700 transition-colors border border-gray-700">
+                <Facebook className="w-5 h-5" />
+              </a>
+              <a href="#" className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-700 transition-colors border border-gray-700">
+                <Twitter className="w-5 h-5" />
+              </a>
+            </div>
+            
+            {/* Copyright */}
+            <div className="text-center md:text-right">
+              <p className="text-gray-400 text-sm">© EESA CUSAT All Rights Reserved.</p>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 } 

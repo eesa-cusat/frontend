@@ -194,19 +194,19 @@ const PlacementsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white font-sans">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-indigo-600 to-purple-800 text-white py-20">
+      <section className="bg-white py-12 md:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">
+            <h1 className="text-4xl md:text-6xl font-bold mb-6 text-black">
               Career Placements
             </h1>
-            <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto opacity-90">
+            <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto text-gray-600">
               Your gateway to exciting career opportunities and industry
               connections
             </p>
-            <div className="flex items-center justify-center space-x-4">
+            <div className="flex items-center justify-center space-x-4 text-gray-600">
               <Briefcase className="w-8 h-8" />
               <span className="text-lg font-medium">Building Futures</span>
             </div>

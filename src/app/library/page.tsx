@@ -247,13 +247,13 @@ export default function LibraryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              <h1 className="text-3xl font-bold text-black mb-2">
                 Digital Library
               </h1>
               <p className="text-lg text-gray-600">
@@ -620,6 +620,6 @@ export default function LibraryPage() {
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }

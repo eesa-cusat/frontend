@@ -126,20 +126,19 @@ const AlumniPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-white font-sans">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white py-20 relative overflow-hidden">
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="bg-white py-12 md:py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <div className="flex items-center justify-center mb-6">
-              <GraduationCap className="w-12 h-12 mr-4" />
-              <h1 className="text-4xl md:text-6xl font-bold">Alumni Network</h1>
+              <GraduationCap className="w-12 h-12 mr-4 text-black" />
+              <h1 className="text-4xl md:text-6xl font-bold text-black">Alumni Network</h1>
             </div>
-            <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto opacity-90">
+            <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto text-gray-600">
               Connecting generations of electrical engineering excellence
             </p>
-            <div className="flex items-center justify-center space-x-6 text-lg">
+            <div className="flex items-center justify-center space-x-6 text-lg text-gray-600">
               <div className="flex items-center">
                 <Users className="w-5 h-5 mr-2" />
                 <span>{stats?.total_alumni || 0}+ Alumni</span>
