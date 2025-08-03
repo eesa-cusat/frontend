@@ -289,19 +289,84 @@ const AcademicsPage = () => {
 
   if (showFilters) {
     return (
-      <div className="min-h-screen bg-white pt-20">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          {/* Header with illustration */}
+      <div className="min-h-screen bg-white pt-20 relative overflow-hidden">
+        {/* Background electrical pattern */}
+        <div className="absolute inset-0 opacity-5">
+          <svg className="w-full h-full" viewBox="0 0 1200 800" fill="none">
+            {/* Main circuit lines */}
+            <path d="M0 200 L400 200 L400 400 L800 400 L800 200 L1200 200" stroke="currentColor" strokeWidth="2"/>
+            <path d="M200 0 L200 800" stroke="currentColor" strokeWidth="1"/>
+            <path d="M600 0 L600 800" stroke="currentColor" strokeWidth="1"/>
+            <path d="M1000 0 L1000 800" stroke="currentColor" strokeWidth="1"/>
+            
+            {/* Electronic components */}
+            <circle cx="200" cy="200" r="8" fill="currentColor"/>
+            <circle cx="600" cy="400" r="8" fill="currentColor"/>
+            <circle cx="1000" cy="200" r="8" fill="currentColor"/>
+            
+            {/* Resistor symbols */}
+            <path d="M350 200 L360 180 L380 220 L400 180 L420 220 L440 200" stroke="currentColor" strokeWidth="2" fill="none"/>
+            <path d="M750 400 L760 380 L780 420 L800 380 L820 420 L840 400" stroke="currentColor" strokeWidth="2" fill="none"/>
+          </svg>
+        </div>
+        
+        {/* Floating electrical icons */}
+        <div className="absolute top-20 left-10 opacity-10 animate-pulse">
+          <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+        </div>
+        <div className="absolute top-40 right-20 opacity-10 animate-pulse" style={{animationDelay: '1s'}}>
+          <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="m3 12 3-3m6 6 3-3m-3-6-3 3"/>
+          </svg>
+        </div>
+        
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
+          {/* Header with enhanced illustration */}
           <div className="text-center mb-12">
             <div className="flex justify-center mb-8">
               <div className="relative">
-                <div className="w-64 h-48 bg-lime-400 rounded-3xl flex items-center justify-center">
-                  <FileText className="w-24 h-24 text-black" />
+                <div className="w-64 h-48 bg-lime-400 rounded-3xl flex items-center justify-center relative overflow-hidden">
+                  {/* Background electrical pattern */}
+                  <svg className="absolute inset-0 w-full h-full opacity-20" viewBox="0 0 256 192" fill="none">
+                    <path d="M32 48 L224 48 M32 96 L128 96 L128 144 L224 144" stroke="currentColor" strokeWidth="2"/>
+                    <circle cx="80" cy="48" r="4" fill="currentColor"/>
+                    <circle cx="176" cy="144" r="4" fill="currentColor"/>
+                    <path d="M140 48 L145 43 L150 53 L155 43 L160 53 L165 48" stroke="currentColor" strokeWidth="2" fill="none"/>
+                  </svg>
+                  
+                  <FileText className="w-24 h-24 text-black relative z-10" />
+                  
+                  {/* Enhanced decorative elements */}
                   <div className="absolute -top-4 -right-4 w-16 h-16 bg-black rounded-full flex items-center justify-center">
-                    <div className="w-3 h-3 bg-white rounded-full"></div>
-                    <div className="w-2 h-2 bg-white rounded-full ml-1"></div>
+                    <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M13 2L3 14h6l-1 8 10-12h-6l1-8z"/>
+                    </svg>
                   </div>
-                  <div className="absolute -bottom-2 -left-2 w-12 h-12 border-4 border-black rounded-full bg-white"></div>
+                  <div className="absolute -bottom-2 -left-2 w-12 h-12 border-4 border-black rounded-full bg-white flex items-center justify-center">
+                    <svg className="w-6 h-6 text-lime-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="2"/>
+                      <path d="m3 12 3-3m6 6 3-3m-3-6-3 3"/>
+                    </svg>
+                  </div>
+                  
+                  {/* Floating particles */}
+                  <div className="absolute top-4 left-4 w-2 h-2 bg-black opacity-40 rounded-full"></div>
+                  <div className="absolute bottom-6 right-6 w-3 h-3 bg-black opacity-30 rounded-full"></div>
+                </div>
+                
+                {/* Additional floating elements */}
+                <div className="absolute -top-6 -left-6 opacity-30">
+                  <svg className="w-8 h-8 text-black" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                  </svg>
+                </div>
+                <div className="absolute -bottom-6 -right-6 opacity-30">
+                  <svg className="w-6 h-6 text-lime-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
                 </div>
               </div>
             </div>
@@ -344,8 +409,39 @@ const AcademicsPage = () => {
               </div>
             </div>
           ) : (
-            <div className="bg-gray-50 rounded-3xl p-8 space-y-6 min-h-[500px]">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-gray-50 rounded-3xl p-8 space-y-6 min-h-[500px] relative overflow-hidden">
+              {/* Electrical circuit pattern background */}
+              <svg className="absolute inset-0 w-full h-full opacity-5" viewBox="0 0 400 300" fill="none">
+                <path d="M50 75 L350 75 M50 150 L200 150 L200 225 L350 225" stroke="currentColor" strokeWidth="2"/>
+                <path d="M100 50 L100 250" stroke="currentColor" strokeWidth="1"/>
+                <path d="M200 50 L200 250" stroke="currentColor" strokeWidth="1"/>
+                <path d="M300 50 L300 250" stroke="currentColor" strokeWidth="1"/>
+                
+                <circle cx="150" cy="75" r="6" fill="currentColor"/>
+                <circle cx="250" cy="150" r="6" fill="currentColor"/>
+                
+                {/* Resistor symbols */}
+                <path d="M175 75 L180 70 L185 80 L190 70 L195 80 L200 75" stroke="currentColor" strokeWidth="2" fill="none"/>
+                <path d="M275 225 L280 220 L285 230 L290 220 L295 230 L300 225" stroke="currentColor" strokeWidth="2" fill="none"/>
+                
+                {/* Capacitor symbols */}
+                <path d="M145 65 L145 85 M155 65 L155 85" stroke="currentColor" strokeWidth="2"/>
+              </svg>
+              
+              {/* Corner electrical icons */}
+              <div className="absolute top-4 right-4 opacity-10">
+                <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M13 2L3 14h6l-1 8 10-12h-6l1-8z"/>
+                </svg>
+              </div>
+              <div className="absolute bottom-4 left-4 opacity-10">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="m3 12 3-3m6 6 3-3m-3-6-3 3"/>
+                </svg>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
                 <FilterInput 
                   label="Department" 
                   field="department" 
@@ -384,7 +480,7 @@ const AcademicsPage = () => {
                 />
               </div>
 
-              <div className="flex justify-center pt-6">
+              <div className="flex justify-center pt-6 relative z-10">
                 <button
                   onClick={handleContinue}
                   disabled={!validateMandatoryFilters() || loading}
@@ -402,8 +498,43 @@ const AcademicsPage = () => {
 
   // Resources Display Page
   return (
-    <div className="min-h-screen bg-white pt-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-white pt-20 relative overflow-hidden">
+      {/* Background electrical pattern */}
+      <div className="absolute inset-0 opacity-5">
+        <svg className="w-full h-full" viewBox="0 0 1200 800" fill="none">
+          {/* Main circuit lines */}
+          <path d="M0 150 L300 150 L300 300 L600 300 L600 150 L900 150 L900 450 L1200 450" stroke="currentColor" strokeWidth="2"/>
+          <path d="M150 0 L150 800" stroke="currentColor" strokeWidth="1"/>
+          <path d="M450 0 L450 800" stroke="currentColor" strokeWidth="1"/>
+          <path d="M750 0 L750 800" stroke="currentColor" strokeWidth="1"/>
+          <path d="M1050 0 L1050 800" stroke="currentColor" strokeWidth="1"/>
+          
+          {/* Electronic components */}
+          <circle cx="150" cy="150" r="6" fill="currentColor"/>
+          <circle cx="450" cy="300" r="6" fill="currentColor"/>
+          <circle cx="750" cy="150" r="6" fill="currentColor"/>
+          <circle cx="1050" cy="450" r="6" fill="currentColor"/>
+          
+          {/* Resistor symbols */}
+          <path d="M250 150 L260 140 L280 160 L300 140 L320 160 L340 150" stroke="currentColor" strokeWidth="2" fill="none"/>
+          <path d="M550 300 L560 290 L580 310 L600 290 L620 310 L640 300" stroke="currentColor" strokeWidth="2" fill="none"/>
+        </svg>
+      </div>
+      
+      {/* Floating electrical icons */}
+      <div className="absolute top-32 right-20 opacity-10 animate-pulse">
+        <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M13 2L3 14h6l-1 8 10-12h-6l1-8z"/>
+        </svg>
+      </div>
+      <div className="absolute bottom-20 left-20 opacity-10 animate-pulse" style={{animationDelay: '1.5s'}}>
+        <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="m3 12 3-3m6 6 3-3m-3-6-3 3"/>
+        </svg>
+      </div>
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         {/* Header with back button */}
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -427,15 +558,37 @@ const AcademicsPage = () => {
         <div className="space-y-4">
           {resources.length === 0 ? (
             <div className="text-center py-12">
-              <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <div className="relative inline-block mb-4">
+                <FileText className="w-16 h-16 text-gray-400 mx-auto" />
+                <div className="absolute -top-2 -right-2 opacity-30">
+                  <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M13 2L3 14h6l-1 8 10-12h-6l1-8z"/>
+                  </svg>
+                </div>
+              </div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">No resources found</h3>
               <p className="text-gray-600">Try adjusting your filters to find more resources.</p>
             </div>
           ) : (
             resources.map((resource) => (
-              <div key={resource.id} className="bg-white border-2 border-black rounded-xl p-6 hover:shadow-lg transition-shadow relative">
+              <div key={resource.id} className="bg-white border-2 border-black rounded-xl p-6 hover:shadow-lg transition-shadow relative overflow-hidden">
+                {/* Background electrical pattern for each card */}
+                <svg className="absolute inset-0 w-full h-full opacity-5" viewBox="0 0 400 200" fill="none">
+                  <path d="M50 50 L350 50 M50 100 L200 100 L200 150 L350 150" stroke="currentColor" strokeWidth="1"/>
+                  <circle cx="150" cy="50" r="3" fill="currentColor"/>
+                  <circle cx="250" cy="150" r="3" fill="currentColor"/>
+                  <path d="M175 50 L180 45 L185 55 L190 45 L195 55 L200 50" stroke="currentColor" strokeWidth="1" fill="none"/>
+                </svg>
+                
+                {/* Electrical icon in corner */}
+                <div className="absolute top-2 left-2 opacity-10">
+                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                  </svg>
+                </div>
+                
                 {/* Like Button positioned in top-right corner */}
-                <div className="absolute top-4 right-4">
+                <div className="absolute top-4 right-4 z-10">
                   <LikeButton
                     resourceId={resource.id}
                     initialCount={resource.likes_count || 0}
@@ -450,11 +603,13 @@ const AcademicsPage = () => {
                   />
                 </div>
                 
-                <div className="flex flex-col sm:flex-row sm:items-start gap-4 pr-16">
+                <div className="flex flex-col sm:flex-row sm:items-start gap-4 pr-16 relative z-10">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="p-2 bg-lime-400 rounded-lg">
+                      <div className="p-2 bg-lime-400 rounded-lg relative">
                         <FileText className="w-5 h-5 text-black" />
+                        {/* Small electrical accent */}
+                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-black rounded-full opacity-60"></div>
                       </div>
                       <div>
                         <h3 className="text-lg font-semibold text-black">
