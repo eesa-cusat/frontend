@@ -7,8 +7,6 @@ import {
   Users,
   Clock,
   UserPlus,
-  ChevronLeft,
-  ChevronRight,
   Star,
   Zap,
   Target,
@@ -19,68 +17,121 @@ import {
   X,
 } from "lucide-react";
 
-// Mock data for demonstration
-const mockEvents = [
-  {
-    id: 1,
-    title: "Arduino Workshop: Building Smart IoT Devices",
-    description:
-      "Learn to build IoT devices using Arduino microcontrollers. Perfect for beginners and intermediate makers.",
-    start_date: "2025-08-15T10:00:00Z",
-    end_date: "2025-08-15T16:00:00Z",
-    location: "Electronics Lab, Block A",
-    max_participants: 30,
-    registration_count: 18,
-    registration_required: true,
-    event_type: "workshop",
-    banner_image: null,
+// Types for the API responses
+interface Event {
+  id: number;
+  title: string;
+  description: string;
+  start_date: string;
+  end_date: string;
+  location: string;
+  event_type?: string;
+  max_participants?: number;
+  registration_count?: number;
+  registration_required: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface EventRegistrationData {
+  name: string;
+  email: string;
+  mobile_number?: string;
+  institution?: string;
+  department?: string;
+  year_of_study?: number;
+}
+
+// API Service for events
+const eventsService = {
+  async getEvents(): Promise<Event[]> {
+    try {
+      const response = await fetch("/api/events", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.results || data;
+    } catch (error) {
+      console.error("Error fetching events:", error);
+      throw error;
+    }
   },
-  {
-    id: 2,
-    title: "Electrical Safety Seminar",
-    description:
-      "Essential safety practices for electrical work. Industry experts will share real-world experiences and best practices.",
-    start_date: "2025-08-20T14:00:00Z",
-    end_date: "2025-08-20T17:00:00Z",
-    location: "Auditorium",
-    max_participants: 100,
-    registration_count: 67,
-    registration_required: true,
-    event_type: "seminar",
-    banner_image: null,
+
+  async registerForEvent(
+    eventId: number,
+    registrationData: EventRegistrationData
+  ): Promise<void> {
+    try {
+      const response = await fetch(`/api/events/${eventId}/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(registrationData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.error ||
+            errorData.detail ||
+            errorData.message ||
+            `HTTP error! status: ${response.status}`
+        );
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error registering for event:", error);
+      throw error;
+    }
   },
-  {
-    id: 3,
-    title: "PCB Design Competition",
-    description:
-      "Design innovative PCB layouts for real-world applications. Cash prizes for top 3 winners!",
-    start_date: "2025-08-25T09:00:00Z",
-    end_date: "2025-08-25T18:00:00Z",
-    location: "Computer Lab",
-    max_participants: 50,
-    registration_count: 42,
-    registration_required: true,
-    event_type: "competition",
-    banner_image: null,
+
+  async getEventDetails(eventId: number): Promise<Event> {
+    try {
+      const response = await fetch(`/api/events/${eventId}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching event details:", error);
+      throw error;
+    }
   },
-  {
-    id: 4,
-    title: "Power Systems Conference",
-    description:
-      "Exploring the future of renewable energy and smart grids with industry leaders and researchers.",
-    start_date: "2025-07-10T09:00:00Z",
-    end_date: "2025-07-10T17:00:00Z",
-    location: "Main Auditorium",
-    max_participants: 200,
-    registration_count: 180,
-    registration_required: false,
-    event_type: "conference",
-    banner_image: null,
+};
+
+// Toast notification system (simple implementation)
+const toast = {
+  success: (message: string) => {
+    console.log("Success:", message);
+    // You can replace this with your preferred toast library
+    alert(`Success: ${message}`);
   },
-];
+  error: (message: string) => {
+    console.error("Error:", message);
+    // You can replace this with your preferred toast library
+    alert(`Error: ${message}`);
+  },
+};
 
 // Helper function to get random icon and color for each event
-const getEventIcon = (eventId) => {
+const getEventIcon = (eventId: number) => {
   const icons = [
     { Icon: Star, color: "bg-[#191A23]" },
     { Icon: Zap, color: "bg-[#B9FF66]" },
@@ -100,11 +151,19 @@ const Button = ({
   disabled = false,
   onClick,
   ...props
+}: {
+  children: React.ReactNode;
+  variant?: "default" | "outline" | "secondary";
+  className?: string;
+  disabled?: boolean;
+  onClick?: (e?: React.MouseEvent) => void;
+  [key: string]: unknown;
 }) => {
   const baseClasses =
     "px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center";
   const variants = {
-    default: "bg-[#191A23] text-[#B9FF66] hover:bg-[#191A23]/90 disabled:bg-[#191A23]/40",
+    default:
+      "bg-[#191A23] text-[#B9FF66] hover:bg-[#191A23]/90 disabled:bg-[#191A23]/40",
     outline:
       "border border-[#191A23]/20 bg-white text-[#191A23] hover:bg-[#B9FF66]/10 disabled:bg-gray-100",
     secondary:
@@ -126,7 +185,13 @@ const Button = ({
 };
 
 // Enhanced Input Component
-const Input = ({ className = "", ...props }) => {
+const Input = ({
+  className = "",
+  ...props
+}: {
+  className?: string;
+  [key: string]: unknown;
+}) => {
   return (
     <input
       className={`w-full px-3 py-2 border border-[#191A23]/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-[#B9FF66] ${className}`}
@@ -135,149 +200,17 @@ const Input = ({ className = "", ...props }) => {
   );
 };
 
-// Events Carousel Component
-const EventsCarousel = ({ events, onRegister, registering }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
-
-  const totalSlides = Math.ceil(events.length / 3);
-  const visibleEvents = events.slice(currentIndex * 3, (currentIndex + 1) * 3);
-
-  // Auto-advance carousel
-  useEffect(() => {
-    if (!isAutoPlaying || totalSlides <= 1) return;
-
-    const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % totalSlides);
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [isAutoPlaying, totalSlides]);
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
-  const formatTime = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
-  };
-
-  const nextSlide = () => {
-    setCurrentIndex((prev) => (prev + 1) % totalSlides);
-  };
-
-  const prevSlide = () => {
-    setCurrentIndex((prev) => (prev - 1 + totalSlides) % totalSlides);
-  };
-
-  const goToSlide = (index) => {
-    setCurrentIndex(index);
-  };
-
-  if (events.length === 0) {
-    return (
-      <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-        <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">
-          No events found
-        </h3>
-        <p className="text-gray-600">
-          There are no upcoming events at the moment
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative">
-      {/* Mobile: Single card view */}
-      <div className="block md:hidden">
-        <div
-          className="flex transition-transform duration-300 ease-in-out"
-          style={{ transform: `translateX(-${currentIndex * 100}%)` }}
-          onMouseEnter={() => setIsAutoPlaying(false)}
-          onMouseLeave={() => setIsAutoPlaying(true)}
-        >
-          {events.map((event) => (
-            <EventCard
-              key={event.id}
-              event={event}
-              onRegister={onRegister}
-              registering={registering}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Desktop: 3-card view */}
-      <div className="hidden md:block">
-        <div
-          className="grid grid-cols-3 gap-6 transition-all duration-500 ease-in-out"
-          onMouseEnter={() => setIsAutoPlaying(false)}
-          onMouseLeave={() => setIsAutoPlaying(true)}
-        >
-          {visibleEvents.map((event) => (
-            <EventCard
-              key={event.id}
-              event={event}
-              onRegister={onRegister}
-              registering={registering}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Navigation buttons */}
-      {totalSlides > 1 && (
-        <>
-          <button
-            onClick={prevSlide}
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 w-10 h-10 bg-white rounded-full shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
-          >
-            <ChevronLeft className="w-5 h-5 text-gray-600" />
-          </button>
-          <button
-            onClick={nextSlide}
-            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 w-10 h-10 bg-white rounded-full shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
-          >
-            <ChevronRight className="w-5 h-5 text-gray-600" />
-          </button>
-        </>
-      )}
-
-      {/* Dots Navigation */}
-      {totalSlides > 1 && (
-        <div className="flex justify-center mt-6 space-x-2">
-          {Array.from({ length: totalSlides }).map((_, index) => (
-            <button
-              key={index}
-              onClick={() => goToSlide(index)}
-              className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                index === currentIndex
-                  ? "bg-gray-800 scale-110"
-                  : "bg-gray-300 hover:bg-gray-400"
-              }`}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
 // Event Card Component
-const EventCard = ({ event, onRegister, registering }) => {
-  const formatDate = (dateString) => {
+const EventCard = ({
+  event,
+  onRegister,
+  registering,
+}: {
+  event: Event;
+  onRegister: (eventId: number) => void;
+  registering: boolean;
+}) => {
+  const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
       year: "numeric",
@@ -286,7 +219,7 @@ const EventCard = ({ event, onRegister, registering }) => {
     });
   };
 
-  const formatTime = (dateString) => {
+  const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleTimeString("en-US", {
       hour: "2-digit",
@@ -356,13 +289,16 @@ const EventCard = ({ event, onRegister, registering }) => {
             <Button
               variant="outline"
               className="flex-1"
-              onClick={() => window.open(`/events/${event.id}`, "_blank")}
+              onClick={() => {
+                // You can implement event details modal or navigation here
+                console.log("View details for event:", event.id);
+              }}
             >
               View Details
             </Button>
             {event.registration_required && (
               <Button
-                onClick={() => onRegister(event)}
+                onClick={() => onRegister(event.id)}
                 disabled={registering || isEventFull || isEventEnded}
                 className="flex-1"
                 variant={isEventFull ? "secondary" : "default"}
@@ -386,33 +322,57 @@ const EventCard = ({ event, onRegister, registering }) => {
 
 // Main Events Page Component
 export default function EventsPage() {
-  const [events, setEvents] = useState(mockEvents);
-  const [filteredEvents, setFilteredEvents] = useState(mockEvents);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [showPastEvents, setShowPastEvents] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [registrationModal, setRegistrationModal] = useState({
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [registrationModal, setRegistrationModal] = useState<{
+    isOpen: boolean;
+    event: Event | null;
+  }>({
     isOpen: false,
     event: null,
   });
-  const [guestFormData, setGuestFormData] = useState({
-    guest_name: "",
-    guest_email: "",
-    guest_phone: "",
-    guest_semester: undefined,
-    guest_department: undefined,
+  const [guestFormData, setGuestFormData] = useState<EventRegistrationData>({
+    name: "",
+    email: "",
+    mobile_number: "",
+    department: undefined,
+    year_of_study: undefined,
   });
   const [registering, setRegistering] = useState(false);
   const [currentFeaturedIndex, setCurrentFeaturedIndex] = useState(0);
 
+  // Load events on component mount
+  useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await eventsService.getEvents();
+        setEvents(data);
+        setFilteredEvents(data);
+      } catch (err) {
+        console.error("Failed to load events:", err);
+        setError("Failed to load events. Please try again later.");
+        toast.error("Failed to load events");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadEvents();
+  }, []);
+
   // Get featured events for hero section
-  const featuredEvents = filteredEvents.filter(
+  const featuredEvents = (filteredEvents || []).filter(
     (event) => !showPastEvents && new Date(event.end_date) >= new Date()
   );
 
   const featuredEvent =
-    featuredEvents[currentFeaturedIndex] || filteredEvents[0];
+    featuredEvents[currentFeaturedIndex] || (filteredEvents || [])[0];
 
   // Filter events based on search term and past events toggle
   useEffect(() => {
@@ -461,10 +421,14 @@ export default function EventsPage() {
     setCurrentFeaturedIndex(0);
   }, [featuredEvents.length]);
 
-  const handleRegister = useCallback((event) => {
-    if (!event.registration_required) return;
-    setRegistrationModal({ isOpen: true, event });
-  }, []);
+  const handleRegister = useCallback(
+    (eventId: number) => {
+      const event = events.find((e) => e.id === eventId);
+      if (!event || !event.registration_required) return;
+      setRegistrationModal({ isOpen: true, event });
+    },
+    [events]
+  );
 
   const handleGuestRegistration = async () => {
     if (!registrationModal.event) return;
@@ -472,23 +436,25 @@ export default function EventsPage() {
     try {
       setRegistering(true);
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await eventsService.registerForEvent(
+        registrationModal.event.id,
+        guestFormData
+      );
 
-      alert("Registration successful!");
+      toast.success("Registration successful!");
       setRegistrationModal({ isOpen: false, event: null });
       setGuestFormData({
-        guest_name: "",
-        guest_email: "",
-        guest_phone: "",
-        guest_semester: undefined,
-        guest_department: undefined,
+        name: "",
+        email: "",
+        mobile_number: "",
+        department: undefined,
+        year_of_study: undefined,
       });
 
-      // Update registration count
+      // Update registration count in local state
       setEvents((prevEvents) =>
         prevEvents.map((event) =>
-          event.id === registrationModal.event.id
+          event.id === registrationModal.event!.id
             ? {
                 ...event,
                 registration_count: (event.registration_count || 0) + 1,
@@ -497,7 +463,12 @@ export default function EventsPage() {
         )
       );
     } catch (error) {
-      alert("Registration failed");
+      console.error("Registration failed:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Registration failed. Please try again.";
+      toast.error(errorMessage);
     } finally {
       setRegistering(false);
     }
@@ -506,20 +477,20 @@ export default function EventsPage() {
   const closeModal = () => {
     setRegistrationModal({ isOpen: false, event: null });
     setGuestFormData({
-      guest_name: "",
-      guest_email: "",
-      guest_phone: "",
-      guest_semester: undefined,
-      guest_department: undefined,
+      name: "",
+      email: "",
+      mobile_number: "",
+      department: undefined,
+      year_of_study: undefined,
     });
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
+      <div className="min-h-screen bg-[#F3F3F3] py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#191A23]"></div>
           </div>
         </div>
       </div>
@@ -528,7 +499,7 @@ export default function EventsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
+      <div className="min-h-screen bg-[#F3F3F3] py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-red-50 border border-red-200 rounded-lg p-6">
             <div className="flex">
@@ -537,6 +508,12 @@ export default function EventsPage() {
                 <div className="mt-2 text-sm text-red-700">
                   <p>{error}</p>
                 </div>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="mt-4 bg-[#191A23] text-[#B9FF66] px-4 py-2 rounded-lg hover:bg-[#191A23]/90 transition-colors"
+                >
+                  Retry
+                </button>
               </div>
             </div>
           </div>
@@ -549,13 +526,13 @@ export default function EventsPage() {
     <>
       <div className="min-h-screen bg-[#F3F3F3]">
         {/* Glass Hero Section */}
-        {featuredEvent && !showPastEvents && (
+        {featuredEvent && !showPastEvents && featuredEvents.length > 0 && (
           <section className="relative overflow-hidden min-h-[70vh]">
             {/* Hero Background - Clean with brand colors */}
             <div className="absolute inset-0">
               {/* Light gradient background using brand colors */}
               <div className="absolute inset-0 bg-[#F3F3F3]"></div>
-              
+
               {/* Glass overlay */}
               <div className="absolute inset-0 backdrop-blur-sm bg-white/30"></div>
 
@@ -604,8 +581,16 @@ export default function EventsPage() {
                       y2="100%"
                     >
                       <stop offset="0%" stopColor="#191A23" stopOpacity="0.3" />
-                      <stop offset="50%" stopColor="#191A23" stopOpacity="0.2" />
-                      <stop offset="100%" stopColor="#191A23" stopOpacity="0.3" />
+                      <stop
+                        offset="50%"
+                        stopColor="#191A23"
+                        stopOpacity="0.2"
+                      />
+                      <stop
+                        offset="100%"
+                        stopColor="#191A23"
+                        stopOpacity="0.3"
+                      />
                     </linearGradient>
                   </defs>
                   <rect
@@ -621,7 +606,6 @@ export default function EventsPage() {
             <div className="relative z-10">
               <div className="backdrop-blur-xl bg-[#F3F3F3]/60 border border-white/40 shadow-lg mx-4 my-8 rounded-2xl overflow-hidden">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-12 lg:py-16">
-                  
                   {/* Mobile Layout */}
                   <div className="block md:hidden">
                     {/* Poster Image at Top */}
@@ -636,7 +620,8 @@ export default function EventsPage() {
                             EVENT
                           </h3>
                           <p className="text-[#191A23]/70 text-sm bg-white/60 px-3 py-1 rounded">
-                            Electrical Engineering
+                            {featuredEvent.event_type ||
+                              "Electrical Engineering"}
                           </p>
                         </div>
                       </div>
@@ -645,16 +630,22 @@ export default function EventsPage() {
                     {/* Event Info */}
                     <div className="text-center">
                       <div className="inline-block bg-[#191A23] text-[#B9FF66] px-4 py-2 text-sm font-medium mb-4 rounded-lg">
-                        {new Date(featuredEvent.start_date).toLocaleDateString("en-US", {
-                          month: "long",
-                          day: "numeric",
-                        })}{" "}
+                        {new Date(featuredEvent.start_date).toLocaleDateString(
+                          "en-US",
+                          {
+                            month: "long",
+                            day: "numeric",
+                          }
+                        )}{" "}
                         •{" "}
-                        {new Date(featuredEvent.start_date).toLocaleTimeString("en-US", {
-                          hour: "numeric",
-                          minute: "2-digit",
-                          hour12: true,
-                        })}
+                        {new Date(featuredEvent.start_date).toLocaleTimeString(
+                          "en-US",
+                          {
+                            hour: "numeric",
+                            minute: "2-digit",
+                            hour12: true,
+                          }
+                        )}
                       </div>
 
                       <h1 className="text-2xl font-bold text-[#191A23] leading-tight mb-4">
@@ -674,7 +665,7 @@ export default function EventsPage() {
 
                       {featuredEvent.registration_required && (
                         <Button
-                          onClick={() => handleRegister(featuredEvent)}
+                          onClick={() => handleRegister(featuredEvent.id)}
                           className="w-full bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66] px-6 py-3 text-base font-medium transition-all duration-300 rounded-lg"
                         >
                           <UserPlus className="w-5 h-5 mr-2" />
@@ -699,7 +690,8 @@ export default function EventsPage() {
                               EVENT
                             </h3>
                             <p className="text-[#191A23]/70 text-sm bg-white/60 px-3 py-1 rounded">
-                              Electrical Engineering
+                              {featuredEvent.event_type ||
+                                "Electrical Engineering"}
                             </p>
                           </div>
                         </div>
@@ -707,7 +699,7 @@ export default function EventsPage() {
 
                       {featuredEvent.registration_required && (
                         <Button
-                          onClick={() => handleRegister(featuredEvent)}
+                          onClick={() => handleRegister(featuredEvent.id)}
                           className="w-full bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66] px-6 py-4 text-base font-medium transition-all duration-300 rounded-lg"
                         >
                           <UserPlus className="w-5 h-5 mr-2" />
@@ -719,16 +711,22 @@ export default function EventsPage() {
                     {/* Right Column: Event Details */}
                     <div className="flex-1 min-w-0">
                       <div className="inline-block bg-[#191A23] text-[#B9FF66] px-4 py-3 text-base font-medium mb-6 rounded-lg">
-                        {new Date(featuredEvent.start_date).toLocaleDateString("en-US", {
-                          month: "long",
-                          day: "numeric",
-                        })}{" "}
+                        {new Date(featuredEvent.start_date).toLocaleDateString(
+                          "en-US",
+                          {
+                            month: "long",
+                            day: "numeric",
+                          }
+                        )}{" "}
                         •{" "}
-                        {new Date(featuredEvent.start_date).toLocaleTimeString("en-US", {
-                          hour: "numeric",
-                          minute: "2-digit",
-                          hour12: true,
-                        })}
+                        {new Date(featuredEvent.start_date).toLocaleTimeString(
+                          "en-US",
+                          {
+                            hour: "numeric",
+                            minute: "2-digit",
+                            hour12: true,
+                          }
+                        )}
                       </div>
 
                       <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-[#191A23] leading-tight mb-6">
@@ -796,7 +794,9 @@ export default function EventsPage() {
                     type="text"
                     placeholder="Search events..."
                     value={searchTerm}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setSearchTerm(e.target.value)
+                    }
                     className="pl-10 w-64 border-[#191A23]/20 focus:border-[#B9FF66] focus:ring-[#B9FF66]"
                   />
                 </div>
@@ -864,8 +864,8 @@ export default function EventsPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {filteredEvents.map((event, index) => {
-                  const { Icon, color } = getEventIcon(event.id);
+                {filteredEvents.map((event) => {
+                  const { Icon } = getEventIcon(event.id);
                   const isEventFull =
                     event.max_participants &&
                     (event.registration_count || 0) >= event.max_participants;
@@ -875,11 +875,13 @@ export default function EventsPage() {
                     <div
                       key={event.id}
                       className="group cursor-pointer"
-                      onClick={() => window.open(`/events/${event.id}`, "_blank")}
+                      onClick={() => {
+                        // You can implement event details modal or navigation here
+                        console.log("View details for event:", event.id);
+                      }}
                     >
                       {/* Square Box Container - No 3D effects */}
-                      <div className="aspect-square rounded-lg overflow-hidden border border-[#191A23]/10 bg-white/80 backdrop-blur-sm">
-                        
+                      <div className="aspect-square rounded-lg overflow-hidden border border-[#191A23]/10 bg-white/80 backdrop-blur-sm relative">
                         {/* Simplified Electrical SVG Background */}
                         <div className="absolute inset-0 opacity-5">
                           <svg
@@ -904,12 +906,22 @@ export default function EventsPage() {
                                   strokeWidth="0.5"
                                   opacity="0.3"
                                 />
-                                <circle cx="20" cy="20" r="2" fill="#191A23" opacity="0.4" />
+                                <circle
+                                  cx="20"
+                                  cy="20"
+                                  r="2"
+                                  fill="#191A23"
+                                  opacity="0.4"
+                                />
                               </pattern>
                             </defs>
 
                             {/* Background Grid */}
-                            <rect width="400" height="400" fill={`url(#circuit-${event.id})`} />
+                            <rect
+                              width="400"
+                              height="400"
+                              fill={`url(#circuit-${event.id})`}
+                            />
 
                             {/* Simple Circuit Paths */}
                             <path
@@ -920,7 +932,7 @@ export default function EventsPage() {
                               opacity="0.2"
                               strokeLinecap="round"
                             />
-                            
+
                             <path
                               d="M80 50 L80 120 L180 120 L180 200 L280 200 L280 300 L350 300"
                               stroke="#191A23"
@@ -931,29 +943,56 @@ export default function EventsPage() {
                             />
 
                             {/* Simple Components */}
-                            <circle cx="150" cy="80" r="4" fill="#191A23" opacity="0.3" />
-                            <circle cx="150" cy="150" r="4" fill="#191A23" opacity="0.3" />
-                            <circle cx="250" cy="150" r="4" fill="#191A23" opacity="0.3" />
-                            <circle cx="250" cy="220" r="4" fill="#191A23" opacity="0.3" />
+                            <circle
+                              cx="150"
+                              cy="80"
+                              r="4"
+                              fill="#191A23"
+                              opacity="0.3"
+                            />
+                            <circle
+                              cx="150"
+                              cy="150"
+                              r="4"
+                              fill="#191A23"
+                              opacity="0.3"
+                            />
+                            <circle
+                              cx="250"
+                              cy="150"
+                              r="4"
+                              fill="#191A23"
+                              opacity="0.3"
+                            />
+                            <circle
+                              cx="250"
+                              cy="220"
+                              r="4"
+                              fill="#191A23"
+                              opacity="0.3"
+                            />
                           </svg>
                         </div>
 
                         {/* Content */}
                         <div className="relative z-10 p-6 h-full flex flex-col">
-                          
                           {/* Header Section */}
                           <div className="flex justify-between items-start mb-4">
                             <div className="flex-1">
                               <div className="bg-[#191A23] text-[#B9FF66] px-3 py-2 rounded-lg inline-block mb-3">
                                 <div className="text-xs font-medium">
-                                  {new Date(event.start_date).toLocaleDateString("en-US", { month: "short" })}
+                                  {new Date(
+                                    event.start_date
+                                  ).toLocaleDateString("en-US", {
+                                    month: "short",
+                                  })}
                                 </div>
                                 <div className="text-lg font-bold">
                                   {new Date(event.start_date).getDate()}
                                 </div>
                               </div>
                             </div>
-                            
+
                             <div className="bg-[#B9FF66] p-3 rounded-lg">
                               <Icon className="w-6 h-6 text-[#191A23]" />
                             </div>
@@ -969,18 +1008,23 @@ export default function EventsPage() {
                             <div className="flex items-center text-sm text-[#191A23]/70">
                               <Clock className="w-4 h-4 mr-2 text-[#191A23]/50" />
                               <span>
-                                {new Date(event.start_date).toLocaleTimeString("en-US", {
-                                  hour: "numeric",
-                                  minute: "2-digit", 
-                                  hour12: true,
-                                })}
+                                {new Date(event.start_date).toLocaleTimeString(
+                                  "en-US",
+                                  {
+                                    hour: "numeric",
+                                    minute: "2-digit",
+                                    hour12: true,
+                                  }
+                                )}
                               </span>
                             </div>
 
                             {event.location && (
                               <div className="flex items-center text-sm text-[#191A23]/70">
                                 <MapPin className="w-4 h-4 mr-2 text-[#191A23]/50" />
-                                <span className="truncate">{event.location}</span>
+                                <span className="truncate">
+                                  {event.location}
+                                </span>
                               </div>
                             )}
 
@@ -988,7 +1032,8 @@ export default function EventsPage() {
                               <div className="flex items-center text-sm text-[#191A23]/70">
                                 <Users className="w-4 h-4 mr-2 text-[#191A23]/50" />
                                 <span>
-                                  {event.registration_count || 0} / {event.max_participants}
+                                  {event.registration_count || 0} /{" "}
+                                  {event.max_participants}
                                 </span>
                               </div>
                             )}
@@ -998,7 +1043,8 @@ export default function EventsPage() {
                           {event.event_type && (
                             <div className="mb-4">
                               <span className="inline-flex items-center px-3 py-1 text-sm font-medium bg-[#B9FF66]/80 text-[#191A23] rounded-full">
-                                {event.event_type.charAt(0).toUpperCase() + event.event_type.slice(1)}
+                                {event.event_type.charAt(0).toUpperCase() +
+                                  event.event_type.slice(1)}
                               </span>
                             </div>
                           )}
@@ -1012,17 +1058,19 @@ export default function EventsPage() {
                           <div className="mt-auto">
                             {event.registration_required ? (
                               <Button
-                                onClick={(e: React.MouseEvent) => {
-                                  e.stopPropagation();
-                                  handleRegister(event);
+                                onClick={(e?: React.MouseEvent) => {
+                                  e?.stopPropagation();
+                                  handleRegister(event.id);
                                 }}
-                                disabled={registering || isEventFull || isEventEnded}
+                                disabled={
+                                  registering || isEventFull || isEventEnded
+                                }
                                 className="w-full bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66] py-3 rounded-lg disabled:bg-[#191A23]/40 transition-all duration-300"
                               >
                                 {isEventFull ? (
                                   "Event Full"
                                 ) : isEventEnded ? (
-                                  "Event Ended" 
+                                  "Event Ended"
                                 ) : registering ? (
                                   "Registering..."
                                 ) : (
@@ -1067,20 +1115,21 @@ export default function EventsPage() {
 
             <div className="mb-4 p-3 bg-[#B9FF66]/20 border border-[#B9FF66]/40 rounded-lg">
               <h4 className="font-medium text-[#191A23] text-sm">
-                {(registrationModal.event as any)?.title}
+                {registrationModal.event?.title}
               </h4>
               <p className="text-[#191A23]/70 text-xs mt-1">
-                {new Date(
-                  (registrationModal.event as any)?.start_date || ""
-                ).toLocaleDateString("en-US", {
-                  weekday: "long",
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                  hour: "numeric",
-                  minute: "2-digit",
-                  hour12: true,
-                })}
+                {registrationModal.event &&
+                  new Date(
+                    registrationModal.event.start_date
+                  ).toLocaleDateString("en-US", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
+                    hour12: true,
+                  })}
               </p>
             </div>
 
@@ -1091,11 +1140,11 @@ export default function EventsPage() {
                 </label>
                 <Input
                   type="text"
-                  value={guestFormData.guest_name}
+                  value={guestFormData.name}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                     setGuestFormData({
                       ...guestFormData,
-                      guest_name: e.target.value,
+                      name: e.target.value,
                     })
                   }
                   placeholder="Enter your full name"
@@ -1110,11 +1159,11 @@ export default function EventsPage() {
                 </label>
                 <Input
                   type="email"
-                  value={guestFormData.guest_email}
+                  value={guestFormData.email}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                     setGuestFormData({
                       ...guestFormData,
-                      guest_email: e.target.value,
+                      email: e.target.value,
                     })
                   }
                   placeholder="Enter your email address"
@@ -1129,11 +1178,11 @@ export default function EventsPage() {
                 </label>
                 <Input
                   type="tel"
-                  value={guestFormData.guest_phone}
+                  value={guestFormData.mobile_number}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                     setGuestFormData({
                       ...guestFormData,
-                      guest_phone: e.target.value,
+                      mobile_number: e.target.value,
                     })
                   }
                   placeholder="Enter your phone number"
@@ -1144,14 +1193,14 @@ export default function EventsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-[#191A23] mb-1">
-                    Semester
+                    Year of Study
                   </label>
                   <select
-                    value={guestFormData.guest_semester || ""}
+                    value={guestFormData.year_of_study || ""}
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                       setGuestFormData({
                         ...guestFormData,
-                        guest_semester: e.target.value
+                        year_of_study: e.target.value
                           ? parseInt(e.target.value)
                           : undefined,
                       })
@@ -1159,9 +1208,9 @@ export default function EventsPage() {
                     className="w-full p-2 border border-[#191A23]/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-[#B9FF66] text-sm"
                   >
                     <option value="">Select</option>
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
-                      <option key={sem} value={sem}>
-                        Sem {sem}
+                    {[1, 2, 3, 4].map((year) => (
+                      <option key={year} value={year}>
+                        Year {year}
                       </option>
                     ))}
                   </select>
@@ -1172,11 +1221,11 @@ export default function EventsPage() {
                     Department
                   </label>
                   <select
-                    value={guestFormData.guest_department || ""}
+                    value={guestFormData.department || ""}
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                       setGuestFormData({
                         ...guestFormData,
-                        guest_department: e.target.value || undefined,
+                        department: e.target.value || undefined,
                       })
                     }
                     className="w-full p-2 border border-[#191A23]/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-[#B9FF66] text-sm"
@@ -1206,8 +1255,8 @@ export default function EventsPage() {
                 onClick={handleGuestRegistration}
                 disabled={
                   registering ||
-                  !guestFormData.guest_name ||
-                  !guestFormData.guest_email
+                  !guestFormData.name ||
+                  !guestFormData.email
                 }
                 className="flex-1 bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66]"
               >
