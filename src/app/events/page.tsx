@@ -213,14 +213,15 @@ export default function EventsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Events</h1>
-            <p className="mt-2 text-gray-600">
-              Discover and participate in upcoming events
+    <>
+      <div className="py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header */}
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-black">Events</h1>
+              <p className="mt-2 text-gray-600">
+                Discover and participate in upcoming events
             </p>
           </div>
           {canCreateEvents && (
@@ -519,7 +520,8 @@ export default function EventsPage() {
             </div>
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
