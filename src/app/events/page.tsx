@@ -10,11 +10,339 @@ import {
   Plus,
   UserPlus,
   Search,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Event, GuestRegistrationData } from "@/types/api";
 import Link from "next/link";
+
+// Events Carousel Component
+interface EventsCarouselProps {
+  events: Event[];
+  onRegister: (event: Event) => void;
+  registering: boolean;
+}
+
+const EventsCarousel: React.FC<EventsCarouselProps> = ({ events, onRegister, registering }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+
+  const totalSlides = Math.ceil(events.length / 3);
+  const visibleEvents = events.slice(currentIndex * 3, (currentIndex + 1) * 3);
+
+  // Auto-advance carousel
+  useEffect(() => {
+    if (!isAutoPlaying || totalSlides <= 1) return;
+
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % totalSlides);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [isAutoPlaying, totalSlides]);
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
+  const nextSlide = () => {
+    setCurrentIndex((prev) => (prev + 1) % totalSlides);
+  };
+
+  const prevSlide = () => {
+    setCurrentIndex((prev) => (prev - 1 + totalSlides) % totalSlides);
+  };
+
+  const goToSlide = (index: number) => {
+    setCurrentIndex(index);
+  };
+
+  if (events.length === 0) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+        <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+        <h3 className="text-lg font-medium text-gray-900 mb-2">
+          No events found
+        </h3>
+        <p className="text-gray-600">
+          There are no upcoming events at the moment
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      {/* Mobile: Single card view with horizontal scrolling */}
+      <div className="block md:hidden">
+        <div 
+          className="flex transition-transform duration-300 ease-in-out"
+          style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+          onMouseEnter={() => setIsAutoPlaying(false)}
+          onMouseLeave={() => setIsAutoPlaying(true)}
+        >
+          {events.map((event) => (
+            <div key={event.id} className="w-full flex-shrink-0 px-2">
+              <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                <div className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
+                      {event.title}
+                    </h3>
+                    {event.registration_required && (
+                      <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Registration Required
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                    {event.description}
+                  </p>
+
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center text-sm text-gray-500">
+                      <Calendar className="w-4 h-4 mr-2" />
+                      <span>
+                        {formatDate(event.start_date)}
+                        {event.start_date !== event.end_date &&
+                          ` - ${formatDate(event.end_date)}`}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center text-sm text-gray-500">
+                      <Clock className="w-4 h-4 mr-2" />
+                      <span>
+                        {formatTime(event.start_date)} -{" "}
+                        {formatTime(event.end_date)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center text-sm text-gray-500">
+                      <MapPin className="w-4 h-4 mr-2" />
+                      <span>{event.location}</span>
+                    </div>
+
+                    {event.max_participants && (
+                      <div className="flex items-center text-sm text-gray-500">
+                        <Users className="w-4 h-4 mr-2" />
+                        <span>
+                          {event.registration_count || 0} /{" "}
+                          {event.max_participants} participants
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Link
+                      href={`/events/${event.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1"
+                    >
+                      <Button variant="outline" className="w-full">
+                        View Details
+                      </Button>
+                    </Link>
+                    {event.registration_required && (
+                      <Button
+                        onClick={() => onRegister(event)}
+                        disabled={
+                          registering ||
+                          (event.max_participants &&
+                            (event.registration_count || 0) >=
+                              event.max_participants) ||
+                          new Date(event.end_date) < new Date()
+                        }
+                        className="flex-1"
+                        variant={
+                          event.max_participants &&
+                          (event.registration_count || 0) >=
+                            event.max_participants
+                            ? "secondary"
+                            : "default"
+                        }
+                      >
+                        <UserPlus className="w-4 h-4 mr-2" />
+                        {event.max_participants &&
+                        (event.registration_count || 0) >= event.max_participants
+                          ? "Full"
+                          : new Date(event.end_date) < new Date()
+                          ? "Event Ended"
+                          : registering
+                          ? "Registering..."
+                          : "Register"}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Desktop: 3-card view */}
+      <div className="hidden md:block">
+        <div 
+          className="grid grid-cols-3 gap-6 transition-all duration-500 ease-in-out"
+          onMouseEnter={() => setIsAutoPlaying(false)}
+          onMouseLeave={() => setIsAutoPlaying(true)}
+        >
+          {visibleEvents.map((event) => (
+            <div key={event.id} className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+              <div className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
+                    {event.title}
+                  </h3>
+                  {event.registration_required && (
+                    <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      Registration Required
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                  {event.description}
+                </p>
+
+                <div className="space-y-2 mb-4">
+                  <div className="flex items-center text-sm text-gray-500">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    <span>
+                      {formatDate(event.start_date)}
+                      {event.start_date !== event.end_date &&
+                        ` - ${formatDate(event.end_date)}`}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center text-sm text-gray-500">
+                    <Clock className="w-4 h-4 mr-2" />
+                    <span>
+                      {formatTime(event.start_date)} -{" "}
+                      {formatTime(event.end_date)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center text-sm text-gray-500">
+                    <MapPin className="w-4 h-4 mr-2" />
+                    <span>{event.location}</span>
+                  </div>
+
+                  {event.max_participants && (
+                    <div className="flex items-center text-sm text-gray-500">
+                      <Users className="w-4 h-4 mr-2" />
+                      <span>
+                        {event.registration_count || 0} /{" "}
+                        {event.max_participants} participants
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  <Link
+                    href={`/events/${event.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1"
+                  >
+                    <Button variant="outline" className="w-full">
+                      View Details
+                    </Button>
+                  </Link>
+                  {event.registration_required && (
+                    <Button
+                      onClick={() => onRegister(event)}
+                      disabled={
+                        registering ||
+                        (event.max_participants &&
+                          (event.registration_count || 0) >=
+                            event.max_participants) ||
+                        new Date(event.end_date) < new Date()
+                      }
+                      className="flex-1"
+                      variant={
+                        event.max_participants &&
+                        (event.registration_count || 0) >=
+                          event.max_participants
+                          ? "secondary"
+                          : "default"
+                      }
+                    >
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      {event.max_participants &&
+                      (event.registration_count || 0) >= event.max_participants
+                        ? "Full"
+                        : new Date(event.end_date) < new Date()
+                        ? "Event Ended"
+                        : registering
+                        ? "Registering..."
+                        : "Register"}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Navigation buttons - only show if more than 1 slide */}
+      {totalSlides > 1 && (
+        <>
+          <button
+            onClick={prevSlide}
+            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 w-10 h-10 bg-white rounded-full shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
+          >
+            <ChevronLeft className="w-5 h-5 text-gray-600" />
+          </button>
+          <button
+            onClick={nextSlide}
+            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 w-10 h-10 bg-white rounded-full shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
+          >
+            <ChevronRight className="w-5 h-5 text-gray-600" />
+          </button>
+        </>
+      )}
+
+      {/* Dots Navigation - only show if more than 1 slide */}
+      {totalSlides > 1 && (
+        <div className="flex justify-center mt-6 space-x-2">
+          {Array.from({ length: totalSlides }).map((_, index) => (
+            <button
+              key={index}
+              onClick={() => goToSlide(index)}
+              className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                index === currentIndex
+                  ? "bg-gray-800 scale-110"
+                  : "bg-gray-300 hover:bg-gray-400"
+              }`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default function EventsPage() {
   // Remove authentication - now public access only
@@ -163,24 +491,6 @@ export default function EventsPage() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
@@ -283,99 +593,7 @@ export default function EventsPage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredEvents.map((event) => (
-            <Link
-                key={event.id}
-                href={`/events/${event.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow block"
-              >
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
-                      {event.title}
-                    </h3>
-                    {event.registration_required && (
-                      <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Registration Required
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                    {event.description}
-                  </p>
-
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center text-sm text-gray-500">
-                      <Calendar className="w-4 h-4 mr-2" />
-                      <span>
-                        {formatDate(event.start_date)}
-                        {event.start_date !== event.end_date &&
-                          ` - ${formatDate(event.end_date)}`}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center text-sm text-gray-500">
-                      <Clock className="w-4 h-4 mr-2" />
-                      <span>
-                        {formatTime(event.start_date)} -{" "}
-                        {formatTime(event.end_date)}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center text-sm text-gray-500">
-                      <MapPin className="w-4 h-4 mr-2" />
-                      <span>{event.location}</span>
-                    </div>
-
-                    {event.max_participants && (
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Users className="w-4 h-4 mr-2" />
-                        <span>
-                          {event.registration_count || 0} /{" "}
-                          {event.max_participants} participants
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {event.registration_required && (
-                    <Button
-                      onClick={e => { e.stopPropagation(); handleRegister(event); }}
-                      disabled={
-                        registering ||
-                        (event.max_participants &&
-                          (event.registration_count || 0) >=
-                            event.max_participants) ||
-                        new Date(event.end_date) < new Date()
-                      }
-                      className="w-full"
-                      variant={
-                        event.max_participants &&
-                        (event.registration_count || 0) >=
-                          event.max_participants
-                          ? "secondary"
-                          : "default"
-                      }
-                    >
-                      <UserPlus className="w-4 h-4 mr-2" />
-                      {event.max_participants &&
-                      (event.registration_count || 0) >= event.max_participants
-                        ? "Full"
-                        : new Date(event.end_date) < new Date()
-                        ? "Event Ended"
-                        : registering
-                        ? "Registering..."
-                        : "Register"}
-                    </Button>
-                  )}
-                </div>
-              </Link>
-            ))}
-          </div>
+          <EventsCarousel events={filteredEvents} onRegister={handleRegister} registering={registering} />
         )}
 
         {/* Guest Registration Modal */}

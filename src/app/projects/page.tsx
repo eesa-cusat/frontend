@@ -17,6 +17,8 @@ import {
   Image as ImageIcon,
   FileText,
   Users,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +32,260 @@ import {
   ProjectVideo,
 } from "@/types/api";
 import { projectsService } from "@/services/projectsService";
+
+// Projects Carousel Component
+interface ProjectsCarouselProps {
+  projects: Project[];
+}
+
+const ProjectsCarousel: React.FC<ProjectsCarouselProps> = ({ projects }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+
+  const totalSlides = Math.ceil(projects.length / 3);
+  const visibleProjects = projects.slice(currentIndex * 3, (currentIndex + 1) * 3);
+
+  // Auto-advance carousel
+  useEffect(() => {
+    if (!isAutoPlaying || totalSlides <= 1) return;
+
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % totalSlides);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [isAutoPlaying, totalSlides]);
+
+  const nextSlide = () => {
+    setCurrentIndex((prev) => (prev + 1) % totalSlides);
+  };
+
+  const prevSlide = () => {
+    setCurrentIndex((prev) => (prev - 1 + totalSlides) % totalSlides);
+  };
+
+  const goToSlide = (index: number) => {
+    setCurrentIndex(index);
+  };
+
+  if (projects.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center">
+          <User className="w-8 h-8 text-gray-400" />
+        </div>
+        <h3 className="text-xl font-medium text-gray-900 mb-2">
+          No projects found
+        </h3>
+        <p className="text-gray-600 mb-6">
+          No projects have been shared yet.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      {/* Mobile: Single card view with horizontal scrolling */}
+      <div className="block md:hidden">
+        <div 
+          className="flex transition-transform duration-300 ease-in-out"
+          style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+          onMouseEnter={() => setIsAutoPlaying(false)}
+          onMouseLeave={() => setIsAutoPlaying(true)}
+        >
+          {projects.map((project) => (
+            <div key={project.id} className="w-full flex-shrink-0 px-2">
+              <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                <div className="p-6">
+                  {/* Header */}
+                  <div className="flex items-start justify-between mb-3">
+                    <span className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
+                      {getCategoryDisplayName(project.category)}
+                    </span>
+                    {project.team_count > 1 && (
+                      <span className="inline-block px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
+                        Team ({project.team_count})
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Title */}
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
+                    {project.title}
+                  </h3>
+
+                  {/* Description */}
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                    {project.description}
+                  </p>
+
+                  {/* Metadata */}
+                  <div className="space-y-2 text-xs text-gray-500 mb-4">
+                    <div className="flex items-center">
+                      <User className="w-3 h-3 mr-1" />
+                      <span>{project.created_by_name}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Calendar className="w-3 h-3 mr-1" />
+                      <span>{formatDate(project.created_at)}</span>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2">
+                    <Link href={`/projects/${project.id}`} target="_blank" rel="noopener noreferrer" className="flex-1">
+                      <Button variant="outline" size="sm" className="w-full">
+                        View Details
+                      </Button>
+                    </Link>
+                    {project.github_url && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => window.open(project.github_url!, "_blank")}
+                      >
+                        <Github className="w-4 h-4 mr-1" />
+                        Code
+                      </Button>
+                    )}
+                    {project.demo_url && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => window.open(project.demo_url!, "_blank")}
+                      >
+                        <ExternalLink className="w-4 h-4 mr-1" />
+                        Demo
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Desktop: 3-card view */}
+      <div className="hidden md:block">
+        <div 
+          className="grid grid-cols-3 gap-6 transition-all duration-500 ease-in-out"
+          onMouseEnter={() => setIsAutoPlaying(false)}
+          onMouseLeave={() => setIsAutoPlaying(true)}
+        >
+          {visibleProjects.map((project) => (
+            <div key={project.id} className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+              <div className="p-6">
+                {/* Header */}
+                <div className="flex items-start justify-between mb-3">
+                  <span className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
+                    {getCategoryDisplayName(project.category)}
+                  </span>
+                  {project.team_count > 1 && (
+                    <span className="inline-block px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
+                      Team ({project.team_count})
+                    </span>
+                  )}
+                </div>
+
+                {/* Title */}
+                <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
+                  {project.title}
+                </h3>
+
+                {/* Description */}
+                <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                  {project.description}
+                </p>
+
+                {/* Metadata */}
+                <div className="space-y-2 text-xs text-gray-500 mb-4">
+                  <div className="flex items-center">
+                    <User className="w-3 h-3 mr-1" />
+                    <span>{project.created_by_name}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Calendar className="w-3 h-3 mr-1" />
+                    <span>{formatDate(project.created_at)}</span>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2">
+                  <Link href={`/projects/${project.id}`} target="_blank" rel="noopener noreferrer" className="flex-1">
+                    <Button variant="outline" size="sm" className="w-full">
+                      View Details
+                    </Button>
+                  </Link>
+                  {project.github_url && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => window.open(project.github_url!, "_blank")}
+                    >
+                      <Github className="w-4 h-4 mr-1" />
+                      Code
+                    </Button>
+                  )}
+                  {project.demo_url && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => window.open(project.demo_url!, "_blank")}
+                    >
+                      <ExternalLink className="w-4 h-4 mr-1" />
+                      Demo
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Navigation buttons - only show if more than 1 slide */}
+      {totalSlides > 1 && (
+        <>
+          <button
+            onClick={prevSlide}
+            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 w-10 h-10 bg-white rounded-full shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
+          >
+            <ChevronLeft className="w-5 h-5 text-gray-600" />
+          </button>
+          <button
+            onClick={nextSlide}
+            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 w-10 h-10 bg-white rounded-full shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
+          >
+            <ChevronRight className="w-5 h-5 text-gray-600" />
+          </button>
+        </>
+      )}
+
+      {/* Dots Navigation - only show if more than 1 slide */}
+      {totalSlides > 1 && (
+        <div className="flex justify-center mt-6 space-x-2">
+          {Array.from({ length: totalSlides }).map((_, index) => (
+            <button
+              key={index}
+              onClick={() => goToSlide(index)}
+              className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                index === currentIndex
+                  ? "bg-gray-800 scale-110"
+                  : "bg-gray-300 hover:bg-gray-400"
+              }`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const getCategoryDisplayName = (category: string) => {
   const categoryMap: { [key: string]: string } = {
@@ -97,6 +353,7 @@ export default function ProjectsPage() {
   };
 
   // Use environment variable for API base URL (no hardcoded localhost)
+    // Use environment variable for API base URL (no hardcoded localhost)
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
 
@@ -337,79 +594,7 @@ export default function ProjectsPage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map((project: Project) => (
-            <Link
-                key={project.id}
-                href={`/projects/${project.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow block"
-              >
-                <div className="p-6">
-                  {/* Header */}
-                  <div className="flex items-start justify-between mb-3">
-                    <span className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
-                      {getCategoryDisplayName(project.category)}
-                    </span>
-                    {project.team_count > 1 && (
-                      <span className="inline-block px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
-                        Team ({project.team_count})
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Title */}
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
-                    {project.title}
-                  </h3>
-
-                  {/* Description */}
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                    {project.description}
-                  </p>
-
-                  {/* Metadata */}
-                  <div className="space-y-2 text-xs text-gray-500 mb-4">
-                    <div className="flex items-center">
-                      <User className="w-3 h-3 mr-1" />
-                      <span>{project.created_by_name}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <Calendar className="w-3 h-3 mr-1" />
-                      <span>{formatDate(project.created_at)}</span>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-2">
-                    {project.github_url && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={e => { e.stopPropagation(); window.open(project.github_url!, "_blank"); }}
-                      >
-                        <Github className="w-4 h-4 mr-1" />
-                        Code
-                      </Button>
-                    )}
-                    {project.demo_url && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={e => { e.stopPropagation(); window.open(project.demo_url!, "_blank"); }}
-                      >
-                        <ExternalLink className="w-4 h-4 mr-1" />
-                        Demo
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
+          <ProjectsCarousel projects={projects} />
         )}
 
         {/* Project Detail Modal */}

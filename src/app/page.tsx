@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Linkedin, Facebook, Twitter, Calendar, MapPin } from "lucide-react";
+import { Linkedin, Facebook, Twitter, Calendar, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
 import MarqueeNotifications from "@/components/ui/MarqueeNotifications";
 
 interface FeaturedEvent {
@@ -39,6 +39,11 @@ export default function Home() {
     []
   );
   const [loading, setLoading] = useState(true);
+  
+  // Carousel state
+  const [eventsCurrentIndex, setEventsCurrentIndex] = useState(0);
+  const [projectsCurrentIndex, setProjectsCurrentIndex] = useState(0);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
   useEffect(() => {
     // Get featured events using the main events endpoint
@@ -107,6 +112,107 @@ export default function Home() {
 
     fetchFeaturedData();
   }, []);
+
+  // Auto-advance carousels
+  useEffect(() => {
+    if (!isAutoPlaying) return;
+
+    const interval = setInterval(() => {
+      if (featuredEvents.length > 3) {
+        setEventsCurrentIndex((prev) => (prev + 1) % featuredEvents.length);
+      }
+      if (featuredProjects.length > 3) {
+        setProjectsCurrentIndex((prev) => (prev + 1) % featuredProjects.length);
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [isAutoPlaying, featuredEvents.length, featuredProjects.length]);
+
+  // Carousel navigation functions
+  const nextEventsSlide = () => {
+    setEventsCurrentIndex((prev) => (prev + 1) % featuredEvents.length);
+  };
+
+  const prevEventsSlide = () => {
+    setEventsCurrentIndex((prev) => 
+      (prev - 1 + featuredEvents.length) % featuredEvents.length
+    );
+  };
+
+  const goToEventsSlide = (index: number) => {
+    setEventsCurrentIndex(index);
+  };
+
+  const nextProjectsSlide = () => {
+    setProjectsCurrentIndex((prev) => (prev + 1) % featuredProjects.length);
+  };
+
+  const prevProjectsSlide = () => {
+    setProjectsCurrentIndex((prev) => 
+      (prev - 1 + featuredProjects.length) % featuredProjects.length
+    );
+  };
+
+  const goToProjectsSlide = (index: number) => {
+    setProjectsCurrentIndex(index);
+  };
+
+  // Get visible items for current slide - always show 3 cards with conveyor belt effect
+  const getVisibleEvents = () => {
+    if (featuredEvents.length === 0) return [];
+    if (featuredEvents.length <= 3) return featuredEvents;
+    
+    const result = [];
+    for (let i = 0; i < 3; i++) {
+      const index = (eventsCurrentIndex + i) % featuredEvents.length;
+      result.push(featuredEvents[index]);
+    }
+    return result;
+  };
+
+  const getVisibleProjects = () => {
+    if (featuredProjects.length === 0) return [];
+    if (featuredProjects.length <= 3) return featuredProjects;
+    
+    const result = [];
+    for (let i = 0; i < 3; i++) {
+      const index = (projectsCurrentIndex + i) % featuredProjects.length;
+      result.push(featuredProjects[index]);
+    }
+    return result;
+  };
+
+  // Create extended arrays for mobile infinite scrolling
+  const getExtendedEvents = () => {
+    if (featuredEvents.length === 0) return [];
+    if (featuredEvents.length <= 3) return featuredEvents;
+    
+    // Create an array with duplicated items for seamless infinite scroll
+    const extended = [];
+    const totalNeeded = Math.max(featuredEvents.length * 2, 6); // At least double the original
+    for (let i = 0; i < totalNeeded; i++) {
+      extended.push(featuredEvents[i % featuredEvents.length]);
+    }
+    return extended;
+  };
+
+  const getExtendedProjects = () => {
+    if (featuredProjects.length === 0) return [];
+    if (featuredProjects.length <= 3) return featuredProjects;
+    
+    // Create an array with duplicated items for seamless infinite scroll
+    const extended = [];
+    const totalNeeded = Math.max(featuredProjects.length * 2, 6); // At least double the original
+    for (let i = 0; i < totalNeeded; i++) {
+      extended.push(featuredProjects[i % featuredProjects.length]);
+    }
+    return extended;
+  };
+
+  const eventsTotalSlides = featuredEvents.length > 3 ? featuredEvents.length : 1;
+  const projectsTotalSlides = featuredProjects.length > 3 ? featuredProjects.length : 1;
+
   return (
     <div className="min-h-screen bg-white font-sans">
       {/* Hero Section */}
@@ -172,52 +278,145 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Events Container - API Driven */}
+          {/* Events Container - Carousel */}
           <div className="relative">
             {loading ? (
               <div className="flex justify-center items-center h-48">
                 <div className="text-gray-500">Loading featured events...</div>
               </div>
             ) : featuredEvents.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {featuredEvents.slice(0, 3).map((event) => (
-                  <div
-                    key={event.id}
-                    onClick={() => {
-                      window.open(`/events/${event.id}`, "_blank");
-                    }}
-                    className="w-full h-48 bg-gray-900 rounded-3xl border border-gray-200 p-6 flex flex-col justify-between overflow-hidden relative hover:bg-gray-800 transition-colors cursor-pointer"
+              <div 
+                className="relative"
+                onMouseEnter={() => setIsAutoPlaying(false)}
+                onMouseLeave={() => setIsAutoPlaying(true)}
+              >
+                {/* Mobile: Single card view */}
+                <div className="block sm:hidden">
+                  <div 
+                    className="flex transition-transform duration-300 ease-in-out"
+                    style={{ transform: `translateX(-${eventsCurrentIndex * 100}%)` }}
                   >
-                    <div>
-                      <h3 className="text-white text-lg font-medium mb-2 line-clamp-2">
-                        {event.title}
-                      </h3>
-                      <p className="text-gray-300 text-sm line-clamp-2 mb-3">
-                        {event.description}
-                      </p>
-                      {event.event_type && (
-                        <span className="inline-block bg-lime-400 text-black px-2 py-1 rounded-full text-xs font-medium mb-2">
-                          {event.event_type.charAt(0).toUpperCase() +
-                            event.event_type.slice(1)}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-4 text-xs text-gray-400">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        {new Date(event.start_date).toLocaleDateString()}
-                      </div>
-                      {(event.venue || event.location) && (
-                        <div className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
-                          <span className="truncate">
-                            {event.venue || event.location}
-                          </span>
+                    {getExtendedEvents().map((event, index) => (
+                      <div
+                        key={`${event.id}-${index}`}
+                        onClick={() => {
+                          window.open(`/events/${event.id}`, "_blank");
+                        }}
+                        className="w-full flex-shrink-0 px-2"
+                      >
+                        <div className="w-full h-48 bg-gray-900 rounded-3xl border border-gray-200 p-6 flex flex-col justify-between overflow-hidden relative hover:bg-gray-800 transition-colors cursor-pointer">
+                          <div>
+                            <h3 className="text-white text-lg font-medium mb-2 line-clamp-2">
+                              {event.title}
+                            </h3>
+                            <p className="text-gray-300 text-sm line-clamp-2 mb-3">
+                              {event.description}
+                            </p>
+                            {event.event_type && (
+                              <span className="inline-block bg-lime-400 text-black px-2 py-1 rounded-full text-xs font-medium mb-2">
+                                {event.event_type.charAt(0).toUpperCase() +
+                                  event.event_type.slice(1)}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-4 text-xs text-gray-400">
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              {new Date(event.start_date).toLocaleDateString()}
+                            </div>
+                            {(event.venue || event.location) && (
+                              <div className="flex items-center gap-1">
+                                <MapPin className="w-3 h-3" />
+                                <span className="truncate">
+                                  {event.venue || event.location}
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
+
+                {/* Desktop: 3-card view */}
+                <div className="hidden sm:block">
+                  <div className="grid grid-cols-3 gap-6 transition-all duration-500 ease-in-out">
+                    {getVisibleEvents().map((event) => (
+                      <div
+                        key={event.id}
+                        onClick={() => {
+                          window.open(`/events/${event.id}`, "_blank");
+                        }}
+                        className="w-full h-48 bg-gray-900 rounded-3xl border border-gray-200 p-6 flex flex-col justify-between overflow-hidden relative hover:bg-gray-800 transition-colors cursor-pointer"
+                      >
+                        <div>
+                          <h3 className="text-white text-lg font-medium mb-2 line-clamp-2">
+                            {event.title}
+                          </h3>
+                          <p className="text-gray-300 text-sm line-clamp-2 mb-3">
+                            {event.description}
+                          </p>
+                          {event.event_type && (
+                            <span className="inline-block bg-lime-400 text-black px-2 py-1 rounded-full text-xs font-medium mb-2">
+                              {event.event_type.charAt(0).toUpperCase() +
+                                event.event_type.slice(1)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-gray-400">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {new Date(event.start_date).toLocaleDateString()}
+                          </div>
+                          {(event.venue || event.location) && (
+                            <div className="flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              <span className="truncate">
+                                {event.venue || event.location}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Navigation arrows - only show if more than 3 events */}
+                {eventsTotalSlides > 1 && (
+                  <>
+                    <button
+                      onClick={prevEventsSlide}
+                      className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 w-10 h-10 bg-white rounded-full shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
+                    >
+                      <ChevronLeft className="w-5 h-5 text-gray-600" />
+                    </button>
+                    <button
+                      onClick={nextEventsSlide}
+                      className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 w-10 h-10 bg-white rounded-full shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
+                    >
+                      <ChevronRight className="w-5 h-5 text-gray-600" />
+                    </button>
+                  </>
+                )}
+
+                {/* Dots Navigation - only show if more than 1 slide */}
+                {eventsTotalSlides > 1 && (
+                  <div className="flex justify-center mt-6 space-x-2">
+                    {Array.from({ length: eventsTotalSlides }).map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => goToEventsSlide(index)}
+                        className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                          index === eventsCurrentIndex
+                            ? "bg-gray-800 scale-110"
+                            : "bg-gray-300 hover:bg-gray-400"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex justify-center items-center h-48 bg-gray-50 rounded-3xl">
@@ -253,7 +452,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Projects Container - 3 Fixed Cards */}
+          {/* Projects Container - Carousel */}
           <div className="relative">
             {loading ? (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -267,30 +466,104 @@ export default function Home() {
                 ))}
               </div>
             ) : featuredProjects.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                {featuredProjects.slice(0, 3).map((project, index) => (
-                  <div
-                    key={project.id}
-                    onClick={() => {
-                      window.open(`/projects/${project.id}`, "_blank");
-                    }}
-                    className={`w-full h-48 bg-gray-900 rounded-3xl border-2 border-gray-900 p-6 flex flex-col justify-between text-white relative overflow-hidden cursor-pointer hover:bg-gray-800 transition-colors ${
-                      index > 0 ? "hidden sm:flex" : "flex"
-                    }`}
+              <div 
+                className="relative"
+                onMouseEnter={() => setIsAutoPlaying(false)}
+                onMouseLeave={() => setIsAutoPlaying(true)}
+              >
+                {/* Mobile: Single card view */}
+                <div className="block sm:hidden">
+                  <div 
+                    className="flex transition-transform duration-300 ease-in-out"
+                    style={{ transform: `translateX(-${projectsCurrentIndex * 100}%)` }}
                   >
-                    <div>
-                      <h3 className="text-xl font-semibold mb-2 line-clamp-2">
-                        {project.title}
-                      </h3>
-                      <p className="text-gray-300 text-sm line-clamp-3">
-                        {project.description}
-                      </p>
-                    </div>
-                    {project.image && (
-                      <div className="absolute inset-0 bg-black/20 rounded-3xl" />
-                    )}
+                    {getExtendedProjects().map((project, index) => (
+                      <div
+                        key={`${project.id}-${index}`}
+                        onClick={() => {
+                          window.open(`/projects/${project.id}`, "_blank");
+                        }}
+                        className="w-full flex-shrink-0 px-2"
+                      >
+                        <div className="w-full h-48 bg-gray-900 rounded-3xl border-2 border-gray-900 p-6 flex flex-col justify-between text-white relative overflow-hidden cursor-pointer hover:bg-gray-800 transition-colors">
+                          <div>
+                            <h3 className="text-xl font-semibold mb-2 line-clamp-2">
+                              {project.title}
+                            </h3>
+                            <p className="text-gray-300 text-sm line-clamp-3">
+                              {project.description}
+                            </p>
+                          </div>
+                          {project.image && (
+                            <div className="absolute inset-0 bg-black/20 rounded-3xl" />
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
+
+                {/* Desktop: 3-card view */}
+                <div className="hidden sm:block">
+                  <div className="grid grid-cols-3 gap-6 transition-all duration-500 ease-in-out">
+                    {getVisibleProjects().map((project) => (
+                      <div
+                        key={project.id}
+                        onClick={() => {
+                          window.open(`/projects/${project.id}`, "_blank");
+                        }}
+                        className="w-full h-48 bg-gray-900 rounded-3xl border-2 border-gray-900 p-6 flex flex-col justify-between text-white relative overflow-hidden cursor-pointer hover:bg-gray-800 transition-colors"
+                      >
+                        <div>
+                          <h3 className="text-xl font-semibold mb-2 line-clamp-2">
+                            {project.title}
+                          </h3>
+                          <p className="text-gray-300 text-sm line-clamp-3">
+                            {project.description}
+                          </p>
+                        </div>
+                        {project.image && (
+                          <div className="absolute inset-0 bg-black/20 rounded-3xl" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Navigation arrows - only show if more than 3 projects */}
+                {projectsTotalSlides > 1 && (
+                  <>
+                    <button
+                      onClick={prevProjectsSlide}
+                      className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 w-10 h-10 bg-white rounded-full shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
+                    >
+                      <ChevronLeft className="w-5 h-5 text-gray-600" />
+                    </button>
+                    <button
+                      onClick={nextProjectsSlide}
+                      className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 w-10 h-10 bg-white rounded-full shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
+                    >
+                      <ChevronRight className="w-5 h-5 text-gray-600" />
+                    </button>
+                  </>
+                )}
+
+                {/* Dots Navigation - only show if more than 1 slide */}
+                {projectsTotalSlides > 1 && (
+                  <div className="flex justify-center mt-6 space-x-2">
+                    {Array.from({ length: projectsTotalSlides }).map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => goToProjectsSlide(index)}
+                        className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                          index === projectsCurrentIndex
+                            ? "bg-gray-800 scale-110"
+                            : "bg-gray-300 hover:bg-gray-400"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex justify-center items-center h-48 bg-gray-50 rounded-3xl">

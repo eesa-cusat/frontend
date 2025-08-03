@@ -20,7 +20,7 @@ export default function ProjectDetailsPage() {
       setLoading(true);
       setError(null);
       try {
-        const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "";
         const res = await fetch(`${apiBaseUrl}/projects/${id}/`);
         if (!res.ok) throw new Error("Project not found");
         const data = await res.json();
