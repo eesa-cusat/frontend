@@ -150,7 +150,7 @@ export default function AboutPage() {
       icon: Calendar,
       title: "Events & Workshops",
       description:
-        "Regular technical workshops, seminars, and networking events.",
+        "Technical workshops and networking events.",
     },
     {
       icon: Briefcase,
@@ -162,7 +162,7 @@ export default function AboutPage() {
       icon: Code,
       title: "Project Showcase",
       description:
-        "Platform to showcase innovative projects and collaborate with peers.",
+        "Showcase projects and collaborate with peers.",
     },
   ];
 
@@ -241,9 +241,9 @@ export default function AboutPage() {
             {features.map((feature, index) => (
               <div
                 key={index}
-                className="text-center p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow"
+                className="p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow"
               >
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
                   <feature.icon className="w-8 h-8 text-blue-600" />
                 </div>
                 <h3 className="text-xl font-semibold text-black mb-3">

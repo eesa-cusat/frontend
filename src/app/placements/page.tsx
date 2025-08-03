@@ -101,9 +101,6 @@ const PlacementsPage = () => {
         const drives = drivesData.drives || drivesData.results || drivesData || [];
         const placedStudents = placedData.placed_students || placedData.results || placedData || [];
 
-        console.log("Drives data:", drives); // Debug log
-        console.log("Placed students data:", placedStudents); // Debug log
-        
         // Validate and transform data to prevent null access errors
         const validDrives = drives.filter((drive: PlacementDrive) => drive && drive.id);
         const validPlacedStudents = placedStudents.filter((student: PlacedStudent) => student && student.id);

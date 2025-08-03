@@ -40,10 +40,12 @@ const Navbar = () => {
                 height={40}
                 className="w-8 h-8 md:w-10 md:h-10"
               />
-              <span className="ml-2 md:ml-3 text-lg md:text-xl font-bold text-black">EESA</span>
+              <span className="ml-2 md:ml-3 text-lg md:text-xl font-bold text-black">
+                EESA CUSAT
+              </span>
             </Link>
           </div>
-          
+
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
             {navigation.map((item) => (
@@ -60,9 +62,9 @@ const Navbar = () => {
               </Link>
             ))}
           </nav>
-          
+
           {/* Mobile Hamburger Menu */}
-          <button 
+          <button
             className="md:hidden p-2 rounded-md text-black hover:bg-gray-100"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
@@ -77,7 +79,7 @@ const Navbar = () => {
             )}
           </button>
         </div>
-        
+
         {/* Mobile Navigation */}
         {isMenuOpen && (
           <div className="md:hidden border-t border-gray-200">

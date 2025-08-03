@@ -41,8 +41,8 @@ export default function EventsPage() {
   // In production, this would be controlled by staff login
   const canCreateEvents = false; // Always false for public access
 
-  const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
+  // Use environment variable for API base URL (no hardcoded localhost)
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
   // Fetch events from API
   useEffect(() => {
@@ -217,7 +217,7 @@ export default function EventsPage() {
       <div className="py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
-          <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-8 border-b border-gray-200 pb-4">
             <div>
               <h1 className="text-3xl font-bold text-black">Events</h1>
               <p className="mt-2 text-gray-600">
@@ -233,7 +233,7 @@ export default function EventsPage() {
         </div>
 
         {/* Search and Filters */}
-        <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
           {/* Search Bar */}
           <div className="mb-6">
             <div className="relative">
@@ -271,7 +271,7 @@ export default function EventsPage() {
 
         {/* Events Grid */}
         {filteredEvents.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm border p-12 text-center">
+          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
             <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               No events found
@@ -285,12 +285,12 @@ export default function EventsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredEvents.map((event) => (
-              <Link
+            <Link
                 key={event.id}
                 href={`/events/${event.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow block"
+                className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow block"
               >
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-4">

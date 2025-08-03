@@ -2,10 +2,111 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Linkedin, Facebook, Twitter } from "lucide-react";
+import { Linkedin, Facebook, Twitter, Calendar, MapPin } from "lucide-react";
+import MarqueeNotifications from "@/components/ui/MarqueeNotifications";
+
+interface FeaturedEvent {
+  id: number;
+  title: string;
+  description: string;
+  start_date: string;
+  end_date: string;
+  location?: string;
+  venue?: string;
+  event_type?: string;
+  is_featured: boolean;
+  image?: string;
+  poster?: string;
+}
+
+interface FeaturedProject {
+  id: number;
+  title: string;
+  description: string;
+  technologies: string[];
+  is_featured: boolean;
+  image?: string;
+  github_url?: string;
+  project_report?: string;
+  demo_url?: string;
+}
 
 export default function Home() {
+  const [featuredEvents, setFeaturedEvents] = useState<FeaturedEvent[]>([]);
+  const [featuredProjects, setFeaturedProjects] = useState<FeaturedProject[]>(
+    []
+  );
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Get featured events using the main events endpoint
+    const getFeaturedEvents = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/events/events/?is_featured=true`
+        );
+        const data = await response.json();
+        return data.results || data; // Handle paginated or direct response
+      } catch (error) {
+        console.error("Error fetching featured events:", error);
+        return [];
+      }
+    };
+
+    // Get featured upcoming events
+    const getFeaturedUpcomingEvents = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/events/events/?is_featured=true&upcoming=true`
+        );
+        const data = await response.json();
+        return data.results || data;
+      } catch (error) {
+        console.error("Error fetching featured upcoming events:", error);
+        return [];
+      }
+    };
+
+    const fetchFeaturedData = async () => {
+      try {
+        // Fetch featured upcoming events (prioritize upcoming events)
+        const upcomingEvents = await getFeaturedUpcomingEvents();
+
+        // If no upcoming featured events, fall back to all featured events
+        if (upcomingEvents.length === 0) {
+          const allFeaturedEvents = await getFeaturedEvents();
+          setFeaturedEvents(allFeaturedEvents);
+        } else {
+          setFeaturedEvents(upcomingEvents);
+        }
+
+        // Fetch featured projects
+        try {
+          const projectsUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/projects/featured/`;
+          const projectsResponse = await fetch(projectsUrl);
+          if (projectsResponse.ok) {
+            const projectsData = await projectsResponse.json();
+            setFeaturedProjects(
+              projectsData.featured_projects ||
+                projectsData.results ||
+                projectsData ||
+                []
+            );
+          }
+        } catch (error) {
+          console.error("Failed to fetch featured projects:", error);
+        }
+      } catch (error) {
+        console.error("Error fetching featured data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeaturedData();
+  }, []);
   return (
     <div className="min-h-screen bg-white font-sans">
       {/* Hero Section */}
@@ -17,11 +118,14 @@ export default function Home() {
               <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-medium text-black leading-tight">
                 Electrical Engineering Students Association, CUSAT
               </h1>
-              
+
               <p className="text-base md:text-lg lg:text-xl text-black leading-relaxed">
-                EESA is a vibrant student-led body under the Department of Electrical Engineering, CUSAT, that fosters innovation, leadership, and technical excellence through dynamic academic and co-curricular initiatives.
+                EESA is a vibrant student-led body under the Department of
+                Electrical Engineering, CUSAT, that fosters innovation,
+                leadership, and technical excellence through dynamic academic
+                and co-curricular initiatives.
               </p>
-              
+
               <div className="pt-4">
                 <Link href="/events">
                   <Button className="bg-black text-white hover:bg-gray-800 px-6 lg:px-8 py-3 lg:py-4 text-base lg:text-lg font-medium rounded-xl transition-colors">
@@ -30,7 +134,7 @@ export default function Home() {
                 </Link>
               </div>
             </div>
-            
+
             {/* Right Graphic - Electrical Tower */}
             <div className="relative order-1 lg:order-2 flex justify-center">
               <div className="relative">
@@ -48,25 +152,7 @@ export default function Home() {
       </section>
 
       {/* Marquee Notifications */}
-      <section className="py-4 bg-white overflow-hidden">
-        <div className="whitespace-nowrap animate-marquee">
-          <span className="text-black text-lg md:text-xl font-medium mx-4">
-            🎉 Welcome to EESA CUSAT - Join our upcoming tech fest registration open now
-          </span>
-          <span className="text-black text-lg md:text-xl font-medium mx-4">
-            📚 New study materials uploaded for Electrical Engineering semester exams
-          </span>
-          <span className="text-black text-lg md:text-xl font-medium mx-4">
-            🔬 Research paper submission deadline extended till August 15th
-          </span>
-          <span className="text-black text-lg md:text-xl font-medium mx-4">
-            💼 Campus placement drive by leading companies starting next week
-          </span>
-          <span className="text-black text-lg md:text-xl font-medium mx-4">
-            🎓 Alumni meetup scheduled for August 20th - register now
-          </span>
-        </div>
-      </section>
+      <MarqueeNotifications />
 
       {/* Events Section */}
       <section className="py-12 bg-white">
@@ -75,97 +161,76 @@ export default function Home() {
             <div className="inline-block bg-lime-400 text-black px-6 py-2 rounded-full text-lg font-medium mb-6">
               Events
             </div>
-            
+
             {/* Events Description Text */}
-            <div className="max-w-4xl mx-auto text-left space-y-4 mb-8">
+            <div className="max-w-4xl mx-auto text-balance space-y-4 mb-8">
               <p className="text-lg text-gray-600 leading-relaxed">
-                Discover upcoming workshops, seminars, and technical events designed to enhance your engineering skills and career prospects.
-              </p>
-              <p className="text-lg text-gray-600 leading-relaxed">
-                From industry expert talks to hands-on coding sessions, join us for exciting learning opportunities.
+                Stay updated with our latest events, workshops, and tech fests
+                hosted by EESA. Explore what’s happening, what’s coming, and how
+                you can be part of it.
               </p>
             </div>
           </div>
-          
-          {/* Events Container - 3 Fixed Cards */}
+
+          {/* Events Container - API Driven */}
           <div className="relative">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              {/* Card 1 */}
-              <div className="w-full h-48 bg-gray-900 rounded-3xl border border-gray-200 flex items-center justify-center overflow-hidden relative">
-                <div className="animate-carousel-left-1-set1 absolute inset-0 flex items-center justify-center">
-                  <span className="text-white text-lg font-medium">Tech Workshop</span>
-                </div>
-                <div className="animate-carousel-left-1-set2 absolute inset-0 flex items-center justify-center">
-                  <span className="text-white text-lg font-medium">Industry Talk</span>
-                </div>
-                <div className="animate-carousel-left-1-set3 absolute inset-0 flex items-center justify-center">
-                  <span className="text-white text-lg font-medium">Hackathon 2024</span>
-                </div>
-                <div className="animate-carousel-left-1-set4 absolute inset-0 flex items-center justify-center">
-                  <span className="text-white text-lg font-medium">Career Fair</span>
-                </div>
-                <div className="animate-carousel-left-1-set5 absolute inset-0 flex items-center justify-center">
-                  <span className="text-white text-lg font-medium">Alumni Meet</span>
-                </div>
-                <div className="animate-carousel-left-1-set6 absolute inset-0 flex items-center justify-center">
-                  <span className="text-white text-lg font-medium">Research Expo</span>
+            {loading ? (
+              <div className="flex justify-center items-center h-48">
+                <div className="text-gray-500">Loading featured events...</div>
+              </div>
+            ) : featuredEvents.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {featuredEvents.slice(0, 3).map((event) => (
+                  <div
+                    key={event.id}
+                    onClick={() => {
+                      window.open(`/events/${event.id}`, "_blank");
+                    }}
+                    className="w-full h-48 bg-gray-900 rounded-3xl border border-gray-200 p-6 flex flex-col justify-between overflow-hidden relative hover:bg-gray-800 transition-colors cursor-pointer"
+                  >
+                    <div>
+                      <h3 className="text-white text-lg font-medium mb-2 line-clamp-2">
+                        {event.title}
+                      </h3>
+                      <p className="text-gray-300 text-sm line-clamp-2 mb-3">
+                        {event.description}
+                      </p>
+                      {event.event_type && (
+                        <span className="inline-block bg-lime-400 text-black px-2 py-1 rounded-full text-xs font-medium mb-2">
+                          {event.event_type.charAt(0).toUpperCase() +
+                            event.event_type.slice(1)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-4 text-xs text-gray-400">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        {new Date(event.start_date).toLocaleDateString()}
+                      </div>
+                      {(event.venue || event.location) && (
+                        <div className="flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
+                          <span className="truncate">
+                            {event.venue || event.location}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex justify-center items-center h-48 bg-gray-50 rounded-3xl">
+                <div className="text-center">
+                  <p className="text-gray-500 text-lg mb-2">
+                    No upcoming featured events
+                  </p>
+                  <p className="text-gray-400 text-sm">
+                    Check back soon for exciting upcoming events!
+                  </p>
                 </div>
               </div>
-              
-              {/* Card 2 - Hidden on mobile */}
-              <div className="hidden sm:flex w-full h-48 bg-gray-900 rounded-3xl border border-gray-200 items-center justify-center overflow-hidden relative">
-                <div className="animate-carousel-left-2-set1 absolute inset-0 flex items-center justify-center">
-                  <span className="text-white text-lg font-medium">Industry Talk</span>
-                </div>
-                <div className="animate-carousel-left-2-set2 absolute inset-0 flex items-center justify-center">
-                  <span className="text-white text-lg font-medium">Hackathon 2024</span>
-                </div>
-                <div className="animate-carousel-left-2-set3 absolute inset-0 flex items-center justify-center">
-                  <span className="text-white text-lg font-medium">Career Fair</span>
-                </div>
-                <div className="animate-carousel-left-2-set4 absolute inset-0 flex items-center justify-center">
-                  <span className="text-white text-lg font-medium">Alumni Meet</span>
-                </div>
-                <div className="animate-carousel-left-2-set5 absolute inset-0 flex items-center justify-center">
-                  <span className="text-white text-lg font-medium">Research Expo</span>
-                </div>
-                <div className="animate-carousel-left-2-set6 absolute inset-0 flex items-center justify-center">
-                  <span className="text-white text-lg font-medium">Tech Workshop</span>
-                </div>
-              </div>
-              
-              {/* Card 3 - Hidden on mobile */}
-              <div className="hidden sm:flex w-full h-48 bg-gray-900 rounded-3xl border border-gray-200 items-center justify-center overflow-hidden relative">
-                <div className="animate-carousel-left-3-set1 absolute inset-0 flex items-center justify-center">
-                  <span className="text-white text-lg font-medium">Hackathon 2024</span>
-                </div>
-                <div className="animate-carousel-left-3-set2 absolute inset-0 flex items-center justify-center">
-                  <span className="text-white text-lg font-medium">Career Fair</span>
-                </div>
-                <div className="animate-carousel-left-3-set3 absolute inset-0 flex items-center justify-center">
-                  <span className="text-white text-lg font-medium">Alumni Meet</span>
-                </div>
-                <div className="animate-carousel-left-3-set4 absolute inset-0 flex items-center justify-center">
-                  <span className="text-white text-lg font-medium">Research Expo</span>
-                </div>
-                <div className="animate-carousel-left-3-set5 absolute inset-0 flex items-center justify-center">
-                  <span className="text-white text-lg font-medium">Tech Workshop</span>
-                </div>
-                <div className="animate-carousel-left-3-set6 absolute inset-0 flex items-center justify-center">
-                  <span className="text-white text-lg font-medium">Industry Talk</span>
-                </div>
-              </div>
-            </div>
-            
-            {/* Dots Indicator */}
-            <div className="flex justify-center space-x-2 mt-6">
-              <div className="w-3 h-3 bg-gray-900 rounded-full animate-dot-6-1"></div>
-              <div className="w-3 h-3 bg-gray-300 rounded-full animate-dot-6-2"></div>
-              <div className="w-3 h-3 bg-gray-300 rounded-full animate-dot-6-3"></div>
-              <div className="w-3 h-3 bg-gray-300 rounded-full animate-dot-6-4"></div>
-              <div className="w-3 h-3 bg-gray-300 rounded-full animate-dot-6-5"></div>
-              <div className="w-3 h-3 bg-gray-300 rounded-full animate-dot-6-6"></div>
-            </div>
+            )}
           </div>
         </div>
       </section>
@@ -177,97 +242,68 @@ export default function Home() {
             <div className="inline-block bg-lime-400 text-black px-6 py-2 rounded-full text-lg font-medium mb-6">
               Projects
             </div>
-            
+
             {/* Projects Description Text */}
             <div className="max-w-4xl mx-auto text-left space-y-4 mb-8">
               <p className="text-lg text-gray-600 leading-relaxed">
-                Explore innovative student projects ranging from IoT solutions to renewable energy systems and smart grid technologies.
-              </p>
-              <p className="text-lg text-gray-600 leading-relaxed">
-                Join collaborative research initiatives and contribute to cutting-edge developments in electrical engineering.
+                Discover innovative projects by EEE students—spanning hardware,
+                software, and interdisciplinary ideas. Get inspired, get
+                building.
               </p>
             </div>
           </div>
-          
+
           {/* Projects Container - 3 Fixed Cards */}
           <div className="relative">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              {/* Card 1 */}
-              <div className="w-full h-48 bg-gray-900 rounded-3xl border-2 border-gray-900 overflow-hidden relative">
-                <div className="animate-carousel-left-1-set1 absolute inset-0 flex items-center justify-center">
-                  <span className="text-white text-lg font-medium">Smart Grid IoT</span>
-                </div>
-                <div className="animate-carousel-left-1-set2 absolute inset-0 flex items-center justify-center">
-                  <span className="text-white text-lg font-medium">Solar Tracker</span>
-                </div>
-                <div className="animate-carousel-left-1-set3 absolute inset-0 flex items-center justify-center">
-                  <span className="text-white text-lg font-medium">EV Charger</span>
-                </div>
-                <div className="animate-carousel-left-1-set4 absolute inset-0 flex items-center justify-center">
-                  <span className="text-white text-lg font-medium">Power Monitor</span>
-                </div>
-                <div className="animate-carousel-left-1-set5 absolute inset-0 flex items-center justify-center">
-                  <span className="text-white text-lg font-medium">Home Automation</span>
-                </div>
-                <div className="animate-carousel-left-1-set6 absolute inset-0 flex items-center justify-center">
-                  <span className="text-white text-lg font-medium">Wind Turbine</span>
+            {loading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                {[1, 2, 3].map((index) => (
+                  <div
+                    key={index}
+                    className={`w-full h-48 bg-gray-200 rounded-3xl border-2 border-gray-900 animate-pulse ${
+                      index > 1 ? "hidden sm:block" : ""
+                    }`}
+                  />
+                ))}
+              </div>
+            ) : featuredProjects.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                {featuredProjects.slice(0, 3).map((project, index) => (
+                  <div
+                    key={project.id}
+                    onClick={() => {
+                      window.open(`/projects/${project.id}`, "_blank");
+                    }}
+                    className={`w-full h-48 bg-gray-900 rounded-3xl border-2 border-gray-900 p-6 flex flex-col justify-between text-white relative overflow-hidden cursor-pointer hover:bg-gray-800 transition-colors ${
+                      index > 0 ? "hidden sm:flex" : "flex"
+                    }`}
+                  >
+                    <div>
+                      <h3 className="text-xl font-semibold mb-2 line-clamp-2">
+                        {project.title}
+                      </h3>
+                      <p className="text-gray-300 text-sm line-clamp-3">
+                        {project.description}
+                      </p>
+                    </div>
+                    {project.image && (
+                      <div className="absolute inset-0 bg-black/20 rounded-3xl" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex justify-center items-center h-48 bg-gray-50 rounded-3xl">
+                <div className="text-center">
+                  <p className="text-gray-500 text-lg mb-2">
+                    No featured projects available
+                  </p>
+                  <p className="text-gray-400 text-sm">
+                    Check back soon for new projects!
+                  </p>
                 </div>
               </div>
-              
-              {/* Card 2 - Hidden on mobile */}
-              <div className="hidden sm:flex w-full h-48 bg-gray-50 rounded-3xl border-2 border-gray-900 items-center justify-center overflow-hidden relative">
-                <div className="animate-carousel-left-2-set1 absolute inset-0 flex items-center justify-center">
-                  <span className="text-black text-lg font-medium">Solar Tracker</span>
-                </div>
-                <div className="animate-carousel-left-2-set2 absolute inset-0 flex items-center justify-center">
-                  <span className="text-black text-lg font-medium">EV Charger</span>
-                </div>
-                <div className="animate-carousel-left-2-set3 absolute inset-0 flex items-center justify-center">
-                  <span className="text-black text-lg font-medium">Power Monitor</span>
-                </div>
-                <div className="animate-carousel-left-2-set4 absolute inset-0 flex items-center justify-center">
-                  <span className="text-black text-lg font-medium">Home Automation</span>
-                </div>
-                <div className="animate-carousel-left-2-set5 absolute inset-0 flex items-center justify-center">
-                  <span className="text-black text-lg font-medium">Wind Turbine</span>
-                </div>
-                <div className="animate-carousel-left-2-set6 absolute inset-0 flex items-center justify-center">
-                  <span className="text-black text-lg font-medium">Smart Grid IoT</span>
-                </div>
-              </div>
-              
-              {/* Card 3 - Hidden on mobile */}
-              <div className="hidden sm:flex w-full h-48 bg-lime-400 rounded-3xl border-2 border-gray-900 items-center justify-center overflow-hidden relative">
-                <div className="animate-carousel-left-3-set1 absolute inset-0 flex items-center justify-center">
-                  <span className="text-black text-lg font-medium">EV Charger</span>
-                </div>
-                <div className="animate-carousel-left-3-set2 absolute inset-0 flex items-center justify-center">
-                  <span className="text-black text-lg font-medium">Power Monitor</span>
-                </div>
-                <div className="animate-carousel-left-3-set3 absolute inset-0 flex items-center justify-center">
-                  <span className="text-black text-lg font-medium">Home Automation</span>
-                </div>
-                <div className="animate-carousel-left-3-set4 absolute inset-0 flex items-center justify-center">
-                  <span className="text-black text-lg font-medium">Wind Turbine</span>
-                </div>
-                <div className="animate-carousel-left-3-set5 absolute inset-0 flex items-center justify-center">
-                  <span className="text-black text-lg font-medium">Smart Grid IoT</span>
-                </div>
-                <div className="animate-carousel-left-3-set6 absolute inset-0 flex items-center justify-center">
-                  <span className="text-black text-lg font-medium">Solar Tracker</span>
-                </div>
-              </div>
-            </div>
-            
-            {/* Dots Indicator */}
-            <div className="flex justify-center space-x-2 mt-6">
-              <div className="w-3 h-3 bg-gray-900 rounded-full animate-dot-6-1"></div>
-              <div className="w-3 h-3 bg-gray-300 rounded-full animate-dot-6-2"></div>
-              <div className="w-3 h-3 bg-gray-300 rounded-full animate-dot-6-3"></div>
-              <div className="w-3 h-3 bg-gray-300 rounded-full animate-dot-6-4"></div>
-              <div className="w-3 h-3 bg-gray-300 rounded-full animate-dot-6-5"></div>
-              <div className="w-3 h-3 bg-gray-300 rounded-full animate-dot-6-6"></div>
-            </div>
+            )}
           </div>
         </div>
       </section>
@@ -288,35 +324,46 @@ export default function Home() {
                 />
                 <span className="ml-3 text-xl font-bold">EESA</span>
               </div>
-              
+
               <div className="space-y-4">
                 <div className="inline-block bg-lime-400 text-black px-4 py-2 rounded-full text-sm font-medium">
                   Contact us:
                 </div>
-                <p className="text-gray-300">Email: info@eesa.cusat.ac.in</p>
+                <p className="text-gray-300">Email: eesacusatweb@gmail.com</p>
               </div>
             </div>
-            
+
             {/* Social Media */}
             <div className="flex items-center justify-center space-x-4">
-              <a href="#" className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-700 transition-colors border border-gray-700">
+              <a
+                href="#"
+                className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-700 transition-colors border border-gray-700"
+              >
                 <Linkedin className="w-5 h-5" />
               </a>
-              <a href="#" className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-700 transition-colors border border-gray-700">
+              <a
+                href="#"
+                className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-700 transition-colors border border-gray-700"
+              >
                 <Facebook className="w-5 h-5" />
               </a>
-              <a href="#" className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-700 transition-colors border border-gray-700">
+              <a
+                href="#"
+                className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-700 transition-colors border border-gray-700"
+              >
                 <Twitter className="w-5 h-5" />
               </a>
             </div>
-            
+
             {/* Copyright */}
             <div className="text-center md:text-right">
-              <p className="text-gray-400 text-sm">© EESA CUSAT All Rights Reserved.</p>
+              <p className="text-gray-400 text-sm">
+                © EESA CUSAT All Rights Reserved.
+              </p>
             </div>
           </div>
         </div>
       </footer>
     </div>
   );
-} 
+}

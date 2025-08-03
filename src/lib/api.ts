@@ -48,6 +48,7 @@ export const api = {
     subjects: (params?: any) => apiClient.get('/academics/subjects/', { params }),
     categories: () => apiClient.get('/academics/categories/'),
     resources: (params?: any) => apiClient.get('/academics/resources/', { params }),
+    departments: () => apiClient.get('/academics/departments/'),
   },
 
   // Projects

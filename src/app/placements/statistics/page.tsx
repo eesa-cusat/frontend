@@ -45,17 +45,12 @@ const PlacementStatisticsPage = () => {
       setError(null);
       setLoading(true);
 
-      console.log("Fetching statistics...");
-
       const [statsResponse, placedResponse] = await Promise.all([
         fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/placements/statistics/`),
         fetch(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/placements/placed-students/`
         ),
       ]);
-
-      console.log("Stats response:", statsResponse.status);
-      console.log("Placed response:", placedResponse.status);
 
       if (!statsResponse.ok || !placedResponse.ok) {
         throw new Error(
@@ -65,9 +60,6 @@ const PlacementStatisticsPage = () => {
 
       const statsData = await statsResponse.json();
       const placedData = await placedResponse.json();
-
-      console.log("Stats data:", statsData);
-      console.log("Placed data:", placedData);
 
       // Handle statistics data
       let statsArray: PlacementStats[] = [];
@@ -97,9 +89,6 @@ const PlacementStatisticsPage = () => {
         placedArray = placedData.placed_students;
       }
 
-      console.log("Processed stats array:", statsArray);
-      console.log("Processed placed array:", placedArray);
-
       setStats(statsArray);
       setRecentPlacements(placedArray.slice(0, 10));
 
@@ -112,7 +101,6 @@ const PlacementStatisticsPage = () => {
           .reverse();
         if (availableYears.length > 0) {
           setSelectedYear(availableYears[0]);
-          console.log("Auto-selected year:", availableYears[0]);
         }
       }
     } catch (error) {
