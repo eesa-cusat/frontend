@@ -183,33 +183,6 @@ export default function Home() {
     return result;
   };
 
-  // Create extended arrays for mobile infinite scrolling
-  const getExtendedEvents = () => {
-    if (featuredEvents.length === 0) return [];
-    if (featuredEvents.length <= 3) return featuredEvents;
-    
-    // Create an array with duplicated items for seamless infinite scroll
-    const extended = [];
-    const totalNeeded = Math.max(featuredEvents.length * 2, 6); // At least double the original
-    for (let i = 0; i < totalNeeded; i++) {
-      extended.push(featuredEvents[i % featuredEvents.length]);
-    }
-    return extended;
-  };
-
-  const getExtendedProjects = () => {
-    if (featuredProjects.length === 0) return [];
-    if (featuredProjects.length <= 3) return featuredProjects;
-    
-    // Create an array with duplicated items for seamless infinite scroll
-    const extended = [];
-    const totalNeeded = Math.max(featuredProjects.length * 2, 6); // At least double the original
-    for (let i = 0; i < totalNeeded; i++) {
-      extended.push(featuredProjects[i % featuredProjects.length]);
-    }
-    return extended;
-  };
-
   const eventsTotalSlides = featuredEvents.length > 3 ? featuredEvents.length : 1;
   const projectsTotalSlides = featuredProjects.length > 3 ? featuredProjects.length : 1;
 
@@ -292,50 +265,52 @@ export default function Home() {
               >
                 {/* Mobile: Single card view */}
                 <div className="block sm:hidden">
-                  <div 
-                    className="flex transition-transform duration-300 ease-in-out"
-                    style={{ transform: `translateX(-${eventsCurrentIndex * 100}%)` }}
-                  >
-                    {getExtendedEvents().map((event, index) => (
-                      <div
-                        key={`${event.id}-${index}`}
-                        onClick={() => {
-                          window.open(`/events/${event.id}`, "_blank");
-                        }}
-                        className="w-full flex-shrink-0 px-2"
-                      >
-                        <div className="w-full h-48 bg-gray-900 rounded-3xl border border-gray-200 p-6 flex flex-col justify-between overflow-hidden relative hover:bg-gray-800 transition-colors cursor-pointer">
-                          <div>
-                            <h3 className="text-white text-lg font-medium mb-2 line-clamp-2">
-                              {event.title}
-                            </h3>
-                            <p className="text-gray-300 text-sm line-clamp-2 mb-3">
-                              {event.description}
-                            </p>
-                            {event.event_type && (
-                              <span className="inline-block bg-lime-400 text-black px-2 py-1 rounded-full text-xs font-medium mb-2">
-                                {event.event_type.charAt(0).toUpperCase() +
-                                  event.event_type.slice(1)}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-4 text-xs text-gray-400">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              {new Date(event.start_date).toLocaleDateString()}
-                            </div>
-                            {(event.venue || event.location) && (
-                              <div className="flex items-center gap-1">
-                                <MapPin className="w-3 h-3" />
-                                <span className="truncate">
-                                  {event.venue || event.location}
+                  <div className="overflow-hidden">
+                    <div 
+                      className="flex transition-transform duration-300 ease-in-out"
+                      style={{ transform: `translateX(-${eventsCurrentIndex * 100}%)` }}
+                    >
+                      {featuredEvents.map((event) => (
+                        <div
+                          key={event.id}
+                          onClick={() => {
+                            window.open(`/events/${event.id}`, "_blank");
+                          }}
+                          className="w-full flex-shrink-0 px-2"
+                        >
+                          <div className="w-full h-48 bg-gray-900 rounded-3xl border border-gray-200 p-6 flex flex-col justify-between overflow-hidden relative hover:bg-gray-800 transition-colors cursor-pointer">
+                            <div>
+                              <h3 className="text-white text-lg font-medium mb-2 line-clamp-2">
+                                {event.title}
+                              </h3>
+                              <p className="text-gray-300 text-sm line-clamp-2 mb-3">
+                                {event.description}
+                              </p>
+                              {event.event_type && (
+                                <span className="inline-block bg-lime-400 text-black px-2 py-1 rounded-full text-xs font-medium mb-2">
+                                  {event.event_type.charAt(0).toUpperCase() +
+                                    event.event_type.slice(1)}
                                 </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-4 text-xs text-gray-400">
+                              <div className="flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                {new Date(event.start_date).toLocaleDateString()}
                               </div>
-                            )}
+                              {(event.venue || event.location) && (
+                                <div className="flex items-center gap-1">
+                                  <MapPin className="w-3 h-3" />
+                                  <span className="truncate">
+                                    {event.venue || event.location}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 </div>
 
@@ -383,18 +358,18 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Navigation arrows - only show if more than 3 events */}
+                {/* Navigation arrows - only show on desktop if more than 3 events */}
                 {eventsTotalSlides > 1 && (
                   <>
                     <button
                       onClick={prevEventsSlide}
-                      className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 w-10 h-10 bg-white rounded-full shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
+                      className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 w-10 h-10 bg-white rounded-full shadow-lg border border-gray-200 hidden sm:flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
                     >
                       <ChevronLeft className="w-5 h-5 text-gray-600" />
                     </button>
                     <button
                       onClick={nextEventsSlide}
-                      className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 w-10 h-10 bg-white rounded-full shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
+                      className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 w-10 h-10 bg-white rounded-full shadow-lg border border-gray-200 hidden sm:flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
                     >
                       <ChevronRight className="w-5 h-5 text-gray-600" />
                     </button>
@@ -473,33 +448,35 @@ export default function Home() {
               >
                 {/* Mobile: Single card view */}
                 <div className="block sm:hidden">
-                  <div 
-                    className="flex transition-transform duration-300 ease-in-out"
-                    style={{ transform: `translateX(-${projectsCurrentIndex * 100}%)` }}
-                  >
-                    {getExtendedProjects().map((project, index) => (
-                      <div
-                        key={`${project.id}-${index}`}
-                        onClick={() => {
-                          window.open(`/projects/${project.id}`, "_blank");
-                        }}
-                        className="w-full flex-shrink-0 px-2"
-                      >
-                        <div className="w-full h-48 bg-gray-900 rounded-3xl border-2 border-gray-900 p-6 flex flex-col justify-between text-white relative overflow-hidden cursor-pointer hover:bg-gray-800 transition-colors">
-                          <div>
-                            <h3 className="text-xl font-semibold mb-2 line-clamp-2">
-                              {project.title}
-                            </h3>
-                            <p className="text-gray-300 text-sm line-clamp-3">
-                              {project.description}
-                            </p>
+                  <div className="overflow-hidden">
+                    <div 
+                      className="flex transition-transform duration-300 ease-in-out"
+                      style={{ transform: `translateX(-${projectsCurrentIndex * 100}%)` }}
+                    >
+                      {featuredProjects.map((project) => (
+                        <div
+                          key={project.id}
+                          onClick={() => {
+                            window.open(`/projects/${project.id}`, "_blank");
+                          }}
+                          className="w-full flex-shrink-0 px-2"
+                        >
+                          <div className="w-full h-48 bg-gray-900 rounded-3xl border-2 border-gray-900 p-6 flex flex-col justify-between text-white relative overflow-hidden cursor-pointer hover:bg-gray-800 transition-colors">
+                            <div>
+                              <h3 className="text-xl font-semibold mb-2 line-clamp-2">
+                                {project.title}
+                              </h3>
+                              <p className="text-gray-300 text-sm line-clamp-3">
+                                {project.description}
+                              </p>
+                            </div>
+                            {project.image && (
+                              <div className="absolute inset-0 bg-black/20 rounded-3xl" />
+                            )}
                           </div>
-                          {project.image && (
-                            <div className="absolute inset-0 bg-black/20 rounded-3xl" />
-                          )}
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 </div>
 
@@ -530,18 +507,18 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Navigation arrows - only show if more than 3 projects */}
+                {/* Navigation arrows - only show on desktop if more than 3 projects */}
                 {projectsTotalSlides > 1 && (
                   <>
                     <button
                       onClick={prevProjectsSlide}
-                      className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 w-10 h-10 bg-white rounded-full shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
+                      className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 w-10 h-10 bg-white rounded-full shadow-lg border border-gray-200 hidden sm:flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
                     >
                       <ChevronLeft className="w-5 h-5 text-gray-600" />
                     </button>
                     <button
                       onClick={nextProjectsSlide}
-                      className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 w-10 h-10 bg-white rounded-full shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
+                      className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 w-10 h-10 bg-white rounded-full shadow-lg border border-gray-200 hidden sm:flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
                     >
                       <ChevronRight className="w-5 h-5 text-gray-600" />
                     </button>
