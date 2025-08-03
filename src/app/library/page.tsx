@@ -144,7 +144,6 @@ export default function LibraryPage() {
         if (searchTerm) params.append("search", searchTerm);
 
         const url = `${API_BASE_URL}/academics/notes/?${params.toString()}`;
-        console.log("Fetching notes from:", url);
 
         const response = await fetch(url);
 
@@ -154,7 +153,6 @@ export default function LibraryPage() {
 
         const data = await response.json();
         const fetchedNotes = data.notes || [];
-        console.log("Fetched notes:", fetchedNotes.length);
         setNotes(fetchedNotes);
       } catch (err) {
         const errorMessage =

@@ -96,8 +96,8 @@ export default function ProjectsPage() {
     setSelectedProject(null);
   };
 
-  const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
+  // Use environment variable for API base URL (no hardcoded localhost)
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
 
 
@@ -187,7 +187,7 @@ export default function ProjectsPage() {
     <>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-8 border-b border-gray-200 pb-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold text-black mb-2">
@@ -209,7 +209,7 @@ export default function ProjectsPage() {
         </div>
 
         {/* Search and Filters */}
-        <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
           {/* Search Bar */}
           <div className="flex flex-col lg:flex-row gap-4 mb-4">
             <div className="flex-1">
@@ -339,12 +339,12 @@ export default function ProjectsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {projects.map((project: Project) => (
-              <Link
+            <Link
                 key={project.id}
                 href={`/projects/${project.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow block"
+                className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow block"
               >
                 <div className="p-6">
                   {/* Header */}

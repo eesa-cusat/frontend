@@ -131,6 +131,11 @@ html {
 
 .animate-marquee {
   animation: marquee 30s linear infinite;
+  font-family: var(--font-space-grotesk), system-ui, sans-serif;
+}
+
+.animate-marquee.hover\:pause:hover {
+  animation-play-state: paused;
 }
 
 /* Auto-scroll Animations */

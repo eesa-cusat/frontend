@@ -134,7 +134,7 @@ const GalleryPage = () => {
           url: window.location.href
         });
       } catch (error) {
-        console.log('Share cancelled');
+        // Share cancelled or failed
       }
     } else {
       // Fallback: copy to clipboard
