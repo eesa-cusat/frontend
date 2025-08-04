@@ -38,6 +38,16 @@ interface Event {
   created_at?: string;
 }
 
+// Registration form data interface
+interface RegistrationData {
+  name: string;
+  email: string;
+  mobile_number?: string;
+  institution?: string;
+  department?: string;
+  year_of_study?: number;
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
 
 export default function EventsPage() {
@@ -45,6 +55,19 @@ export default function EventsPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [showPastEvents, setShowPastEvents] = useState(false);
+  const [registrationModal, setRegistrationModal] = useState<{
+    isOpen: boolean;
+    event: Event | null;
+  }>({ isOpen: false, event: null });
+  const [registrationData, setRegistrationData] = useState<RegistrationData>({
+    name: "",
+    email: "",
+    mobile_number: "",
+    institution: "",
+    department: "",
+    year_of_study: undefined,
+  });
+  const [registering, setRegistering] = useState(false);
 
   // Fetch events from Django API
   useEffect(() => {
@@ -99,6 +122,17 @@ export default function EventsPage() {
     fetchEvents();
   }, []);
 
+  // Simple toggle function that preserves scroll position
+  const handleToggle = (showPast: boolean) => {
+    const currentScrollY = window.scrollY;
+    setShowPastEvents(showPast);
+    
+    // Use requestAnimationFrame to ensure the DOM has updated before scrolling
+    requestAnimationFrame(() => {
+      window.scrollTo(0, currentScrollY);
+    });
+  };
+
   // Filter events based on search and date
   const filteredEvents = events.filter((event) => {
     const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -118,13 +152,74 @@ export default function EventsPage() {
   // Get featured event for hero section
   const featuredEvent = events.find(event => event.is_featured) || events[0];
 
-  const handleRegister = async (_eventId: number) => {
+  const handleRegister = (eventId: number) => {
+    const event = events.find(e => e.id === eventId);
+    if (event) {
+      setRegistrationModal({ isOpen: true, event });
+    }
+  };
+
+  const handleRegistrationSubmit = async () => {
+    if (!registrationModal.event) return;
+
     try {
-      // Simple registration - in real app this would open a form or redirect
-      alert('Registration functionality would be implemented here');
+      setRegistering(true);
+      
+      // Here you would call your registration API
+      const response = await fetch(`${API_BASE_URL}/events/events/${registrationModal.event.id}/register/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(registrationData),
+      });
+
+      if (response.ok) {
+        alert('Registration successful!');
+        setRegistrationModal({ isOpen: false, event: null });
+        setRegistrationData({
+          name: "",
+          email: "",
+          mobile_number: "",
+          institution: "",
+          department: "",
+          year_of_study: undefined,
+        });
+        
+        // Update local event data
+        setEvents(prevEvents =>
+          prevEvents.map(event =>
+            event.id === registrationModal.event!.id
+              ? { ...event, registration_count: (event.registration_count || 0) + 1 }
+              : event
+          )
+        );
+      } else {
+        throw new Error('Registration failed');
+      }
     } catch (error) {
       console.error('Registration error:', error);
+      alert('Registration failed. Please try again.');
+    } finally {
+      setRegistering(false);
     }
+  };
+
+  const handleEventClick = (eventId: number) => {
+    // Navigate to event details page
+    window.location.href = `/events/${eventId}`;
+  };
+
+  const closeModal = () => {
+    setRegistrationModal({ isOpen: false, event: null });
+    setRegistrationData({
+      name: "",
+      email: "",
+      mobile_number: "",
+      institution: "",
+      department: "",
+      year_of_study: undefined,
+    });
   };
 
   if (loading) {
@@ -334,7 +429,7 @@ export default function EventsPage() {
         )}
 
         {/* Events List Section */}
-        <section className="py-8 md:py-12 lg:py-16">
+        <section className="py-8 md:py-12 lg:py-16" data-events-section>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             {/* Section Header */}
             <div className="text-center mb-12">
@@ -373,8 +468,8 @@ export default function EventsPage() {
               {/* Toggle */}
               <div className="flex bg-white/80 border border-[#191A23]/20 rounded-lg overflow-hidden">
                 <button
-                  onClick={() => setShowPastEvents(false)}
-                  className={`px-6 py-3 font-medium transition-all duration-300 ${
+                  onClick={() => handleToggle(false)}
+                  className={`px-6 py-3 font-medium transition-all duration-300 w-[140px] text-center ${
                     !showPastEvents
                       ? "bg-[#191A23] text-[#B9FF66]"
                       : "text-[#191A23] hover:bg-[#191A23]/10"
@@ -383,8 +478,8 @@ export default function EventsPage() {
                   Upcoming
                 </button>
                 <button
-                  onClick={() => setShowPastEvents(true)}
-                  className={`px-6 py-3 font-medium transition-all duration-300 ${
+                  onClick={() => handleToggle(true)}
+                  className={`px-6 py-3 font-medium transition-all duration-300 w-[140px] text-center ${
                     showPastEvents
                       ? "bg-[#191A23] text-[#B9FF66]"
                       : "text-[#191A23] hover:bg-[#191A23]/10"
@@ -401,7 +496,8 @@ export default function EventsPage() {
                 {filteredEvents.map((event) => (
                   <div
                     key={event.id}
-                    className="bg-white/80 border border-white/60 rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300 backdrop-blur-sm"
+                    className="bg-white/80 border border-white/60 rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300 backdrop-blur-sm cursor-pointer"
+                    onClick={() => handleEventClick(event.id)}
                   >
                     {/* Event Image */}
                     <div className="relative h-48 bg-[#F3F3F3]">
@@ -482,7 +578,10 @@ export default function EventsPage() {
 
                       {event.registration_required && (
                         <Button
-                          onClick={() => handleRegister(event.id)}
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent card click
+                            handleRegister(event.id);
+                          }}
                           className="w-full bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66] transition-all duration-300"
                         >
                           <UserPlus className="w-4 h-4 mr-2" />
@@ -513,6 +612,141 @@ export default function EventsPage() {
           </div>
         </section>
       </div>
+
+      {/* Registration Modal */}
+      {registrationModal.isOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-[#F3F3F3]/95 backdrop-blur-lg rounded-lg max-w-md w-full p-6 border border-[#191A23]/10">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold text-[#191A23]">
+                Register for Event
+              </h3>
+              <button
+                onClick={closeModal}
+                className="text-[#191A23]/50 hover:text-[#191A23] transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="mb-4 p-3 bg-[#B9FF66]/20 border border-[#B9FF66]/40 rounded-lg">
+              <h4 className="font-medium text-[#191A23] text-sm">
+                {registrationModal.event?.title}
+              </h4>
+              <p className="text-[#191A23]/70 text-xs mt-1">
+                {registrationModal.event &&
+                  new Date(registrationModal.event.start_date).toLocaleDateString("en-US", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
+                    hour12: true,
+                  })}
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-[#191A23] mb-1">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  value={registrationData.name}
+                  onChange={(e) =>
+                    setRegistrationData({ ...registrationData, name: e.target.value })
+                  }
+                  placeholder="Enter your full name"
+                  className="w-full px-3 py-2 border border-[#191A23]/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-[#B9FF66]"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#191A23] mb-1">
+                  Email Address *
+                </label>
+                <input
+                  type="email"
+                  value={registrationData.email}
+                  onChange={(e) =>
+                    setRegistrationData({ ...registrationData, email: e.target.value })
+                  }
+                  placeholder="Enter your email address"
+                  className="w-full px-3 py-2 border border-[#191A23]/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-[#B9FF66]"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#191A23] mb-1">
+                  Phone Number
+                </label>
+                <input
+                  type="tel"
+                  value={registrationData.mobile_number}
+                  onChange={(e) =>
+                    setRegistrationData({ ...registrationData, mobile_number: e.target.value })
+                  }
+                  placeholder="Enter your phone number"
+                  className="w-full px-3 py-2 border border-[#191A23]/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-[#B9FF66]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#191A23] mb-1">
+                    Institution
+                  </label>
+                  <input
+                    type="text"
+                    value={registrationData.institution}
+                    onChange={(e) =>
+                      setRegistrationData({ ...registrationData, institution: e.target.value })
+                    }
+                    placeholder="Your institution"
+                    className="w-full px-3 py-2 border border-[#191A23]/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-[#B9FF66]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#191A23] mb-1">
+                    Department
+                  </label>
+                  <input
+                    type="text"
+                    value={registrationData.department}
+                    onChange={(e) =>
+                      setRegistrationData({ ...registrationData, department: e.target.value })
+                    }
+                    placeholder="Your department"
+                    className="w-full px-3 py-2 border border-[#191A23]/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-[#B9FF66]"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-8">
+              <Button
+                onClick={closeModal}
+                className="flex-1 bg-white border border-[#191A23]/20 text-[#191A23] hover:bg-[#B9FF66]/10"
+                disabled={registering}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleRegistrationSubmit}
+                disabled={registering || !registrationData.name || !registrationData.email}
+                className="flex-1 bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66]"
+              >
+                {registering ? "Registering..." : "Register Now"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
