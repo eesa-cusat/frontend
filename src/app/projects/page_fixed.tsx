@@ -237,6 +237,9 @@ const ProjectsPage: React.FC = () => {
     fetchProjects("", "all");
   }, [fetchProjects]);
 
+  // Get featured project for hero section
+  const featuredProject = projects.find((p) => p.is_featured) || projects[0];
+
   // Use projects directly since filtering is done server-side
   const filteredProjects = projects;
 
@@ -289,14 +292,206 @@ const ProjectsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#F3F3F3]">
+      {/* Enhanced Hero Section */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#191A23] via-[#2A2B35] to-[#191A23] min-h-[90vh]">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0">
+          <div className="absolute top-20 left-10 w-32 h-32 bg-[#B9FF66]/10 rounded-full blur-xl animate-pulse"></div>
+          <div className="absolute top-40 right-20 w-24 h-24 bg-[#B9FF66]/20 rounded-full blur-lg animate-bounce delay-1000"></div>
+          <div className="absolute bottom-40 left-1/4 w-40 h-40 bg-[#B9FF66]/5 rounded-full blur-2xl animate-pulse delay-500"></div>
+          <div className="absolute bottom-20 right-1/3 w-28 h-28 bg-[#B9FF66]/15 rounded-full blur-xl animate-bounce delay-2000"></div>
+        </div>
+
+        {/* Grid Pattern Overlay */}
+        <div className="absolute inset-0 opacity-5">
+          <div
+            className="h-full w-full"
+            style={{
+              backgroundImage: `
+              linear-gradient(rgba(185, 255, 102, 0.2) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(185, 255, 102, 0.2) 1px, transparent 1px)
+            `,
+              backgroundSize: "50px 50px",
+            }}
+          ></div>
+        </div>
+
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24 flex items-center min-h-[90vh]">
+          <div className="w-full">
+            {/* Hero Content - Top Section */}
+            <div className="text-center mb-16">
+              <div className="inline-flex items-center bg-[#B9FF66]/10 border border-[#B9FF66]/30 rounded-full px-6 py-3 mb-8">
+                <Code2 className="w-5 h-5 text-[#B9FF66] mr-2" />
+                <span className="text-[#B9FF66] font-medium">
+                  Student Innovation Hub
+                </span>
+              </div>
+
+              <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
+                Student <span className="text-[#B9FF66]">Projects</span>
+                <br />
+                <span className="text-[#B9FF66]">Showcase</span>
+              </h1>
+
+              <p className="text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto mb-8 leading-relaxed">
+                Discover innovative solutions, creative applications, and
+                cutting-edge technology built by our talented students
+              </p>
+
+              {/* Stats */}
+              <div className="flex justify-center items-center gap-8 md:gap-12 mb-12">
+                <div className="text-center">
+                  <div className="text-3xl md:text-4xl font-bold text-[#B9FF66] mb-2">
+                    {projects.length}+
+                  </div>
+                  <div className="text-gray-400 text-sm">Projects</div>
+                </div>
+                <div className="w-px h-12 bg-gray-600"></div>
+                <div className="text-center">
+                  <div className="text-3xl md:text-4xl font-bold text-[#B9FF66] mb-2">
+                    12+
+                  </div>
+                  <div className="text-gray-400 text-sm">Categories</div>
+                </div>
+                <div className="w-px h-12 bg-gray-600"></div>
+                <div className="text-center">
+                  <div className="text-3xl md:text-4xl font-bold text-[#B9FF66] mb-2">
+                    50+
+                  </div>
+                  <div className="text-gray-400 text-sm">Students</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Featured Project Spotlight */}
+            {featuredProject && (
+              <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-3xl p-8 lg:p-12">
+                <div className="text-center mb-8">
+                  <div className="inline-flex items-center bg-[#B9FF66] text-[#191A23] px-4 py-2 rounded-full font-bold text-sm mb-4">
+                    <Star className="w-4 h-4 mr-2" />
+                    FEATURED PROJECT
+                  </div>
+                </div>
+
+                <div className="grid lg:grid-cols-2 gap-12 items-center">
+                  {/* Project Visual */}
+                  <div className="relative">
+                    <div className="aspect-[4/3] bg-gradient-to-br from-[#B9FF66]/20 to-[#B9FF66]/5 rounded-2xl border border-[#B9FF66]/20 flex items-center justify-center relative overflow-hidden">
+                      {/* Background Pattern */}
+                      <div className="absolute inset-0 opacity-10">
+                        <div
+                          className="h-full w-full"
+                          style={{
+                            backgroundImage: `
+                            linear-gradient(45deg, rgba(185, 255, 102, 0.3) 25%, transparent 25%),
+                            linear-gradient(-45deg, rgba(185, 255, 102, 0.3) 25%, transparent 25%),
+                            linear-gradient(45deg, transparent 75%, rgba(185, 255, 102, 0.3) 75%),
+                            linear-gradient(-45deg, transparent 75%, rgba(185, 255, 102, 0.3) 75%)
+                          `,
+                            backgroundSize: "20px 20px",
+                            backgroundPosition:
+                              "0 0, 0 10px, 10px -10px, -10px 0px",
+                          }}
+                        ></div>
+                      </div>
+
+                      {/* Project Icon */}
+                      <div className="relative z-10 text-center">
+                        <div className="w-24 h-24 bg-[#B9FF66] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg transform rotate-3 hover:rotate-0 transition-transform duration-300">
+                          <Code2 className="w-12 h-12 text-[#191A23]" />
+                        </div>
+                        <div className="bg-[#191A23]/80 backdrop-blur-sm text-[#B9FF66] px-4 py-2 rounded-full text-sm font-medium">
+                          {featuredProject.category}
+                        </div>
+                      </div>
+
+                      {/* Floating Elements */}
+                      <div className="absolute top-4 left-4 w-3 h-3 bg-[#B9FF66] rounded-full animate-ping"></div>
+                      <div className="absolute bottom-6 right-6 w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                      <div className="absolute top-1/3 right-8 w-4 h-4 border-2 border-[#B9FF66] rounded-full animate-bounce"></div>
+                    </div>
+                  </div>
+
+                  {/* Project Details */}
+                  <div className="text-center lg:text-left">
+                    <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4 leading-tight">
+                      {featuredProject.title}
+                    </h2>
+
+                    <p className="text-gray-300 text-lg mb-6 leading-relaxed">
+                      {featuredProject.description}
+                    </p>
+
+                    {/* Project Meta */}
+                    <div className="flex flex-wrap justify-center lg:justify-start gap-4 mb-8">
+                      {featuredProject.created_by_name && (
+                        <div className="flex items-center bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
+                          <Users className="w-4 h-4 text-[#B9FF66] mr-2" />
+                          <span className="text-white text-sm">
+                            {featuredProject.created_by_name}
+                          </span>
+                        </div>
+                      )}
+                      {featuredProject.team_count &&
+                        featuredProject.team_count > 1 && (
+                          <div className="flex items-center bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
+                            <Users className="w-4 h-4 text-[#B9FF66] mr-2" />
+                            <span className="text-white text-sm">
+                              Team of {featuredProject.team_count}
+                            </span>
+                          </div>
+                        )}
+                      <div className="flex items-center bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
+                        <Calendar className="w-4 h-4 text-[#B9FF66] mr-2" />
+                        <span className="text-white text-sm">
+                          {formatDate(featuredProject.created_at)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                      {featuredProject.demo_url && (
+                        <button
+                          onClick={() => openLink(featuredProject.demo_url!)}
+                          className="bg-[#B9FF66] hover:bg-[#B9FF66]/90 text-[#191A23] px-8 py-4 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 flex items-center justify-center shadow-lg"
+                        >
+                          <ExternalLink className="w-5 h-5 mr-2" />
+                          View Live Demo
+                        </button>
+                      )}
+                      {featuredProject.github_url && (
+                        <button
+                          onClick={() => openLink(featuredProject.github_url!)}
+                          className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white px-8 py-4 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 flex items-center justify-center"
+                        >
+                          <Github className="w-5 h-5 mr-2" />
+                          Source Code
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
       {/* Enhanced Projects List Section */}
       <section className="py-20 bg-gradient-to-b from-[#F3F3F3] to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Section Header */}
           <div className="text-center mb-16">
-            <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold text-[#191A23] mb-6">
+            <div className="inline-flex items-center bg-[#191A23]/5 border border-[#191A23]/10 rounded-full px-6 py-3 mb-6">
+              <Code2 className="w-5 h-5 text-[#191A23] mr-2" />
+              <span className="text-[#191A23] font-medium">
+                Browse Projects
+              </span>
+            </div>
+            <h2 className="text-4xl lg:text-5xl font-bold text-[#191A23] mb-6">
               All Student{" "}
-              <span className="text-[#B9FF66] bg-[#191A23] px-2 md:px-4 py-1 md:py-2 rounded-xl">
+              <span className="text-[#B9FF66] bg-[#191A23] px-4 py-2 rounded-xl">
                 Projects
               </span>
             </h2>
@@ -308,9 +503,9 @@ const ProjectsPage: React.FC = () => {
 
           {/* Enhanced Search and Filter Controls */}
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 mb-12">
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col lg:flex-row gap-6">
               {/* Search Input */}
-              <div className="relative w-full">
+              <div className="relative flex-1">
                 <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
                   <Search className="w-5 h-5" />
                 </div>
@@ -332,7 +527,7 @@ const ProjectsPage: React.FC = () => {
               </div>
 
               {/* Category Filter Dropdown */}
-              <div className="relative w-full max-w-md mx-auto lg:mx-0">
+              <div className="relative lg:w-64">
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                   className="w-full flex items-center justify-between bg-[#191A23] text-[#B9FF66] px-6 py-4 rounded-xl hover:bg-[#2A2B35] transition-colors font-medium shadow-lg"

@@ -1,752 +1,592 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Image from "next/image";
+import { useParams, useRouter } from "next/navigation";
 import {
+  ArrowLeft,
+  ExternalLink,
+  Github,
   Calendar,
-  MapPin,
   Users,
+  Star,
+  Tag,
+  Code2,
+  Play,
+  Eye,
   Clock,
-  UserPlus,
-  Zap,
-  Search,
-  X,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
-// Event interface matching the Django API response
-interface Event {
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+interface Project {
   id: number;
   title: string;
   description: string;
-  start_date: string;
-  end_date?: string;
-  location?: string;
-  venue?: string;
-  event_type?: string;
-  status?: string;
-  registration_required: boolean;
-  max_participants?: number;
-  registration_fee?: string;
-  banner_image?: string;
+  abstract?: string;
+  category: string;
+  student_batch?: string;
+  created_at: string;
+  updated_at?: string;
+  github_url?: string;
+  demo_url?: string;
+  project_report?: string;
+  featured_image?: string;
+  featured_video?: string;
   is_featured?: boolean;
-  is_upcoming?: boolean;
-  is_registration_open?: boolean;
-  registration_count?: number;
-  spots_remaining?: number;
+  created_by?: {
+    id: number;
+    username: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+  };
+  team_members?: Array<{
+    id: number;
+    name: string;
+    role?: string;
+  }>;
+  images?: Array<{
+    id: number;
+    image: string;
+    caption?: string;
+  }>;
+  videos?: Array<{
+    id: number;
+    video: string;
+    caption?: string;
+  }>;
   created_by_name?: string;
-  created_at?: string;
+  team_count?: number;
+  technologies?: string[];
+  status?: string;
+  tags?: string[];
+  tech_stack?: string[];
+  challenges?: string;
+  learnings?: string;
 }
 
-// Registration form data interface
-interface RegistrationData {
-  name: string;
-  email: string;
-  mobile_number?: string;
-  institution?: string;
-  department?: string;
-  year_of_study?: number;
-}
+const sampleProject: Project = {
+  id: 1,
+  title: "AI-Powered Student Assistant",
+  description:
+    "An intelligent chatbot that helps students with academic queries, course recommendations, and campus navigation using natural language processing. This project demonstrates the implementation of modern AI technologies in educational environments, providing students with instant access to information and personalized guidance throughout their academic journey.",
+  abstract:
+    "This project aims to revolutionize student support services by leveraging cutting-edge artificial intelligence and natural language processing technologies. The AI-powered assistant serves as a comprehensive solution for student inquiries, offering real-time responses to academic questions, personalized course recommendations based on student profiles, and efficient campus navigation assistance.",
+  category: "AI/ML",
+  student_batch: "2024-2025",
+  created_at: "2024-03-15T10:00:00Z",
+  updated_at: "2024-03-20T15:30:00Z",
+  github_url: "https://github.com/example/ai-assistant",
+  demo_url: "https://ai-assistant.example.com",
+  project_report: "https://example.com/reports/ai-assistant.pdf",
+  is_featured: true,
+  created_by_name: "John Doe",
+  team_count: 4,
+  status: "completed",
+  technologies: ["Python", "TensorFlow", "React", "Node.js", "MongoDB"],
+  tech_stack: [
+    "Python",
+    "TensorFlow",
+    "React",
+    "Node.js",
+    "MongoDB",
+    "Express.js",
+    "Socket.io",
+    "JWT",
+  ],
+  tags: ["AI", "Education", "Chatbot", "NLP", "Machine Learning"],
+  team_members: [
+    { id: 1, name: "John Doe", role: "Team Lead & AI Developer" },
+    { id: 2, name: "Jane Smith", role: "Frontend Developer" },
+    { id: 3, name: "Mike Johnson", role: "Backend Developer" },
+    { id: 4, name: "Sarah Wilson", role: "UI/UX Designer" },
+  ],
+  challenges:
+    "The main challenges included training the NLP model with educational data, implementing real-time chat functionality, and ensuring the system could handle multiple users simultaneously while maintaining response accuracy. We also faced difficulties in integrating the chatbot with existing campus systems and databases.",
+  learnings:
+    "This project taught us about machine learning implementation, real-time web technologies, and the importance of user experience design in educational applications. We also learned about scalable backend architecture, API design, and the complexities of natural language processing in educational contexts.",
+};
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
+const ProjectDetailPage: React.FC = () => {
+  const params = useParams();
+  const router = useRouter();
+  const projectId = params.id as string;
 
-export default function EventsPage() {
-  const [events, setEvents] = useState<Event[]>([]);
+  const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showPastEvents, setShowPastEvents] = useState(false);
-  const [registrationModal, setRegistrationModal] = useState<{
-    isOpen: boolean;
-    event: Event | null;
-  }>({ isOpen: false, event: null });
-  const [registrationData, setRegistrationData] = useState<RegistrationData>({
-    name: "",
-    email: "",
-    mobile_number: "",
-    institution: "",
-    department: "",
-    year_of_study: undefined,
-  });
-  const [registering, setRegistering] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Fetch events from Django API
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`${API_BASE_URL}/events/events/`, {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        setEvents(data.results || data || []);
-      } catch (error) {
-        console.error('Error fetching events:', error);
-        // Use fallback mock data if API fails
-        setEvents([
-          {
-            id: 1,
-            title: "Tech Innovation Summit 2025",
-            description: "Join industry leaders and innovators for a day of cutting-edge technology discussions and networking.",
-            start_date: "2025-08-15T10:00:00Z",
-            location: "CUSAT Auditorium",
-            event_type: "Conference",
-            registration_required: true,
-            is_featured: true,
-            max_participants: 500,
-            registration_count: 320,
-          },
-          {
-            id: 2,
-            title: "Electrical Engineering Workshop",
-            description: "Hands-on workshop covering the latest trends in electrical engineering and smart systems.",
-            start_date: "2025-08-20T14:00:00Z",
-            location: "EE Department Lab",
-            event_type: "Workshop",
-            registration_required: true,
-            max_participants: 50,
-            registration_count: 35,
-          }
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchEvents();
-  }, []);
-
-  // Simple toggle function that preserves scroll position
-  const handleToggle = (showPast: boolean) => {
-    const currentScrollY = window.scrollY;
-    setShowPastEvents(showPast);
-    
-    // Use requestAnimationFrame to ensure the DOM has updated before scrolling
-    requestAnimationFrame(() => {
-      window.scrollTo(0, currentScrollY);
-    });
-  };
-
-  // Filter events based on search and date
-  const filteredEvents = events.filter((event) => {
-    const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         event.description.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const eventDate = new Date(event.start_date);
-    const today = new Date();
-    const isUpcoming = eventDate >= today;
-    
-    if (showPastEvents) {
-      return matchesSearch && !isUpcoming;
-    } else {
-      return matchesSearch && isUpcoming;
-    }
-  });
-
-  // Get featured event for hero section
-  const featuredEvent = events.find(event => event.is_featured) || events[0];
-
-  const handleRegister = (eventId: number) => {
-    const event = events.find(e => e.id === eventId);
-    if (event) {
-      setRegistrationModal({ isOpen: true, event });
-    }
-  };
-
-  const handleRegistrationSubmit = async () => {
-    if (!registrationModal.event) return;
+  const fetchProject = async () => {
+    if (!projectId) return;
 
     try {
-      setRegistering(true);
-      
-      // Here you would call your registration API
-      const response = await fetch(`${API_BASE_URL}/events/events/${registrationModal.event.id}/register/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(registrationData),
-      });
+      setLoading(true);
+      setError(null);
 
-      if (response.ok) {
-        alert('Registration successful!');
-        setRegistrationModal({ isOpen: false, event: null });
-        setRegistrationData({
-          name: "",
-          email: "",
-          mobile_number: "",
-          institution: "",
-          department: "",
-          year_of_study: undefined,
-        });
-        
-        // Update local event data
-        setEvents(prevEvents =>
-          prevEvents.map(event =>
-            event.id === registrationModal.event!.id
-              ? { ...event, registration_count: (event.registration_count || 0) + 1 }
-              : event
-          )
-        );
-      } else {
-        throw new Error('Registration failed');
+      const response = await fetch(
+        `${API_BASE_URL}/api/projects/${projectId}/`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error("Project not found");
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    } catch (error) {
-      console.error('Registration error:', error);
-      alert('Registration failed. Please try again.');
+
+      const data = await response.json();
+      const transformed: Project = {
+        ...data,
+        created_by_name:
+          data.created_by_name ||
+          (data.created_by
+            ? [data.created_by.first_name, data.created_by.last_name]
+                .filter(Boolean)
+                .join(" ")
+                .trim() || "Unknown"
+            : "Unknown"),
+        team_count: data.team_count || data.team_members?.length || 1,
+        technologies: data.technologies || data.tech_stack || [],
+        tech_stack: data.tech_stack || data.technologies || [],
+        status: data.status || "completed",
+        tags: data.tags || [],
+        updated_at: data.updated_at || data.created_at,
+      };
+
+      setProject(transformed);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      console.error("Error fetching project:", err);
+      setError(err instanceof Error ? err.message : "Failed to load project");
+
+      if (["1", "demo"].includes(projectId)) {
+        setProject({ ...sampleProject, id: Number(projectId) || 1 });
+      }
     } finally {
-      setRegistering(false);
+      setLoading(false);
     }
   };
 
-  const handleEventClick = (eventId: number) => {
-    // Navigate to event details page
-    window.location.href = `/events/${eventId}`;
+  useEffect(() => {
+    fetchProject();
+  }, [projectId]);
+
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    } catch {
+      return "Unknown date";
+    }
   };
 
-  const closeModal = () => {
-    setRegistrationModal({ isOpen: false, event: null });
-    setRegistrationData({
-      name: "",
-      email: "",
-      mobile_number: "",
-      institution: "",
-      department: "",
-      year_of_study: undefined,
-    });
+  const openLink = (url: string) => {
+    if (url) window.open(url, "_blank", "noopener,noreferrer");
   };
+
+  const handleBack = () => router.push("/projects");
 
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F3F3F3] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-[#191A23] border-t-[#B9FF66] rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-[#191A23] font-medium">Loading events...</p>
+        <div className="backdrop-blur-xl bg-white/80 border border-white/40 shadow-lg rounded-2xl p-8">
+          <div className="flex items-center space-x-4">
+            <Loader2 className="animate-spin h-8 w-8 text-[#191A23]" />
+            <span className="text-[#191A23] font-medium text-lg">
+              Loading project details...
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !project) {
+    return (
+      <div className="min-h-screen bg-[#F3F3F3] flex items-center justify-center">
+        <div className="backdrop-blur-xl bg-white/80 border border-white/40 shadow-lg rounded-2xl p-8 text-center max-w-md mx-4">
+          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-[#191A23] mb-4">
+            Project Not Found
+          </h1>
+          <p className="text-[#191A23]/70 mb-6 leading-relaxed">
+            {error ||
+              "The project you're looking for doesn't exist or has been removed."}
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              onClick={handleBack}
+              className="inline-flex items-center bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66] px-6 py-3 rounded-xl font-medium transition-all duration-300"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Projects
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center bg-white border border-[#191A23]/20 hover:bg-gray-50 text-[#191A23] px-6 py-3 rounded-xl font-medium transition-all duration-300"
+            >
+              Try Again
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <>
-      <div className="min-h-screen bg-[#F3F3F3]">
-        {/* Hero Section with Featured Event */}
-        {featuredEvent && !showPastEvents && (
-          <section className="relative overflow-hidden min-h-[70vh]">
-            {/* Background */}
-            <div className="absolute inset-0">
-              <div className="absolute inset-0 bg-[#F3F3F3]"></div>
-              <div className="absolute inset-0 backdrop-blur-sm bg-white/30"></div>
-            </div>
+    <div className="min-h-screen bg-[#F3F3F3]">
+      {/* Navigation */}
+      <div className="backdrop-blur-xl bg-white/80 border-b border-white/40 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <button
+            onClick={handleBack}
+            className="inline-flex items-center text-[#191A23] hover:text-[#191A23]/70 transition-colors duration-200 font-medium"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Back to Projects
+          </button>
+        </div>
+      </div>
 
-            {/* Content Container */}
-            <div className="relative z-10">
-              <div className="backdrop-blur-xl bg-[#F3F3F3]/60 border border-white/40 shadow-lg mx-4 my-8 rounded-2xl overflow-hidden">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-12 lg:py-16">
-                  
-                  {/* Mobile Layout */}
-                  <div className="block md:hidden">
-                    {/* Poster Image at Top */}
-                    <div className="flex justify-center mb-6">
-                      <div className="bg-white/80 border border-white/60 relative overflow-hidden w-48 aspect-[3/4] rounded-lg">
-                        {featuredEvent.banner_image ? (
-                          <Image
-                            src={featuredEvent.banner_image}
-                            alt={featuredEvent.title}
-                            fill
-                            className="object-cover"
-                            sizes="192px"
-                          />
-                        ) : (
-                          <div className="p-4 flex items-center justify-center h-full">
-                            <div className="text-center">
-                              <div className="w-16 h-16 bg-[#191A23] flex items-center justify-center mx-auto mb-4 rounded-lg">
-                                <Zap className="w-8 h-8 text-[#B9FF66]" />
-                              </div>
-                              <h3 className="text-lg font-bold text-[#191A23] mb-2">EVENT</h3>
-                              <p className="text-[#191A23]/70 text-sm bg-white/60 px-3 py-1 rounded">
-                                {featuredEvent.event_type || "Conference"}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                        {/* Event Type Overlay */}
-                        <div className="absolute top-2 left-2 bg-[#191A23]/90 text-[#B9FF66] px-2 py-1 text-xs font-medium rounded">
-                          {featuredEvent.event_type || "Event"}
-                        </div>
-                        {/* Featured Badge */}
-                        {featuredEvent.is_featured && (
-                          <div className="absolute top-2 right-2 bg-[#B9FF66] text-[#191A23] px-2 py-1 text-xs font-bold rounded">
-                            FEATURED
-                          </div>
-                        )}
-                      </div>
-                    </div>
+      {/* Hero Section */}
+      <section className="relative overflow-hidden py-12 lg:py-20">
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#F3F3F3] via-white to-[#F3F3F3]"></div>
+          <div className="absolute inset-0 opacity-30">
+            <div
+              className="h-full w-full"
+              style={{
+                backgroundImage: `
+                radial-gradient(circle at 25% 25%, rgba(185, 255, 102, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(25, 26, 35, 0.05) 0%, transparent 50%)
+              `,
+              }}
+            ></div>
+          </div>
+        </div>
 
-                    {/* Event Info */}
-                    <div className="text-center">
-                      <div className="inline-block bg-[#191A23] text-[#B9FF66] px-4 py-2 text-sm font-medium mb-4 rounded-lg">
-                        {new Date(featuredEvent.start_date).toLocaleDateString("en-US", {
-                          month: "long",
-                          day: "numeric",
-                        })}{" "}
-                        •{" "}
-                        {new Date(featuredEvent.start_date).toLocaleTimeString("en-US", {
-                          hour: "numeric",
-                          minute: "2-digit",
-                          hour12: true,
-                        })}
-                      </div>
-
-                      <h1 className="text-2xl font-bold text-[#191A23] leading-tight mb-4">
-                        {featuredEvent.title}
-                      </h1>
-
-                      <p className="text-[#191A23]/80 leading-relaxed mb-4">
-                        {featuredEvent.description}
-                      </p>
-
-                      {featuredEvent.location && (
-                        <div className="flex items-center justify-center text-[#191A23]/80 bg-white/40 p-3 border border-white/40 mb-6 rounded-lg">
-                          <MapPin className="w-5 h-5 mr-3 text-[#191A23] flex-shrink-0" />
-                          <span>{featuredEvent.location}</span>
-                        </div>
-                      )}
-
-                      {featuredEvent.registration_required && (
-                        <Button
-                          onClick={() => handleRegister(featuredEvent.id)}
-                          className="w-full bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66] px-6 py-3 text-base font-medium transition-all duration-300 rounded-lg"
-                        >
-                          <UserPlus className="w-5 h-5 mr-2" />
-                          Register Now
-                        </Button>
-                      )}
-                    </div>
+        <div className="relative z-10">
+          <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-xl mx-4 rounded-3xl overflow-hidden">
+            <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-12 lg:py-16">
+              <div className="text-center mb-12">
+                {project.is_featured && (
+                  <div className="inline-flex items-center bg-[#B9FF66] text-[#191A23] px-6 py-3 rounded-full font-bold text-sm mb-6 shadow-lg">
+                    <Star className="w-4 h-4 mr-2" />
+                    FEATURED PROJECT
                   </div>
+                )}
 
-                  {/* Desktop Layout */}
-                  <div className="hidden md:flex gap-8 lg:gap-12 items-start">
-                    {/* Left Column: Poster */}
-                    <div className="flex-shrink-0">
-                      <div className="bg-white/80 border border-white/60 relative overflow-hidden w-48 lg:w-64 aspect-[3/4] rounded-lg mb-4">
-                        {featuredEvent.banner_image ? (
-                          <Image
-                            src={featuredEvent.banner_image}
-                            alt={featuredEvent.title}
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 1024px) 192px, 256px"
-                          />
-                        ) : (
-                          <div className="p-4 lg:p-6 flex items-center justify-center h-full">
-                            <div className="text-center">
-                              <div className="w-16 h-16 lg:w-20 lg:h-20 bg-[#191A23] flex items-center justify-center mx-auto mb-4 lg:mb-6 rounded-lg">
-                                <Zap className="w-8 h-8 lg:w-10 lg:h-10 text-[#B9FF66]" />
-                              </div>
-                              <h3 className="text-lg lg:text-xl font-bold text-[#191A23] mb-2">EVENT</h3>
-                              <p className="text-[#191A23]/70 text-sm bg-white/60 px-3 py-1 rounded">
-                                {featuredEvent.event_type || "Conference"}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                        {/* Overlays */}
-                        <div className="absolute top-2 left-2 bg-[#191A23]/90 text-[#B9FF66] px-2 py-1 text-xs font-medium rounded">
-                          {featuredEvent.event_type || "Event"}
-                        </div>
-                        {featuredEvent.is_featured && (
-                          <div className="absolute top-2 right-2 bg-[#B9FF66] text-[#191A23] px-2 py-1 text-xs font-bold rounded">
-                            FEATURED
-                          </div>
-                        )}
-                      </div>
+                <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-[#191A23] mb-6 leading-tight">
+                  {project.title}
+                </h1>
 
-                      {featuredEvent.registration_required && (
-                        <Button
-                          onClick={() => handleRegister(featuredEvent.id)}
-                          className="w-full bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66] px-6 py-4 text-base font-medium transition-all duration-300 rounded-lg"
-                        >
-                          <UserPlus className="w-5 h-5 mr-2" />
-                          Register Now
-                        </Button>
-                      )}
-                    </div>
-
-                    {/* Right Column: Event Details */}
-                    <div className="flex-1">
-                      <div className="inline-block bg-[#191A23] text-[#B9FF66] px-4 py-2 text-sm font-medium mb-6 rounded-lg">
-                        {new Date(featuredEvent.start_date).toLocaleDateString("en-US", {
-                          month: "long",
-                          day: "numeric",
-                          year: "numeric",
-                        })}{" "}
-                        •{" "}
-                        {new Date(featuredEvent.start_date).toLocaleTimeString("en-US", {
-                          hour: "numeric",
-                          minute: "2-digit",
-                          hour12: true,
-                        })}
-                      </div>
-
-                      <h1 className="text-3xl lg:text-4xl font-bold text-[#191A23] leading-tight mb-6">
-                        {featuredEvent.title}
-                      </h1>
-
-                      <p className="text-[#191A23]/80 text-lg leading-relaxed mb-6">
-                        {featuredEvent.description}
-                      </p>
-
-                      <div className="grid gap-4 mb-6">
-                        {featuredEvent.location && (
-                          <div className="flex items-center text-[#191A23]/80 bg-white/40 p-4 border border-white/40 rounded-lg">
-                            <MapPin className="w-6 h-6 mr-4 text-[#191A23] flex-shrink-0" />
-                            <span className="text-lg">{featuredEvent.location}</span>
-                          </div>
-                        )}
-
-                        {featuredEvent.max_participants && (
-                          <div className="flex items-center text-[#191A23]/80 bg-white/40 p-4 border border-white/40 rounded-lg">
-                            <Users className="w-6 h-6 mr-4 text-[#191A23] flex-shrink-0" />
-                            <span className="text-lg">
-                              {featuredEvent.registration_count || 0} / {featuredEvent.max_participants} registered
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                <div className="inline-flex items-center bg-[#191A23]/5 backdrop-blur-sm border border-[#191A23]/10 px-6 py-3 rounded-full mb-8">
+                  <Tag className="w-5 h-5 text-[#191A23] mr-2" />
+                  <span className="text-[#191A23] font-semibold text-lg">
+                    {project.category}
+                  </span>
                 </div>
-              </div>
-            </div>
-          </section>
-        )}
 
-        {/* Events List Section */}
-        <section className="py-8 md:py-12 lg:py-16" data-events-section>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Section Header */}
-            <div className="text-center mb-12">
-              <h2 className="text-3xl lg:text-4xl font-bold text-[#191A23] mb-4">
-                {showPastEvents ? "Past Events" : "Upcoming Events"}
-              </h2>
-              <p className="text-[#191A23]/70 text-lg max-w-2xl mx-auto">
-                {showPastEvents 
-                  ? "Discover the events we've successfully organized" 
-                  : "Join us for exciting upcoming events and workshops"}
-              </p>
-            </div>
-
-            {/* Controls */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-8">
-              {/* Search */}
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#191A23]/50 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Search events..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-[#191A23]/20 rounded-lg bg-white/80 text-[#191A23] placeholder-[#191A23]/50 focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#191A23]/50 hover:text-[#191A23]"
+                {project.status && (
+                  <div
+                    className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${
+                      project.status === "completed"
+                        ? "bg-green-100 text-green-800 border border-green-200"
+                        : "bg-orange-100 text-orange-800 border border-orange-200"
+                    }`}
                   >
-                    <X className="w-5 h-5" />
-                  </button>
+                    {project.status === "completed"
+                      ? "✓ Completed"
+                      : "⏳ In Progress"}
+                  </div>
                 )}
               </div>
 
-              {/* Toggle */}
-              <div className="flex bg-white/80 border border-[#191A23]/20 rounded-lg overflow-hidden">
-                <button
-                  onClick={() => handleToggle(false)}
-                  className={`px-6 py-3 font-medium transition-all duration-300 w-[140px] text-center ${
-                    !showPastEvents
-                      ? "bg-[#191A23] text-[#B9FF66]"
-                      : "text-[#191A23] hover:bg-[#191A23]/10"
-                  }`}
-                >
-                  Upcoming
-                </button>
-                <button
-                  onClick={() => handleToggle(true)}
-                  className={`px-6 py-3 font-medium transition-all duration-300 w-[140px] text-center ${
-                    showPastEvents
-                      ? "bg-[#191A23] text-[#B9FF66]"
-                      : "text-[#191A23] hover:bg-[#191A23]/10"
-                  }`}
-                >
-                  Past Events
-                </button>
-              </div>
-            </div>
-
-            {/* Events Grid */}
-            {filteredEvents.length > 0 ? (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {filteredEvents.map((event) => (
-                  <div
-                    key={event.id}
-                    className="bg-white/80 border border-white/60 rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300 backdrop-blur-sm cursor-pointer"
-                    onClick={() => handleEventClick(event.id)}
-                  >
-                    {/* Event Image */}
-                    <div className="relative h-48 bg-[#F3F3F3]">
-                      {event.banner_image ? (
-                        <Image
-                          src={event.banner_image}
-                          alt={event.title}
-                          fill
-                          className="object-cover"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        />
-                      ) : (
-                        <div className="flex items-center justify-center h-full">
-                          <div className="text-center">
-                            <div className="w-12 h-12 bg-[#191A23] flex items-center justify-center mx-auto mb-2 rounded-lg">
-                              <Calendar className="w-6 h-6 text-[#B9FF66]" />
-                            </div>
-                            <p className="text-[#191A23]/60 text-sm">{event.event_type || "Event"}</p>
-                          </div>
-                        </div>
-                      )}
-                      {/* Event Type Badge */}
-                      <div className="absolute top-3 left-3 bg-[#191A23]/90 text-[#B9FF66] px-3 py-1 text-xs font-medium rounded">
-                        {event.event_type || "Event"}
-                      </div>
-                      {/* Featured Badge */}
-                      {event.is_featured && (
-                        <div className="absolute top-3 right-3 bg-[#B9FF66] text-[#191A23] px-3 py-1 text-xs font-bold rounded">
-                          FEATURED
-                        </div>
-                      )}
+              {/* Updated Project Meta Info layout for better space utilization */}
+              <div className="bg-white/50 backdrop-blur-lg border border-white/60 rounded-2xl p-8 mb-12 shadow-lg">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="text-center">
+                    <div className="w-14 h-14 bg-[#B9FF66] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                      <Users className="w-7 h-7 text-[#191A23]" />
                     </div>
-
-                    {/* Event Content */}
-                    <div className="p-6">
-                      <div className="flex items-center text-[#191A23]/60 text-sm mb-3">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        <span>
-                          {new Date(event.start_date).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
-                        </span>
-                        <Clock className="w-4 h-4 ml-4 mr-2" />
-                        <span>
-                          {new Date(event.start_date).toLocaleTimeString("en-US", {
-                            hour: "numeric",
-                            minute: "2-digit",
-                            hour12: true,
-                          })}
-                        </span>
-                      </div>
-
-                      <h3 className="text-xl font-bold text-[#191A23] mb-3 line-clamp-2">
-                        {event.title}
-                      </h3>
-
-                      <p className="text-[#191A23]/70 mb-4 line-clamp-3">
-                        {event.description}
-                      </p>
-
-                      {event.location && (
-                        <div className="flex items-center text-[#191A23]/60 mb-4">
-                          <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
-                          <span className="text-sm truncate">{event.location}</span>
-                        </div>
-                      )}
-
-                      {event.max_participants && (
-                        <div className="flex items-center text-[#191A23]/60 mb-4">
-                          <Users className="w-4 h-4 mr-2 flex-shrink-0" />
-                          <span className="text-sm">
-                            {event.registration_count || 0} / {event.max_participants} registered
-                          </span>
-                        </div>
-                      )}
-
-                      {event.registration_required && (
-                        <Button
-                          onClick={(e) => {
-                            e.stopPropagation(); // Prevent card click
-                            handleRegister(event.id);
-                          }}
-                          className="w-full bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66] transition-all duration-300"
-                        >
-                          <UserPlus className="w-4 h-4 mr-2" />
-                          Register
-                        </Button>
-                      )}
+                    <div className="text-[#191A23] font-medium text-sm mb-1">
+                      Team Size
+                    </div>
+                    <div className="text-[#191A23] font-bold text-lg">
+                      {project.team_count}{" "}
+                      {project.team_count === 1 ? "Member" : "Members"}
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 bg-[#191A23]/10 flex items-center justify-center mx-auto mb-4 rounded-full">
-                  <Calendar className="w-8 h-8 text-[#191A23]/50" />
+
+                  <div className="text-center">
+                    <div className="w-14 h-14 bg-[#B9FF66] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                      <Calendar className="w-7 h-7 text-[#191A23]" />
+                    </div>
+                    <div className="text-[#191A23] font-medium text-sm mb-1">
+                      Created
+                    </div>
+                    <div className="text-[#191A23] font-bold text-lg">
+                      {formatDate(project.created_at)}
+                    </div>
+                  </div>
+
+                  <div className="text-center">
+                    <div className="w-14 h-14 bg-[#B9FF66] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                      <Clock className="w-7 h-7 text-[#191A23]" />
+                    </div>
+                    <div className="text-[#191A23] font-medium text-sm mb-1">
+                      Updated
+                    </div>
+                    <div className="text-[#191A23] font-bold text-lg">
+                      {formatDate(project.updated_at || project.created_at)}
+                    </div>
+                  </div>
                 </div>
-                <h3 className="text-xl font-semibold text-[#191A23] mb-2">
-                  {showPastEvents ? "No Past Events Found" : "No Upcoming Events"}
-                </h3>
-                <p className="text-[#191A23]/60">
-                  {searchQuery
-                    ? "Try adjusting your search terms"
-                    : showPastEvents
-                    ? "Check back later for past event archives"
-                    : "Stay tuned for exciting events coming soon!"}
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                {project.demo_url && (
+                  <button
+                    onClick={() => openLink(project.demo_url!)}
+                    className="bg-[#191A23] hover:bg-[#2A2B35] text-[#B9FF66] px-8 py-4 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 flex items-center justify-center shadow-lg"
+                  >
+                    <ExternalLink className="w-5 h-5 mr-3" />
+                    View Live Demo
+                  </button>
+                )}
+                {project.github_url && (
+                  <button
+                    onClick={() => openLink(project.github_url!)}
+                    className="bg-white/80 hover:bg-white border border-white/80 hover:border-gray-200 text-[#191A23] px-8 py-4 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 flex items-center justify-center shadow-lg"
+                  >
+                    <Github className="w-5 h-5 mr-3" />
+                    View Source Code
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Project Details */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Description */}
+            <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-6 md:p-8">
+              <h2 className="text-2xl font-bold text-[#191A23] mb-4 flex items-center">
+                <div className="w-8 h-8 bg-[#B9FF66] rounded-lg flex items-center justify-center mr-3">
+                  <Eye className="w-4 h-4 text-[#191A23]" />
+                </div>
+                Project Overview
+              </h2>
+              <p className="text-[#191A23]/80 leading-relaxed">
+                {project.description}
+              </p>
+            </div>
+
+            {/* Abstract */}
+            {project.abstract && (
+              <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-6 md:p-8">
+                <h2 className="text-2xl font-bold text-[#191A23] mb-4 flex items-center">
+                  <div className="w-8 h-8 bg-[#B9FF66] rounded-lg flex items-center justify-center mr-3">
+                    <Code2 className="w-4 h-4 text-[#191A23]" />
+                  </div>
+                  Abstract
+                </h2>
+                <p className="text-[#191A23]/80 leading-relaxed">
+                  {project.abstract}
+                </p>
+              </div>
+            )}
+
+            {/* Challenges */}
+            {project.challenges && (
+              <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-6 md:p-8">
+                <h2 className="text-2xl font-bold text-[#191A23] mb-4 flex items-center">
+                  <div className="w-8 h-8 bg-[#B9FF66] rounded-lg flex items-center justify-center mr-3">
+                    <Code2 className="w-4 h-4 text-[#191A23]" />
+                  </div>
+                  Challenges & Solutions
+                </h2>
+                <p className="text-[#191A23]/80 leading-relaxed">
+                  {project.challenges}
+                </p>
+              </div>
+            )}
+
+            {/* Learnings */}
+            {project.learnings && (
+              <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-6 md:p-8">
+                <h2 className="text-2xl font-bold text-[#191A23] mb-4 flex items-center">
+                  <div className="w-8 h-8 bg-[#B9FF66] rounded-lg flex items-center justify-center mr-3">
+                    <Star className="w-4 h-4 text-[#191A23]" />
+                  </div>
+                  Key Learnings
+                </h2>
+                <p className="text-[#191A23]/80 leading-relaxed">
+                  {project.learnings}
                 </p>
               </div>
             )}
           </div>
-        </section>
-      </div>
 
-      {/* Registration Modal */}
-      {registrationModal.isOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-[#F3F3F3]/95 backdrop-blur-lg rounded-lg max-w-md w-full p-6 border border-[#191A23]/10">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-semibold text-[#191A23]">
-                Register for Event
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Tech Stack */}
+            {project.tech_stack && project.tech_stack.length > 0 && (
+              <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-6">
+                <h3 className="text-xl font-bold text-[#191A23] mb-4 flex items-center">
+                  <div className="w-6 h-6 bg-[#B9FF66] rounded-lg flex items-center justify-center mr-2">
+                    <Code2 className="w-3 h-3 text-[#191A23]" />
+                  </div>
+                  Tech Stack
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {project.tech_stack.map((tech, index) => (
+                    <span
+                      key={index}
+                      className="bg-white/80 border border-white/60 text-[#191A23] px-3 py-1 rounded-full text-sm font-medium shadow-sm hover:shadow-md transition-shadow"
+                    >
+                      {tech}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Tags */}
+            {project.tags && project.tags.length > 0 && (
+              <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-6">
+                <h3 className="text-xl font-bold text-[#191A23] mb-4 flex items-center">
+                  <div className="w-6 h-6 bg-[#B9FF66] rounded-lg flex items-center justify-center mr-2">
+                    <Tag className="w-3 h-3 text-[#191A23]" />
+                  </div>
+                  Tags
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {project.tags.map((tag, index) => (
+                    <span
+                      key={index}
+                      className="bg-[#B9FF66]/20 border border-[#B9FF66]/40 text-[#191A23] px-3 py-1 rounded-full text-sm font-medium shadow-sm"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Student Batch */}
+            {project.student_batch && (
+              <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-6">
+                <h3 className="text-xl font-bold text-[#191A23] mb-4 flex items-center">
+                  <div className="w-6 h-6 bg-[#B9FF66] rounded-lg flex items-center justify-center mr-2">
+                    <Users className="w-3 h-3 text-[#191A23]" />
+                  </div>
+                  Student Batch
+                </h3>
+                <div className="bg-[#191A23]/5 border border-[#191A23]/10 text-[#191A23] px-4 py-3 rounded-xl text-lg font-semibold text-center">
+                  {project.student_batch}
+                </div>
+              </div>
+            )}
+
+            {/* Team Members */}
+            {project.team_members && project.team_members.length > 0 && (
+              <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-6">
+                <h3 className="text-xl font-bold text-[#191A23] mb-4 flex items-center">
+                  <div className="w-6 h-6 bg-[#B9FF66] rounded-lg flex items-center justify-center mr-2">
+                    <Users className="w-3 h-3 text-[#191A23]" />
+                  </div>
+                  Team Members
+                </h3>
+                <div className="space-y-3">
+                  {project.team_members.map((member, index) => (
+                    <div
+                      key={index}
+                      className="bg-white/80 border border-white/60 px-4 py-3 rounded-xl"
+                    >
+                      <div className="font-semibold text-[#191A23]">
+                        {member.name}
+                      </div>
+                      {member.role && (
+                        <div className="text-sm text-[#191A23]/70">
+                          {member.role}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Project Actions */}
+            <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-6">
+              <h3 className="text-xl font-bold text-[#191A23] mb-4">
+                Quick Actions
               </h3>
-              <button
-                onClick={closeModal}
-                className="text-[#191A23]/50 hover:text-[#191A23] transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="mb-4 p-3 bg-[#B9FF66]/20 border border-[#B9FF66]/40 rounded-lg">
-              <h4 className="font-medium text-[#191A23] text-sm">
-                {registrationModal.event?.title}
-              </h4>
-              <p className="text-[#191A23]/70 text-xs mt-1">
-                {registrationModal.event &&
-                  new Date(registrationModal.event.start_date).toLocaleDateString("en-US", {
-                    weekday: "long",
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                    hour: "numeric",
-                    minute: "2-digit",
-                    hour12: true,
-                  })}
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-[#191A23] mb-1">
-                  Full Name *
-                </label>
-                <input
-                  type="text"
-                  value={registrationData.name}
-                  onChange={(e) =>
-                    setRegistrationData({ ...registrationData, name: e.target.value })
-                  }
-                  placeholder="Enter your full name"
-                  className="w-full px-3 py-2 border border-[#191A23]/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-[#B9FF66]"
-                  required
-                />
+              <div className="space-y-3">
+                {project.demo_url && (
+                  <button
+                    onClick={() => openLink(project.demo_url!)}
+                    className="w-full bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66] px-4 py-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center shadow-lg"
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    Live Demo
+                  </button>
+                )}
+                {project.github_url && (
+                  <button
+                    onClick={() => openLink(project.github_url!)}
+                    className="w-full bg-white/80 hover:bg-white border border-white/80 hover:border-gray-200 text-[#191A23] px-4 py-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center shadow-lg"
+                  >
+                    <Github className="w-4 h-4 mr-2" />
+                    Source Code
+                  </button>
+                )}
+                {project.project_report && (
+                  <button
+                    onClick={() => openLink(project.project_report!)}
+                    className="w-full bg-blue-100 hover:bg-blue-200 border border-blue-200 text-blue-800 px-4 py-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center"
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    View Report
+                  </button>
+                )}
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[#191A23] mb-1">
-                  Email Address *
-                </label>
-                <input
-                  type="email"
-                  value={registrationData.email}
-                  onChange={(e) =>
-                    setRegistrationData({ ...registrationData, email: e.target.value })
-                  }
-                  placeholder="Enter your email address"
-                  className="w-full px-3 py-2 border border-[#191A23]/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-[#B9FF66]"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[#191A23] mb-1">
-                  Phone Number
-                </label>
-                <input
-                  type="tel"
-                  value={registrationData.mobile_number}
-                  onChange={(e) =>
-                    setRegistrationData({ ...registrationData, mobile_number: e.target.value })
-                  }
-                  placeholder="Enter your phone number"
-                  className="w-full px-3 py-2 border border-[#191A23]/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-[#B9FF66]"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-[#191A23] mb-1">
-                    Institution
-                  </label>
-                  <input
-                    type="text"
-                    value={registrationData.institution}
-                    onChange={(e) =>
-                      setRegistrationData({ ...registrationData, institution: e.target.value })
-                    }
-                    placeholder="Your institution"
-                    className="w-full px-3 py-2 border border-[#191A23]/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-[#B9FF66]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-[#191A23] mb-1">
-                    Department
-                  </label>
-                  <input
-                    type="text"
-                    value={registrationData.department}
-                    onChange={(e) =>
-                      setRegistrationData({ ...registrationData, department: e.target.value })
-                    }
-                    placeholder="Your department"
-                    className="w-full px-3 py-2 border border-[#191A23]/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-[#B9FF66]"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-8">
-              <Button
-                onClick={closeModal}
-                className="flex-1 bg-white border border-[#191A23]/20 text-[#191A23] hover:bg-[#B9FF66]/10"
-                disabled={registering}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleRegistrationSubmit}
-                disabled={registering || !registrationData.name || !registrationData.email}
-                className="flex-1 bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66]"
-              >
-                {registering ? "Registering..." : "Register Now"}
-              </Button>
             </div>
           </div>
         </div>
-      )}
-    </>
+      </section>
+
+      {/* Back to Projects */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="text-center">
+          <button
+            onClick={handleBack}
+            className="inline-flex items-center bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66] px-8 py-4 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Explore More Projects
+          </button>
+        </div>
+      </section>
+    </div>
   );
-}
+};
+
+export default ProjectDetailPage;
