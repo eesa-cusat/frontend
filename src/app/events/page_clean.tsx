@@ -8,13 +8,14 @@ import {
   Users,
   Clock,
   UserPlus,
+  Star,
   Zap,
   Search,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-// Event interface matching the Django API response
+// Simplified Event interface
 interface Event {
   id: number;
   title: string;
@@ -22,20 +23,12 @@ interface Event {
   start_date: string;
   end_date?: string;
   location?: string;
-  venue?: string;
   event_type?: string;
-  status?: string;
   registration_required: boolean;
-  max_participants?: number;
-  registration_fee?: string;
   banner_image?: string;
   is_featured?: boolean;
-  is_upcoming?: boolean;
-  is_registration_open?: boolean;
+  max_participants?: number;
   registration_count?: number;
-  spots_remaining?: number;
-  created_by_name?: string;
-  created_at?: string;
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
@@ -51,7 +44,7 @@ export default function EventsPage() {
     const fetchEvents = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${API_BASE_URL}/events/events/`, {
+        const response = await fetch(`${API_BASE_URL}/events/`, {
           headers: {
             'Content-Type': 'application/json',
           },
@@ -118,7 +111,7 @@ export default function EventsPage() {
   // Get featured event for hero section
   const featuredEvent = events.find(event => event.is_featured) || events[0];
 
-  const handleRegister = async (_eventId: number) => {
+  const handleRegister = async (eventId: number) => {
     try {
       // Simple registration - in real app this would open a form or redirect
       alert('Registration functionality would be implemented here');
