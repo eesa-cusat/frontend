@@ -1,977 +1,705 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
-import Image from "next/image";
+import React, { useState, useEffect } from "react";
 import {
+  Calendar,
+  Users,
   Search,
-  Filter,
+  X,
   ExternalLink,
   Github,
-  Calendar,
-  User,
-  Plus,
-  X,
-  Download,
-  Play,
-  Image as ImageIcon,
-  FileText,
-  Users,
-  ChevronLeft,
-  ChevronRight,
+  ChevronDown,
+  Code2,
+  AlertCircle,
+  Star,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { formatDate } from "@/lib/utils";
 
-import {
-  Project,
-  ProjectDetail,
-  TeamMember,
-  ProjectImage,
-  ProjectVideo,
-} from "@/types/api";
-import { projectsService } from "@/services/projectsService";
-
-// Projects Carousel Component
-interface ProjectsCarouselProps {
-  projects: Project[];
+// Simple Project interface
+interface Project {
+  id: number;
+  title: string;
+  description: string;
+  category: string;
+  batch?: string;
+  created_at: string;
+  github_url?: string;
+  demo_url?: string;
+  thumbnail_image?: string;
+  is_featured?: boolean;
+  team_count?: number;
+  created_by_name?: string;
+  technologies?: string[];
+  status?: string;
 }
 
-const ProjectsCarousel: React.FC<ProjectsCarouselProps> = ({ projects }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+// Sample projects data
+const sampleProjects: Project[] = [
+  {
+    id: 1,
+    title: "AI-Powered Student Assistant",
+    description: "An intelligent chatbot that helps students with academic queries, course recommendations, and campus navigation using natural language processing.",
+    category: "AI/ML",
+    batch: "2024",
+    created_at: "2024-03-15T10:00:00Z",
+    github_url: "https://github.com/example/ai-assistant",
+    demo_url: "https://ai-assistant.example.com",
+    is_featured: true,
+    team_count: 4,
+    created_by_name: "John Doe",
+    technologies: ["Python", "TensorFlow", "React", "Node.js"],
+    status: "completed",
+  },
+  {
+    id: 2,
+    title: "Smart Campus IoT System",
+    description: "IoT-based system for monitoring classroom occupancy, energy consumption, and environmental conditions across the campus.",
+    category: "IoT",
+    batch: "2024",
+    created_at: "2024-02-20T14:30:00Z",
+    github_url: "https://github.com/example/smart-campus",
+    team_count: 5,
+    created_by_name: "Jane Smith",
+    technologies: ["Arduino", "React", "Node.js", "MongoDB"],
+    status: "in_progress",
+  },
+  {
+    id: 3,
+    title: "Blockchain Voting System",
+    description: "Secure and transparent voting system using blockchain technology for student elections and surveys.",
+    category: "Blockchain",
+    batch: "2023",
+    created_at: "2023-11-10T09:15:00Z",
+    github_url: "https://github.com/example/blockchain-voting",
+    demo_url: "https://voting.example.com",
+    team_count: 3,
+    created_by_name: "Alex Johnson",
+    technologies: ["Solidity", "Web3.js", "React", "Ethereum"],
+    status: "completed",
+  },
+  {
+    id: 4,
+    title: "E-Learning Platform",
+    description: "Interactive learning platform with video lectures, quizzes, and progress tracking for engineering courses.",
+    category: "Education",
+    batch: "2023",
+    created_at: "2023-09-05T12:00:00Z",
+    github_url: "https://github.com/example/elearning",
+    demo_url: "https://learn.example.com",
+    team_count: 6,
+    created_by_name: "Sarah Wilson",
+    technologies: ["React", "Django", "PostgreSQL", "AWS"],
+    status: "completed",
+  },
+  {
+    id: 5,
+    title: "Mobile Health Tracker",
+    description: "Cross-platform mobile app for tracking health metrics, diet, and exercise routines with social features.",
+    category: "Mobile",
+    batch: "2022",
+    created_at: "2022-12-18T16:30:00Z",
+    github_url: "https://github.com/example/health-tracker",
+    team_count: 2,
+    created_by_name: "Michael Chen",
+    technologies: ["React Native", "Firebase", "Node.js"],
+    status: "completed",
+  },
+  {
+    id: 6,
+    title: "Data Analytics Dashboard",
+    description: "Real-time analytics dashboard for visualizing student performance, attendance, and engagement metrics.",
+    category: "Data Science",
+    batch: "2022",
+    created_at: "2022-10-25T08:45:00Z",
+    github_url: "https://github.com/example/analytics-dashboard",
+    demo_url: "https://analytics.example.com",
+    team_count: 4,
+    created_by_name: "Emily Rodriguez",
+    technologies: ["Python", "D3.js", "Flask", "Pandas"],
+    status: "completed",
+  },
+];
 
-  const totalSlides = Math.ceil(projects.length / 3);
-  const visibleProjects = projects.slice(currentIndex * 3, (currentIndex + 1) * 3);
+const ProjectsPage: React.FC = () => {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedBatch, setSelectedBatch] = useState<string>("all");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  // Auto-advance carousel
+  // Available batches for filtering
+  const batches = [
+    { value: "all", label: "All Batches" },
+    { value: "2024", label: "Batch 2024" },
+    { value: "2023", label: "Batch 2023" },
+    { value: "2022", label: "Batch 2022" },
+    { value: "2021", label: "Batch 2021" },
+  ];
+
+  // Load projects data
   useEffect(() => {
-    if (!isAutoPlaying || totalSlides <= 1) return;
+    const loadProjects = async () => {
+      try {
+        setLoading(true);
+        // Simulate API call with delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setProjects(sampleProjects);
+      } catch {
+        setError("Failed to load projects");
+        setProjects(sampleProjects); // Fallback to sample data
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % totalSlides);
-    }, 5000);
+    loadProjects();
+  }, []);
 
-    return () => clearInterval(interval);
-  }, [isAutoPlaying, totalSlides]);
+  // Filter projects based on search and batch
+  const filteredProjects = projects.filter((project) => {
+    const matchesSearch = 
+      project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      project.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      project.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      project.created_by_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      project.technologies?.some(tech => 
+        tech.toLowerCase().includes(searchQuery.toLowerCase())
+      );
 
-  const nextSlide = () => {
-    setCurrentIndex((prev) => (prev + 1) % totalSlides);
+    const matchesBatch = 
+      selectedBatch === "all" || project.batch === selectedBatch;
+
+    return matchesSearch && matchesBatch;
+  });
+
+  // Get featured project
+  const featuredProject = projects.find(p => p.is_featured) || projects[0];
+
+  // Format date
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
   };
 
-  const prevSlide = () => {
-    setCurrentIndex((prev) => (prev - 1 + totalSlides) % totalSlides);
+  // Handle external links
+  const openLink = (url: string) => {
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  const goToSlide = (index: number) => {
-    setCurrentIndex(index);
-  };
-
-  if (projects.length === 0) {
+  // Loading state
+  if (loading) {
     return (
-      <div className="text-center py-12">
-        <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center">
-          <User className="w-8 h-8 text-gray-400" />
+      <div className="min-h-screen bg-[#F3F3F3] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-[#191A23] border-t-[#B9FF66] rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-[#191A23] font-medium">Loading projects...</p>
         </div>
-        <h3 className="text-xl font-medium text-gray-900 mb-2">
-          No projects found
-        </h3>
-        <p className="text-gray-600 mb-6">
-          No projects have been shared yet.
-        </p>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error && projects.length === 0) {
+    return (
+      <div className="min-h-screen bg-[#F3F3F3] flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6">
+          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-[#191A23] mb-2">
+            Error Loading Projects
+          </h2>
+          <p className="text-[#191A23]/70 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66] px-6 py-3 rounded-lg font-medium transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="relative">
-      {/* Mobile: Single card view with horizontal scrolling */}
-      <div className="block md:hidden">
-        <div 
-          className="flex transition-transform duration-300 ease-in-out"
-          style={{ transform: `translateX(-${currentIndex * 100}%)` }}
-          onMouseEnter={() => setIsAutoPlaying(false)}
-          onMouseLeave={() => setIsAutoPlaying(true)}
-        >
-          {projects.map((project) => (
-            <div key={project.id} className="w-full flex-shrink-0 px-2">
-              <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                <div className="p-6">
-                  {/* Header */}
-                  <div className="flex items-start justify-between mb-3">
-                    <span className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
-                      {getCategoryDisplayName(project.category)}
-                    </span>
-                    {project.team_count > 1 && (
-                      <span className="inline-block px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
-                        Team ({project.team_count})
-                      </span>
+    <div className="min-h-screen bg-[#F3F3F3]">
+      {/* Hero Section with Featured Project */}
+      {featuredProject && (
+        <section className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#F3F3F3] to-[#E8E8E8]"></div>
+          
+          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20">
+            <div className="bg-white/70 backdrop-blur-sm border border-white/50 rounded-2xl p-6 lg:p-12 shadow-lg">
+              
+              {/* Mobile Layout */}
+              <div className="block lg:hidden">
+                {/* Project Image */}
+                <div className="text-center mb-8">
+                  <div className="w-48 h-64 bg-white border border-white/60 rounded-lg mx-auto mb-6 overflow-hidden relative">
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center">
+                        <div className="w-16 h-16 bg-[#191A23] rounded-lg flex items-center justify-center mx-auto mb-4">
+                          <Code2 className="w-8 h-8 text-[#B9FF66]" />
+                        </div>
+                        <p className="text-[#191A23]/60 text-sm font-medium">
+                          {featuredProject.category}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Badges */}
+                    <div className="absolute top-2 left-2 bg-[#191A23]/90 text-[#B9FF66] px-2 py-1 text-xs font-medium rounded">
+                      {featuredProject.category}
+                    </div>
+                    {featuredProject.is_featured && (
+                      <div className="absolute top-2 right-2 bg-[#B9FF66] text-[#191A23] px-2 py-1 text-xs font-bold rounded flex items-center">
+                        <Star className="w-3 h-3 mr-1" />
+                        FEATURED
+                      </div>
                     )}
                   </div>
 
-                  {/* Title */}
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
-                    {project.title}
-                  </h3>
+                  {/* Batch Badge */}
+                  {featuredProject.batch && (
+                    <div className="inline-block bg-[#191A23] text-[#B9FF66] px-4 py-2 text-sm font-medium rounded-lg mb-4">
+                      Batch {featuredProject.batch}
+                    </div>
+                  )}
+                </div>
 
-                  {/* Description */}
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                    {project.description}
+                {/* Project Info */}
+                <div className="text-center">
+                  <h1 className="text-2xl font-bold text-[#191A23] mb-4 leading-tight">
+                    {featuredProject.title}
+                  </h1>
+                  <p className="text-[#191A23]/80 mb-6 leading-relaxed">
+                    {featuredProject.description}
                   </p>
 
-                  {/* Metadata */}
-                  <div className="space-y-2 text-xs text-gray-500 mb-4">
-                    <div className="flex items-center">
-                      <User className="w-3 h-3 mr-1" />
-                      <span>{project.created_by_name}</span>
+                  {/* Technologies */}
+                  {featuredProject.technologies && featuredProject.technologies.length > 0 && (
+                    <div className="flex flex-wrap justify-center gap-2 mb-6">
+                      {featuredProject.technologies.slice(0, 3).map((tech, index) => (
+                        <span
+                          key={index}
+                          className="px-3 py-1 bg-white/60 text-[#191A23] text-sm rounded-full border border-white/60"
+                        >
+                          {tech}
+                        </span>
+                      ))}
                     </div>
-                    <div className="flex items-center">
-                      <Calendar className="w-3 h-3 mr-1" />
-                      <span>{formatDate(project.created_at)}</span>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3">
+                    {featuredProject.demo_url && (
+                      <button
+                        onClick={() => openLink(featuredProject.demo_url!)}
+                        className="flex-1 bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66] px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center"
+                      >
+                        <ExternalLink className="w-5 h-5 mr-2" />
+                        View Demo
+                      </button>
+                    )}
+                    {featuredProject.github_url && (
+                      <button
+                        onClick={() => openLink(featuredProject.github_url!)}
+                        className="flex-1 bg-white/60 border border-white/80 text-[#191A23] hover:bg-white/80 px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center"
+                      >
+                        <Github className="w-5 h-5 mr-2" />
+                        Code
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Desktop Layout */}
+              <div className="hidden lg:flex gap-12 items-start">
+                {/* Left: Project Image */}
+                <div className="flex-shrink-0">
+                  <div className="w-64 h-80 bg-white border border-white/60 rounded-lg overflow-hidden relative mb-6">
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center">
+                        <div className="w-20 h-20 bg-[#191A23] rounded-lg flex items-center justify-center mx-auto mb-6">
+                          <Code2 className="w-10 h-10 text-[#B9FF66]" />
+                        </div>
+                        <p className="text-[#191A23]/60 font-medium">
+                          {featuredProject.category}
+                        </p>
+                      </div>
                     </div>
+                    
+                    {/* Badges */}
+                    <div className="absolute top-3 left-3 bg-[#191A23]/90 text-[#B9FF66] px-3 py-1 text-sm font-medium rounded">
+                      {featuredProject.category}
+                    </div>
+                    {featuredProject.is_featured && (
+                      <div className="absolute top-3 right-3 bg-[#B9FF66] text-[#191A23] px-3 py-1 text-sm font-bold rounded flex items-center">
+                        <Star className="w-4 h-4 mr-1" />
+                        FEATURED
+                      </div>
+                    )}
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex gap-2">
-                    <Link href={`/projects/${project.id}`} target="_blank" rel="noopener noreferrer" className="flex-1">
-                      <Button variant="outline" size="sm" className="w-full">
-                        View Details
-                      </Button>
-                    </Link>
-                    {project.github_url && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => window.open(project.github_url!, "_blank")}
+                  <div className="flex gap-3">
+                    {featuredProject.demo_url && (
+                      <button
+                        onClick={() => openLink(featuredProject.demo_url!)}
+                        className="flex-1 bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66] px-6 py-4 rounded-lg font-medium transition-colors flex items-center justify-center"
                       >
-                        <Github className="w-4 h-4 mr-1" />
-                        Code
-                      </Button>
-                    )}
-                    {project.demo_url && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => window.open(project.demo_url!, "_blank")}
-                      >
-                        <ExternalLink className="w-4 h-4 mr-1" />
+                        <ExternalLink className="w-5 h-5 mr-2" />
                         Demo
-                      </Button>
+                      </button>
+                    )}
+                    {featuredProject.github_url && (
+                      <button
+                        onClick={() => openLink(featuredProject.github_url!)}
+                        className="flex-1 bg-white/60 border border-white/80 text-[#191A23] hover:bg-white/80 px-6 py-4 rounded-lg font-medium transition-colors flex items-center justify-center"
+                      >
+                        <Github className="w-5 h-5 mr-2" />
+                        Code
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right: Project Details */}
+                <div className="flex-1">
+                  {/* Batch Badge */}
+                  {featuredProject.batch && (
+                    <div className="inline-block bg-[#191A23] text-[#B9FF66] px-4 py-2 text-sm font-medium rounded-lg mb-6">
+                      Batch {featuredProject.batch}
+                    </div>
+                  )}
+
+                  <h1 className="text-4xl font-bold text-[#191A23] mb-6 leading-tight">
+                    {featuredProject.title}
+                  </h1>
+
+                  <p className="text-[#191A23]/80 text-lg mb-8 leading-relaxed">
+                    {featuredProject.description}
+                  </p>
+
+                  {/* Project Details */}
+                  <div className="space-y-4 mb-8">
+                    {featuredProject.created_by_name && (
+                      <div className="flex items-center bg-white/60 p-4 rounded-lg border border-white/60">
+                        <Users className="w-6 h-6 text-[#191A23] mr-4" />
+                        <div>
+                          <span className="text-[#191A23] font-medium">
+                            Created by {featuredProject.created_by_name}
+                          </span>
+                          {featuredProject.team_count && featuredProject.team_count > 1 && (
+                            <span className="text-[#191A23]/70 ml-2">
+                              (Team of {featuredProject.team_count})
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {featuredProject.technologies && featuredProject.technologies.length > 0 && (
+                      <div className="bg-white/60 p-4 rounded-lg border border-white/60">
+                        <h4 className="text-[#191A23] font-medium mb-3">Technologies Used:</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {featuredProject.technologies.map((tech, index) => (
+                            <span
+                              key={index}
+                              className="px-3 py-1 bg-[#191A23] text-[#B9FF66] text-sm rounded-full"
+                            >
+                              {tech}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
               </div>
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Desktop: 3-card view */}
-      <div className="hidden md:block">
-        <div 
-          className="grid grid-cols-3 gap-6 transition-all duration-500 ease-in-out"
-          onMouseEnter={() => setIsAutoPlaying(false)}
-          onMouseLeave={() => setIsAutoPlaying(true)}
-        >
-          {visibleProjects.map((project) => (
-            <div key={project.id} className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
-              <div className="p-6">
-                {/* Header */}
-                <div className="flex items-start justify-between mb-3">
-                  <span className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
-                    {getCategoryDisplayName(project.category)}
-                  </span>
-                  {project.team_count > 1 && (
-                    <span className="inline-block px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
-                      Team ({project.team_count})
-                    </span>
-                  )}
-                </div>
-
-                {/* Title */}
-                <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
-                  {project.title}
-                </h3>
-
-                {/* Description */}
-                <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                  {project.description}
-                </p>
-
-                {/* Metadata */}
-                <div className="space-y-2 text-xs text-gray-500 mb-4">
-                  <div className="flex items-center">
-                    <User className="w-3 h-3 mr-1" />
-                    <span>{project.created_by_name}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <Calendar className="w-3 h-3 mr-1" />
-                    <span>{formatDate(project.created_at)}</span>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-2">
-                  <Link href={`/projects/${project.id}`} target="_blank" rel="noopener noreferrer" className="flex-1">
-                    <Button variant="outline" size="sm" className="w-full">
-                      View Details
-                    </Button>
-                  </Link>
-                  {project.github_url && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => window.open(project.github_url!, "_blank")}
-                    >
-                      <Github className="w-4 h-4 mr-1" />
-                      Code
-                    </Button>
-                  )}
-                  {project.demo_url && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => window.open(project.demo_url!, "_blank")}
-                    >
-                      <ExternalLink className="w-4 h-4 mr-1" />
-                      Demo
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Navigation buttons - only show if more than 1 slide */}
-      {totalSlides > 1 && (
-        <>
-          <button
-            onClick={prevSlide}
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 w-10 h-10 bg-white rounded-full shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
-          >
-            <ChevronLeft className="w-5 h-5 text-gray-600" />
-          </button>
-          <button
-            onClick={nextSlide}
-            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 w-10 h-10 bg-white rounded-full shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
-          >
-            <ChevronRight className="w-5 h-5 text-gray-600" />
-          </button>
-        </>
+          </div>
+        </section>
       )}
 
-      {/* Dots Navigation - only show if more than 1 slide */}
-      {totalSlides > 1 && (
-        <div className="flex justify-center mt-6 space-x-2">
-          {Array.from({ length: totalSlides }).map((_, index) => (
-            <button
-              key={index}
-              onClick={() => goToSlide(index)}
-              className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                index === currentIndex
-                  ? "bg-gray-800 scale-110"
-                  : "bg-gray-300 hover:bg-gray-400"
-              }`}
-            />
-          ))}
+      {/* Projects List Section */}
+      <section className="py-12 lg:py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Section Header */}
+          <div className="text-center mb-12">
+            <h2 className="text-3xl lg:text-4xl font-bold text-[#191A23] mb-4">
+              Student Projects
+            </h2>
+            <p className="text-[#191A23]/70 text-lg max-w-2xl mx-auto">
+              Explore innovative projects created by our talented students across different batches and technologies
+            </p>
+          </div>
+
+          {/* Search and Filter Controls */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-8">
+            {/* Search Input */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#191A23]/50 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Search projects, technologies, or creators..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-10 py-3 border border-[#191A23]/20 rounded-lg bg-white/80 text-[#191A23] placeholder-[#191A23]/50 focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#191A23]/50 hover:text-[#191A23]"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+
+            {/* Batch Filter Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="flex items-center justify-between bg-[#191A23] text-[#B9FF66] px-6 py-3 rounded-lg hover:bg-[#191A23]/90 transition-colors min-w-[180px] font-medium"
+              >
+                <span>
+                  {batches.find(batch => batch.value === selectedBatch)?.label}
+                </span>
+                <ChevronDown 
+                  className={`w-5 h-5 ml-2 transition-transform ${
+                    isDropdownOpen ? 'rotate-180' : ''
+                  }`} 
+                />
+              </button>
+
+              {/* Dropdown Menu */}
+              {isDropdownOpen && (
+                <div className="absolute top-full left-0 mt-2 w-full bg-[#191A23] border border-[#191A23] rounded-lg shadow-lg z-20 overflow-hidden">
+                  {batches.map((batch) => (
+                    <button
+                      key={batch.value}
+                      onClick={() => {
+                        setSelectedBatch(batch.value);
+                        setIsDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-3 text-sm transition-colors ${
+                        selectedBatch === batch.value
+                          ? "bg-[#B9FF66] text-[#191A23] font-medium"
+                          : "text-[#B9FF66] hover:bg-[#191A23]/80"
+                      }`}
+                    >
+                      {batch.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Results Info */}
+          {(searchQuery || selectedBatch !== "all") && (
+            <div className="mb-6">
+              <p className="text-[#191A23]/70 text-sm">
+                Found {filteredProjects.length} project{filteredProjects.length !== 1 ? "s" : ""}
+                {searchQuery && ` matching "${searchQuery}"`}
+                {selectedBatch !== "all" && 
+                  ` in ${batches.find(b => b.value === selectedBatch)?.label}`
+                }
+              </p>
+            </div>
+          )}
+
+          {/* Projects Grid */}
+          {filteredProjects.length > 0 ? (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {filteredProjects.map((project) => (
+                <div
+                  key={project.id}
+                  className="bg-white/80 border border-white/60 rounded-2xl overflow-hidden hover:shadow-lg hover:scale-105 transition-all duration-300 cursor-pointer group"
+                >
+                  {/* Project Image */}
+                  <div className="relative h-48 bg-[#F3F3F3] overflow-hidden">
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center">
+                        <div className="w-12 h-12 bg-[#191A23] rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:bg-[#B9FF66] transition-colors duration-300">
+                          <Code2 className="w-6 h-6 text-[#B9FF66] group-hover:text-[#191A23] transition-colors duration-300" />
+                        </div>
+                        <p className="text-[#191A23]/60 text-sm">{project.category}</p>
+                      </div>
+                    </div>
+                    
+                    {/* Category Badge */}
+                    <div className="absolute top-3 left-3 bg-[#191A23]/90 text-[#B9FF66] px-3 py-1 text-xs font-medium rounded backdrop-blur-sm">
+                      {project.category}
+                    </div>
+                    
+                    {/* Featured Badge */}
+                    {project.is_featured && (
+                      <div className="absolute top-3 right-3 bg-[#B9FF66] text-[#191A23] px-3 py-1 text-xs font-bold rounded">
+                        FEATURED
+                      </div>
+                    )}
+                    
+                    {/* Batch Badge */}
+                    {project.batch && (
+                      <div className="absolute bottom-3 left-3 bg-white/90 text-[#191A23] px-2 py-1 text-xs font-medium rounded backdrop-blur-sm">
+                        Batch {project.batch}
+                      </div>
+                    )}
+                    
+                    {/* Status Badge */}
+                    {project.status && (
+                      <div className={`absolute bottom-3 right-3 px-2 py-1 text-xs font-medium rounded backdrop-blur-sm ${
+                        project.status === "completed" 
+                          ? "bg-green-500/90 text-white" 
+                          : "bg-orange-500/90 text-white"
+                      }`}>
+                        {project.status === "completed" ? "Completed" : "In Progress"}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Project Content */}
+                  <div className="p-6">
+                    {/* Date and Team Info */}
+                    <div className="flex items-center text-[#191A23]/60 text-sm mb-3">
+                      <Calendar className="w-4 h-4 mr-2" />
+                      <span>{formatDate(project.created_at)}</span>
+                      {project.team_count && project.team_count > 1 && (
+                        <>
+                          <Users className="w-4 h-4 ml-4 mr-2" />
+                          <span>Team of {project.team_count}</span>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Project Title */}
+                    <h3 className="text-xl font-bold text-[#191A23] mb-3">
+                      {project.title}
+                    </h3>
+
+                    {/* Project Description */}
+                    <p className="text-[#191A23]/70 mb-4 line-clamp-3">
+                      {project.description}
+                    </p>
+
+                    {/* Creator */}
+                    {project.created_by_name && (
+                      <div className="flex items-center text-[#191A23]/60 mb-4">
+                        <Users className="w-4 h-4 mr-2" />
+                        <span className="text-sm">{project.created_by_name}</span>
+                      </div>
+                    )}
+
+                    {/* Technologies */}
+                    {project.technologies && project.technologies.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-4">
+                        {project.technologies.slice(0, 3).map((tech, index) => (
+                          <span
+                            key={index}
+                            className="px-2 py-1 bg-[#B9FF66]/20 text-[#191A23] text-xs rounded border border-[#B9FF66]/40"
+                          >
+                            {tech}
+                          </span>
+                        ))}
+                        {project.technologies.length > 3 && (
+                          <span className="px-2 py-1 bg-[#191A23]/10 text-[#191A23] text-xs rounded">
+                            +{project.technologies.length - 3} more
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2">
+                      {project.demo_url && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openLink(project.demo_url!);
+                          }}
+                          className="flex-1 bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66] px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
+                        >
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          Demo
+                        </button>
+                      )}
+                      {project.github_url && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openLink(project.github_url!);
+                          }}
+                          className="flex-1 bg-white border border-[#191A23]/20 text-[#191A23] hover:bg-[#B9FF66]/10 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
+                        >
+                          <Github className="w-4 h-4 mr-2" />
+                          Code
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            /* No Results State */
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-[#191A23]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Code2 className="w-8 h-8 text-[#191A23]/50" />
+              </div>
+              <h3 className="text-xl font-semibold text-[#191A23] mb-2">
+                No Projects Found
+              </h3>
+              <p className="text-[#191A23]/60 mb-6">
+                {searchQuery
+                  ? `No projects match "${searchQuery}"${
+                      selectedBatch !== "all"
+                        ? ` in ${batches.find(b => b.value === selectedBatch)?.label}`
+                        : ""
+                    }`
+                  : selectedBatch !== "all"
+                  ? `No projects found in ${batches.find(b => b.value === selectedBatch)?.label}`
+                  : "No projects available at the moment"}
+              </p>
+              
+              {/* Clear Filters Buttons */}
+              {(searchQuery || selectedBatch !== "all") && (
+                <div className="flex gap-2 justify-center">
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="bg-white border border-[#191A23]/20 text-[#191A23] hover:bg-[#B9FF66]/10 px-4 py-2 rounded-lg font-medium transition-colors"
+                    >
+                      Clear Search
+                    </button>
+                  )}
+                  {selectedBatch !== "all" && (
+                    <button
+                      onClick={() => setSelectedBatch("all")}
+                      className="bg-white border border-[#191A23]/20 text-[#191A23] hover:bg-[#B9FF66]/10 px-4 py-2 rounded-lg font-medium transition-colors"
+                    >
+                      Show All Batches
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
+      </section>
+
+      {/* Click outside to close dropdown */}
+      {isDropdownOpen && (
+        <div
+          className="fixed inset-0 z-10"
+          onClick={() => setIsDropdownOpen(false)}
+        />
       )}
     </div>
   );
 };
 
-const getCategoryDisplayName = (category: string) => {
-  const categoryMap: { [key: string]: string } = {
-    iot: "Internet of Things",
-    embedded_systems: "Embedded Systems",
-    power_systems: "Power Systems",
-    power_electronics: "Power Electronics",
-    signal_processing: "Signal Processing",
-    web_development: "Web Development",
-    mobile_app: "Mobile App",
-    machine_learning: "Machine Learning",
-    data_science: "Data Science",
-    robotics: "Robotics",
-    cybersecurity: "Cybersecurity",
-    blockchain: "Blockchain",
-    ai: "Artificial Intelligence",
-    other: "Other",
-  };
-  return categoryMap[category] || category.replace("_", " ").toUpperCase();
-};
-
-export default function ProjectsPage() {
-  // For demo purposes, hide create project button
-  // In production, this would be controlled by staff login
-  const isAuthenticated = false;
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedCreator, setSelectedCreator] = useState("");
-  const [teamSize, setTeamSize] = useState("");
-  const [hasDemo, setHasDemo] = useState("");
-  const [hasGithub, setHasGithub] = useState("");
-  const [sortBy, setSortBy] = useState("created_at");
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [availableFilters, setAvailableFilters] = useState<{
-    categories: { [key: string]: string };
-    creators: any[];
-  }>({ categories: {}, creators: [] });
-
-  // Modal state and handlers
-  const [showProjectModal, setShowProjectModal] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<ProjectDetail | null>(null);
-  const [activeTab, setActiveTab] = useState<string>("overview");
-
-  // Handler to open modal with project details
-  const openProjectModal = async (projectId: number) => {
-    setShowProjectModal(true);
-    setActiveTab("overview");
-    try {
-      const detail = await projectsService.getProject(projectId.toString());
-      setSelectedProject(detail);
-    } catch (err) {
-      setSelectedProject(null);
-      setShowProjectModal(false);
-      // Optionally handle error (e.g., show toast)
-    }
-  };
-
-  // Handler to close modal
-  const closeProjectModal = () => {
-    setShowProjectModal(false);
-    setSelectedProject(null);
-  };
-
-  // Use environment variable for API base URL (no hardcoded localhost)
-    // Use environment variable for API base URL (no hardcoded localhost)
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
-
-
-
-  // Fetch projects from API with filtering
-  const fetchProjects = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const params = new URLSearchParams();
-      if (selectedCategory) params.append("category", selectedCategory);
-      if (selectedCreator) params.append("creator", selectedCreator);
-      if (teamSize) params.append("team_size", teamSize);
-      if (hasDemo) params.append("has_demo", hasDemo);
-      if (hasGithub) params.append("has_github", hasGithub);
-      if (searchTerm) params.append("search", searchTerm);
-
-      const response = await fetch(
-        `${API_BASE_URL}/projects/?${params.toString()}`
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const fetchedProjects = data.projects || [];
-      setProjects(fetchedProjects);
-
-      // Set available filters from backend
-      if (data.filters) {
-        setAvailableFilters({
-          categories: data.filters.categories || {},
-          creators: data.filters.creators || [],
-        });
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      setError(`Failed to fetch projects: ${errorMessage}`);
-      setProjects([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [
-    selectedCategory,
-    selectedCreator,
-    teamSize,
-    hasDemo,
-    hasGithub,
-    searchTerm,
-    API_BASE_URL,
-  ]);
-
-  // Fetch projects on component mount and when filters change
-  useEffect(() => {
-    fetchProjects();
-  }, [fetchProjects]);
-
-  // Navigate to project details page
-  const navigateToProjectDetails = (projectId: number) => {
-    window.open(`/projects/${projectId}`, '_blank');
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading projects...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600 mb-4">{error}</p>
-          <Button onClick={() => window.location.reload()}>Retry</Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8 border-b border-gray-200 pb-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-black mb-2">
-                Student Projects
-              </h1>
-              <p className="text-lg text-gray-600">
-                Explore innovative projects by EESA students and alumni
-              </p>
-            </div>
-            {isAuthenticated && (
-              <Link href="/projects/create">
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Project
-                </Button>
-              </Link>
-            )}
-          </div>
-        </div>
-
-        {/* Search and Filters */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-          {/* Search Bar */}
-          <div className="flex flex-col lg:flex-row gap-4 mb-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  type="text"
-                  placeholder="Search projects by title or description..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 w-full"
-                />
-              </div>
-            </div>
-            <Button
-              variant="outline"
-              onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className="lg:w-auto w-full"
-            >
-              <Filter className="w-4 h-4 mr-2" />
-              Filters
-            </Button>
-          </div>
-
-          {/* Filters */}
-          {isFilterOpen && (
-            <div className="border-t pt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-              {/* Category Filter */}
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">All Categories</option>
-                {Object.entries(availableFilters.categories || {}).map(
-                  ([key, value]) => (
-                    <option key={key} value={key}>
-                      {value}
-                    </option>
-                  )
-                )}
-              </select>
-
-              {/* Creator Filter */}
-              <select
-                value={selectedCreator}
-                onChange={(e) => setSelectedCreator(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">All Creators</option>
-                {(availableFilters.creators || []).map((creator) => (
-                  <option
-                    key={creator.created_by__id}
-                    value={creator.created_by__username}
-                  >
-                    {creator.created_by__first_name}{" "}
-                    {creator.created_by__last_name}
-                  </option>
-                ))}
-              </select>
-
-              {/* Team Size Filter */}
-              <select
-                value={teamSize}
-                onChange={(e) => setTeamSize(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Any Team Size</option>
-                <option value="1">Solo (1 person)</option>
-                <option value="2">Small Team (2 people)</option>
-                <option value="3">Medium Team (3 people)</option>
-                <option value="4">Large Team (4+ people)</option>
-              </select>
-
-              {/* Demo Filter */}
-              <select
-                value={hasDemo}
-                onChange={(e) => setHasDemo(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Any Demo Status</option>
-                <option value="true">Has Demo</option>
-                <option value="false">No Demo</option>
-              </select>
-
-              {/* Sort Filter */}
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="created_at">Latest First</option>
-                <option value="title">Title A-Z</option>
-              </select>
-            </div>
-          )}
-
-          {/* Results Count */}
-          <div className="mt-4 text-sm text-gray-600">
-            Showing {projects.length} projects
-          </div>
-        </div>
-
-        {/* Projects Grid */}
-        {projects.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center">
-              <User className="w-8 h-8 text-gray-400" />
-            </div>
-            <h3 className="text-xl font-medium text-gray-900 mb-2">
-              No projects found
-            </h3>
-            <p className="text-gray-600 mb-6">
-              {projects.length === 0
-                ? "No projects have been shared yet."
-                : "Try adjusting your search or filter criteria."}
-            </p>
-            {isAuthenticated && (
-              <Link href="/projects/create">
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add First Project
-                </Button>
-              </Link>
-            )}
-          </div>
-        ) : (
-          <ProjectsCarousel projects={projects} />
-        )}
-
-        {/* Project Detail Modal */}
-        {showProjectModal && selectedProject && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[95vh] overflow-hidden">
-              {/* Modal Header */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                <div className="flex-1">
-                  <h2 className="text-2xl font-bold text-gray-900">
-                    {selectedProject.title}
-                  </h2>
-                  <div className="flex items-center gap-4 mt-2">
-                    <span className="inline-block px-3 py-1 text-sm font-medium bg-blue-100 text-blue-800 rounded-full">
-                      {getCategoryDisplayName(selectedProject.category)}
-                    </span>
-                    <span className="text-sm text-gray-500">
-                      by {selectedProject.created_by.first_name}{" "}
-                      {selectedProject.created_by.last_name}
-                    </span>
-                    <span className="text-sm text-gray-500">
-                      {formatDate(selectedProject.created_at)}
-                    </span>
-                  </div>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={closeProjectModal}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
-
-              {/* Modal Navigation Tabs */}
-              <div className="border-b border-gray-200">
-                <nav className="-mb-px flex space-x-8 px-6">
-                  <button
-                    onClick={() => setActiveTab("overview")}
-                    className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                      activeTab === "overview"
-                        ? "border-blue-500 text-blue-600"
-                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                    }`}
-                  >
-                    <FileText className="w-4 h-4 inline mr-2" />
-                    Overview
-                  </button>
-                  {selectedProject.team_members &&
-                    selectedProject.team_members.length > 0 && (
-                      <button
-                        onClick={() => setActiveTab("team")}
-                        className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                          activeTab === "team"
-                            ? "border-blue-500 text-blue-600"
-                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                        }`}
-                      >
-                        <Users className="w-4 h-4 inline mr-2" />
-                        Team ({selectedProject.team_members.length + 1})
-                      </button>
-                    )}
-                  {(selectedProject.images.length > 0 ||
-                    selectedProject.videos.length > 0) && (
-                    <button
-                      onClick={() => setActiveTab("media")}
-                      className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                        activeTab === "media"
-                          ? "border-blue-500 text-blue-600"
-                          : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                      }`}
-                    >
-                      <ImageIcon className="w-4 h-4 inline mr-2" />
-                      Media (
-                      {selectedProject.images.length +
-                        selectedProject.videos.length}
-                      )
-                    </button>
-                  )}
-                </nav>
-              </div>
-
-              {/* Modal Content */}
-              <div className="p-6 overflow-y-auto max-h-[calc(95vh-200px)]">
-                {/* Overview Tab */}
-                {activeTab === "overview" && (
-                  <div className="space-y-6">
-                    {/* Project Description */}
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                        Description
-                      </h3>
-                      <p className="text-gray-700 leading-relaxed">
-                        {selectedProject.description}
-                      </p>
-                    </div>
-
-                    {/* Project Abstract */}
-                    {selectedProject.abstract && (
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                          Abstract
-                        </h3>
-                        <div className="bg-gray-50 p-4 rounded-lg">
-                          <p className="text-gray-700 leading-relaxed whitespace-pre-line">
-                            {selectedProject.abstract}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Project Links and Files */}
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                        Resources
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {selectedProject.github_url && (
-                          <a
-                            href={selectedProject.github_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center p-4 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
-                          >
-                            <Github className="w-5 h-5 mr-3" />
-                            <div>
-                              <div className="font-medium">Source Code</div>
-                              <div className="text-sm text-gray-300">
-                                View on GitHub
-                              </div>
-                            </div>
-                          </a>
-                        )}
-                        {selectedProject.demo_url && (
-                          <a
-                            href={selectedProject.demo_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center p-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                          >
-                            <ExternalLink className="w-5 h-5 mr-3" />
-                            <div>
-                              <div className="font-medium">Live Demo</div>
-                              <div className="text-sm text-blue-100">
-                                View Project
-                              </div>
-                            </div>
-                          </a>
-                        )}
-                        {selectedProject.project_report && (
-                          <a
-                            href={selectedProject.project_report}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center p-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                          >
-                            <Download className="w-5 h-5 mr-3" />
-                            <div>
-                              <div className="font-medium">Project Report</div>
-                              <div className="text-sm text-green-100">
-                                Download PDF
-                              </div>
-                            </div>
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Team Tab */}
-                {activeTab === "team" && (
-                  <div className="space-y-6">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Project Team
-                    </h3>
-
-                    {/* Project Creator */}
-                    <div>
-                      <h4 className="text-md font-medium text-gray-800 mb-3">
-                        Project Creator
-                      </h4>
-                      <div className="flex items-center p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
-                        <div className="flex-shrink-0">
-                          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                            <User className="w-6 h-6 text-blue-600" />
-                          </div>
-                        </div>
-                        <div className="ml-4">
-                          <p className="text-sm font-medium text-gray-900">
-                            {selectedProject.created_by.first_name}{" "}
-                            {selectedProject.created_by.last_name}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            Project Creator & Lead
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            {selectedProject.created_by.email}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Team Members */}
-                    {selectedProject.team_members &&
-                      selectedProject.team_members.length > 0 && (
-                        <div>
-                          <h4 className="text-md font-medium text-gray-800 mb-3">
-                            Team Members
-                          </h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {selectedProject.team_members.map(
-                              (member: TeamMember) => (
-                                <div
-                                  key={member.id}
-                                  className="flex items-center p-4 bg-gray-50 rounded-lg border"
-                                >
-                                  <div className="flex-shrink-0">
-                                    <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                                      <User className="w-6 h-6 text-gray-600" />
-                                    </div>
-                                  </div>
-                                  <div className="ml-4 flex-1">
-                                    <p className="text-sm font-medium text-gray-900">
-                                      {member.name}
-                                    </p>
-                                    {member.role && (
-                                      <p className="text-xs text-gray-500 mb-1">
-                                        {member.role}
-                                      </p>
-                                    )}
-                                    {member.linkedin_url && (
-                                      <a
-                                        href={member.linkedin_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-xs text-blue-600 hover:text-blue-800 flex items-center"
-                                      >
-                                        <svg
-                                          className="w-3 h-3 mr-1"
-                                          fill="currentColor"
-                                          viewBox="0 0 20 20"
-                                        >
-                                          <path
-                                            fillRule="evenodd"
-                                            d="M16.338 16.338H13.67V12.16c0-.995-.017-2.277-1.387-2.277-1.39 0-1.601 1.086-1.601 2.207v4.248H8.014v-8.59h2.559v1.174h.037c.356-.675 1.227-1.387 2.526-1.387 2.703 0 3.203 1.778 3.203 4.092v4.711zM5.005 6.575a1.548 1.548 0 11-.003-3.096 1.548 1.548 0 01.003 3.096zm-1.337 9.763H6.34v-8.59H3.667v8.59zM17.668 1H2.328C1.595 1 1 1.581 1 2.298v15.403C1 18.418 1.595 19 2.328 19h15.34c.734 0 1.332-.582 1.332-1.299V2.298C19 1.581 18.402 1 17.668 1z"
-                                            clipRule="evenodd"
-                                          />
-                                        </svg>
-                                        LinkedIn
-                                      </a>
-                                    )}
-                                  </div>
-                                </div>
-                              )
-                            )}
-                          </div>
-                        </div>
-                      )}
-                  </div>
-                )}
-
-                {/* Media Tab */}
-                {activeTab === "media" && (
-                  <div className="space-y-6">
-                    {/* Project Images */}
-                    {selectedProject.images &&
-                      selectedProject.images.length > 0 && (
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                            Project Images
-                          </h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {selectedProject.images.map((image) => (
-                              <div key={image.id} className="relative group">
-                                <div className="aspect-w-16 aspect-h-9 bg-gray-200 rounded-lg overflow-hidden">
-                                  <Image
-                                    src={`${
-                                      process.env.NEXT_PUBLIC_API_BASE_URL?.replace(
-                                        "/api",
-                                        ""
-                                      ) || "http://localhost:8000"
-                                    }${image.image}`}
-                                    alt={image.caption || selectedProject.title}
-                                    width={400}
-                                    height={200}
-                                    className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-200"
-                                    unoptimized
-                                  />
-                                  {image.is_featured && (
-                                    <div className="absolute top-2 left-2">
-                                      <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded">
-                                        Featured
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-                                {image.caption && (
-                                  <p className="mt-2 text-sm text-gray-600">
-                                    {image.caption}
-                                  </p>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                    {/* Project Videos */}
-                    {selectedProject.videos &&
-                      selectedProject.videos.length > 0 && (
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                            Project Videos
-                          </h3>
-                          <div className="space-y-4">
-                            {selectedProject.videos.map((video) => (
-                              <div
-                                key={video.id}
-                                className="border rounded-lg p-4 bg-gray-50"
-                              >
-                                <div className="flex items-start gap-4">
-                                  <div className="flex-shrink-0">
-                                    <div className="w-16 h-16 bg-red-100 rounded-lg flex items-center justify-center">
-                                      <Play className="w-8 h-8 text-red-600" />
-                                    </div>
-                                  </div>
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2">
-                                      <h4 className="font-medium text-gray-900">
-                                        {video.title || "Project Video"}
-                                      </h4>
-                                      {video.is_featured && (
-                                        <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded">
-                                          Featured
-                                        </span>
-                                      )}
-                                    </div>
-                                    {video.description && (
-                                      <p className="text-sm text-gray-600 mt-1">
-                                        {video.description}
-                                      </p>
-                                    )}
-                                    <a
-                                      href={video.video_url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="inline-flex items-center mt-3 text-sm text-blue-600 hover:text-blue-800"
-                                    >
-                                      <Play className="w-4 h-4 mr-1" />
-                                      Watch Video
-                                    </a>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                    {selectedProject.images.length === 0 &&
-                      selectedProject.videos.length === 0 && (
-                        <div className="text-center py-12">
-                          <ImageIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                          <p className="text-gray-500">
-                            No media files available for this project.
-                          </p>
-                        </div>
-                      )}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </>
-  );
-}
+export default ProjectsPage;
