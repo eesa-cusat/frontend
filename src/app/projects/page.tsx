@@ -69,34 +69,30 @@ interface Project {
 const sampleProjects: Project[] = [
   {
     id: 1,
-    title: "AI-Powered Student Assistant",
-    description:
-      "An intelligent chatbot that helps students with academic queries, course recommendations, and campus navigation using natural language processing.",
-    category: "AI/ML",
-    batch: "2024-2025",
-    created_at: "2024-03-15T10:00:00Z",
-    github_url: "https://github.com/example/ai-assistant",
-    demo_url: "https://ai-assistant.example.com",
-    is_featured: true,
-    team_count: 4,
-    created_by_name: "John Doe",
-    status: "completed",
-    technologies: ["Python", "TensorFlow", "React", "Node.js"],
+    title: "Mobile App",
+    description: "Flutter application",
+    category: "mobile_app",
+    student_batch: "2024", // Replaced "iot student batch" with a year
+    created_at: "2025-08-05T17:55:08Z", // Matches the date in the screenshot
+    team_count: 2,
   },
   {
     id: 2,
-    title: "Smart Campus Management System",
-    description:
-      "A comprehensive web application for managing campus resources, student attendance, and academic schedules with real-time notifications.",
-    category: "Web Development",
-    batch: "2024-2025",
-    created_at: "2024-02-20T14:30:00Z",
-    github_url: "https://github.com/example/campus-management",
-    demo_url: "https://campus-management.example.com",
-    team_count: 3,
-    created_by_name: "Jane Smith",
-    status: "completed",
-    technologies: ["React", "Node.js", "MongoDB"],
+    title: "Student Portal",
+    description: "Web-based management",
+    category: "mobile_app",
+    student_batch: "2024", // Replaced "iot student batch" with a year
+    created_at: "2025-08-03T00:00:00Z",
+    team_count: 2,
+  },
+  {
+    id: 3,
+    title: "Smart Home System",
+    description: "IoT-based automation",
+    category: "iot",
+    student_batch: "2024", // Replaced "iot student batch" with a year
+    created_at: "2025-08-03T00:00:00Z",
+    team_count: 2,
   },
 ];
 
@@ -105,14 +101,13 @@ const ProjectsPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedBatch, setSelectedBatch] = useState<string>("all");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(
     null
   );
 
-  // Available categories for filtering (using category instead of batch since API provides this)
-  const batches = [
+  const categories = [
     { value: "all", label: "All Categories" },
     { value: "web_development", label: "Web Development" },
     { value: "mobile_app", label: "Mobile App" },
@@ -127,23 +122,18 @@ const ProjectsPage: React.FC = () => {
     { value: "other", label: "Other" },
   ];
 
-  // Fetch projects from API
   const fetchProjects = useCallback(
-    async (searchTerm = "", batchFilter = "all") => {
+    async (searchTerm = "", categoryFilter = "all") => {
+      setLoading(true);
+      setError(null);
       try {
-        setLoading(true);
-        setError(null);
-
         const params = new URLSearchParams();
-
         if (searchTerm.trim()) {
           params.append("search", searchTerm.trim());
         }
-
-        if (batchFilter !== "all") {
-          params.append("category", batchFilter);
+        if (categoryFilter !== "all") {
+          params.append("category", categoryFilter);
         }
-
         const queryString = params.toString();
         const url = `${API_BASE_URL}/projects/${
           queryString ? `?${queryString}` : ""
@@ -161,23 +151,16 @@ const ProjectsPage: React.FC = () => {
         }
 
         const data = await response.json();
-
-        // Handle the actual API response structure: {projects: [...], count: number, filters: {...}}
         const projectsData = data.projects || data.results || data;
 
-        // Transform API data to match frontend interface if needed
         const transformedProjects = Array.isArray(projectsData)
           ? projectsData.map((project: Project) => ({
               ...project,
-              // Use category as batch for now since student_batch is not in API
-              batch: project.category || "Unknown",
-              // API already provides these fields
+              student_batch: project.student_batch || "2024", // Use a default year if not available
+              team_count: project.team_members?.length || 1,
               created_by_name: project.created_by_name,
-              team_count: project.team_count || 1,
               thumbnail_image: project.featured_image,
-              // Default status if not provided
               status: project.status || "completed",
-              // You can add technologies parsing here if stored in description or other field
               technologies: project.technologies || [],
             }))
           : [];
@@ -186,7 +169,6 @@ const ProjectsPage: React.FC = () => {
       } catch (err) {
         console.error("Error fetching projects:", err);
         setError("Failed to load projects. Please try again later.");
-        // Fallback to sample data on error
         setProjects(sampleProjects);
       } finally {
         setLoading(false);
@@ -195,53 +177,42 @@ const ProjectsPage: React.FC = () => {
     []
   );
 
-  // Debounced search function
   const debouncedSearch = useCallback(
-    (searchTerm: string, batchFilter: string) => {
+    (searchTerm: string, categoryFilter: string) => {
       if (searchTimeout) {
         clearTimeout(searchTimeout);
       }
-
       const timeout = setTimeout(() => {
-        fetchProjects(searchTerm, batchFilter);
+        fetchProjects(searchTerm, categoryFilter);
       }, 500);
-
       setSearchTimeout(timeout);
     },
     [fetchProjects, searchTimeout]
   );
 
-  // Handle search input change
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
-    debouncedSearch(value, selectedBatch);
+    debouncedSearch(value, selectedCategory);
   };
 
-  // Handle batch filter change
-  const handleBatchChange = (batch: string) => {
-    setSelectedBatch(batch);
-    debouncedSearch(searchQuery, batch);
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+    debouncedSearch(searchQuery, category);
   };
 
-  // Handle project click
   const handleProjectClick = (projectId: number) => {
     window.location.href = `/projects/${projectId}`;
   };
 
-  // Handle external link opening
-  const openLink = (url: string) => {
+  const openLink = (url: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  // Initial load
   useEffect(() => {
     fetchProjects("", "all");
   }, [fetchProjects]);
 
-  // Use projects directly since filtering is done server-side
-  const filteredProjects = projects;
-
-  // Format date
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       month: "short",
@@ -250,12 +221,13 @@ const ProjectsPage: React.FC = () => {
     });
   };
 
-  // Handle retry
   const handleRetry = () => {
-    fetchProjects(searchQuery, selectedBatch);
+    fetchProjects(searchQuery, selectedCategory);
   };
 
-  // Loading state
+  // The rest of the component's JSX remains the same as your previous code.
+  // I have included the full JSX below for completeness.
+
   if (loading && projects.length === 0) {
     return (
       <div className="min-h-screen bg-[#F3F3F3] flex items-center justify-center">
@@ -267,7 +239,6 @@ const ProjectsPage: React.FC = () => {
     );
   }
 
-  // Error state
   if (error && projects.length === 0) {
     return (
       <div className="min-h-screen bg-[#F3F3F3] flex items-center justify-center">
@@ -341,8 +312,9 @@ const ProjectsPage: React.FC = () => {
                   <span className="flex items-center">
                     <Code2 className="w-5 h-5 mr-2" />
                     {
-                      batches.find((batch) => batch.value === selectedBatch)
-                        ?.label
+                      categories.find(
+                        (category) => category.value === selectedCategory
+                      )?.label
                     }
                   </span>
                   <ChevronDown
@@ -356,22 +328,22 @@ const ProjectsPage: React.FC = () => {
                 {isDropdownOpen && (
                   <div className="absolute top-full left-0 mt-2 w-full bg-white border border-gray-100 rounded-xl shadow-xl z-20 overflow-hidden">
                     <div className="py-2">
-                      {batches.map((batch) => (
+                      {categories.map((category) => (
                         <button
-                          key={batch.value}
+                          key={category.value}
                           onClick={() => {
-                            handleBatchChange(batch.value);
+                            handleCategoryChange(category.value);
                             setIsDropdownOpen(false);
                           }}
                           className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center ${
-                            selectedBatch === batch.value
+                            selectedCategory === category.value
                               ? "bg-[#B9FF66]/10 text-[#191A23] font-medium border-r-4 border-[#B9FF66]"
                               : "text-gray-700"
                           }`}
                         >
                           <Code2 className="w-4 h-4 mr-3 text-gray-400" />
-                          {batch.label}
-                          {selectedBatch === batch.value && (
+                          {category.label}
+                          {selectedCategory === category.value && (
                             <div className="ml-auto w-2 h-2 bg-[#B9FF66] rounded-full"></div>
                           )}
                         </button>
@@ -383,7 +355,7 @@ const ProjectsPage: React.FC = () => {
             </div>
 
             {/* Active Filters Display */}
-            {(searchQuery || selectedBatch !== "all") && (
+            {(searchQuery || selectedCategory !== "all") && (
               <div className="mt-6 pt-6 border-t border-gray-100">
                 <div className="flex flex-wrap items-center gap-3">
                   <span className="text-sm font-medium text-gray-600">
@@ -401,12 +373,15 @@ const ProjectsPage: React.FC = () => {
                       </button>
                     </div>
                   )}
-                  {selectedBatch !== "all" && (
+                  {selectedCategory !== "all" && (
                     <div className="flex items-center bg-[#191A23]/10 text-[#191A23] px-3 py-1 rounded-full text-sm">
                       <Code2 className="w-3 h-3 mr-2" />
-                      {batches.find((b) => b.value === selectedBatch)?.label}
+                      {
+                        categories.find((b) => b.value === selectedCategory)
+                          ?.label
+                      }
                       <button
-                        onClick={() => handleBatchChange("all")}
+                        onClick={() => handleCategoryChange("all")}
                         className="ml-2 hover:text-red-600 transition-colors"
                       >
                         <X className="w-3 h-3" />
@@ -419,14 +394,14 @@ const ProjectsPage: React.FC = () => {
           </div>
 
           {/* Results Summary */}
-          {(searchQuery || selectedBatch !== "all") && (
+          {(searchQuery || selectedCategory !== "all") && (
             <div className="mb-8 text-center">
               <p className="text-gray-600 text-lg">
                 Found{" "}
                 <span className="font-bold text-[#191A23]">
-                  {filteredProjects.length}
+                  {projects.length}
                 </span>{" "}
-                project{filteredProjects.length !== 1 ? "s" : ""}
+                project{projects.length !== 1 ? "s" : ""}
                 {searchQuery && (
                   <span>
                     {" "}
@@ -437,12 +412,15 @@ const ProjectsPage: React.FC = () => {
                     &rdquo;
                   </span>
                 )}
-                {selectedBatch !== "all" && (
+                {selectedCategory !== "all" && (
                   <span>
                     {" "}
                     in{" "}
                     <span className="font-medium">
-                      {batches.find((b) => b.value === selectedBatch)?.label}
+                      {
+                        categories.find((b) => b.value === selectedCategory)
+                          ?.label
+                      }
                     </span>
                   </span>
                 )}
@@ -451,9 +429,9 @@ const ProjectsPage: React.FC = () => {
           )}
 
           {/* Enhanced Projects Grid */}
-          {filteredProjects.length > 0 ? (
+          {projects.length > 0 ? (
             <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-              {filteredProjects.map((project) => (
+              {projects.map((project) => (
                 <div
                   key={project.id}
                   className="group relative bg-white rounded-3xl border border-gray-100 shadow-lg hover:shadow-2xl overflow-hidden transition-all duration-500 transform hover:-translate-y-2 cursor-pointer"
@@ -544,19 +522,17 @@ const ProjectsPage: React.FC = () => {
                       )}
                     </div>
 
-                    {/* Creator */}
-                    {project.created_by_name && (
+                    {/* Batch Year */}
+                    {project.student_batch && (
                       <div className="flex items-center bg-gray-50 px-4 py-3 rounded-xl mb-4">
                         <div className="w-8 h-8 bg-[#191A23] rounded-full flex items-center justify-center mr-3">
-                          <Users className="w-4 h-4 text-[#B9FF66]" />
+                          <Calendar className="w-4 h-4 text-[#B9FF66]" />
                         </div>
                         <div>
                           <p className="text-sm font-medium text-[#191A23]">
-                            {project.created_by_name}
+                            {project.student_batch}
                           </p>
-                          <p className="text-xs text-gray-500">
-                            Project Creator
-                          </p>
+                          <p className="text-xs text-gray-500">Student Batch</p>
                         </div>
                       </div>
                     )}
@@ -587,10 +563,7 @@ const ProjectsPage: React.FC = () => {
                     <div className="flex gap-3 pt-4 border-t border-gray-100">
                       {project.demo_url && (
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openLink(project.demo_url!);
-                          }}
+                          onClick={(e) => openLink(project.demo_url!, e)}
                           className="flex-1 bg-[#191A23] hover:bg-[#2A2B35] text-[#B9FF66] px-4 py-3 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 flex items-center justify-center shadow-lg"
                         >
                           <ExternalLink className="w-4 h-4 mr-2" />
@@ -599,10 +572,7 @@ const ProjectsPage: React.FC = () => {
                       )}
                       {project.github_url && (
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openLink(project.github_url!);
-                          }}
+                          onClick={(e) => openLink(project.github_url!, e)}
                           className="flex-1 bg-gray-100 hover:bg-gray-200 text-[#191A23] px-4 py-3 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 flex items-center justify-center"
                         >
                           <Github className="w-4 h-4 mr-2" />
@@ -623,26 +593,27 @@ const ProjectsPage: React.FC = () => {
                 <Code2 className="w-12 h-12 text-gray-400" />
               </div>
               <h3 className="text-2xl font-bold text-[#191A23] mb-4">
-                {searchQuery || selectedBatch !== "all"
+                {searchQuery || selectedCategory !== "all"
                   ? `No projects found${
                       searchQuery ? ` matching "${searchQuery}"` : ""
                     }${
-                      selectedBatch !== "all"
+                      selectedCategory !== "all"
                         ? ` in ${
-                            batches.find((b) => b.value === selectedBatch)
+                            categories.find((b) => b.value === selectedCategory)
                               ?.label
                           }`
                         : ""
                     }`
-                  : selectedBatch !== "all"
+                  : selectedCategory !== "all"
                   ? `No projects found in ${
-                      batches.find((b) => b.value === selectedBatch)?.label
+                      categories.find((b) => b.value === selectedCategory)
+                        ?.label
                     }`
                   : "No projects available at the moment"}
               </h3>
 
               {/* Clear Filters Buttons */}
-              {(searchQuery || selectedBatch !== "all") && (
+              {(searchQuery || selectedCategory !== "all") && (
                 <div className="flex gap-2 justify-center">
                   {searchQuery && (
                     <button
@@ -652,9 +623,9 @@ const ProjectsPage: React.FC = () => {
                       Clear Search
                     </button>
                   )}
-                  {selectedBatch !== "all" && (
+                  {selectedCategory !== "all" && (
                     <button
-                      onClick={() => handleBatchChange("all")}
+                      onClick={() => handleCategoryChange("all")}
                       className="bg-white border border-[#191A23]/20 text-[#191A23] hover:bg-[#B9FF66]/10 px-4 py-2 rounded-lg font-medium transition-colors"
                     >
                       Show All Categories

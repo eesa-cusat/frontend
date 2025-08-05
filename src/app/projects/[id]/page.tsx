@@ -20,7 +20,8 @@ import {
 // This is the correct directive for client components in Next.js App Router.
 // It must be at the very top of the file to work correctly.
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
 
 interface Project {
   id: number;
@@ -129,15 +130,12 @@ const ProjectDetailPage: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(
-        `${API_BASE_URL}/projects/${projectId}/`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/projects/${projectId}/`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -207,7 +205,9 @@ const ProjectDetailPage: React.FC = () => {
       <div className="min-h-screen bg-[#F3F3F3] flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-[#191A23] border-t-[#B9FF66] rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-[#191A23] font-medium">Loading project details...</p>
+          <p className="text-[#191A23] font-medium">
+            Loading project details...
+          </p>
         </div>
       </div>
     );
@@ -295,27 +295,29 @@ const ProjectDetailPage: React.FC = () => {
                   {project.title}
                 </h1>
 
-                <div className="inline-flex items-center justify-center bg-[#191A23]/5 backdrop-blur-sm border border-[#191A23]/10 px-6 py-3 rounded-full mb-8 w-48 h-12">
-                  <Tag className="w-5 h-5 text-[#191A23] mr-2" />
-                  <span className="text-[#191A23] font-semibold text-lg">
-                    {project.category}
-                  </span>
-                </div>
-
-                {/* Project Status */}
-                {project.status && (
-                  <div
-                    className={`inline-flex items-center justify-center px-4 py-2 rounded-full text-sm font-medium w-48 h-12 ${
-                      project.status === "completed"
-                        ? "bg-green-100 text-green-800 border border-green-200"
-                        : "bg-orange-100 text-orange-800 border border-orange-200"
-                    }`}
-                  >
-                    {project.status === "completed"
-                      ? "✓ Completed"
-                      : "⏳ In Progress"}
+                {/* Tags and Status */}
+                <div className="flex flex-wrap justify-center gap-4 mb-8">
+                  <div className="inline-flex items-center justify-center bg-[#191A23]/5 backdrop-blur-sm border border-[#191A23]/10 px-6 py-3 rounded-full w-48 h-12">
+                    <Tag className="w-5 h-5 text-[#191A23] mr-2" />
+                    <span className="text-[#191A23] font-semibold text-lg">
+                      {project.category}
+                    </span>
                   </div>
-                )}
+
+                  {project.status && (
+                    <div
+                      className={`inline-flex items-center justify-center px-4 py-2 rounded-full text-sm font-medium w-48 h-12 ${
+                        project.status === "completed"
+                          ? "bg-green-100 text-green-800 border border-green-200"
+                          : "bg-orange-100 text-orange-800 border border-orange-200"
+                      }`}
+                    >
+                      {project.status === "completed"
+                        ? "✓ Completed"
+                        : "⏳ In Progress"}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Project Meta Info */}
@@ -323,13 +325,13 @@ const ProjectDetailPage: React.FC = () => {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                   <div className="text-center">
                     <div className="w-14 h-14 bg-[#B9FF66] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                      <Users className="w-7 h-7 text-[#191A23]" />
+                      <Calendar className="w-7 h-7 text-[#191A23]" />
                     </div>
                     <div className="text-[#191A23] font-medium text-sm mb-1">
-                      Created By
+                      Student Batch
                     </div>
                     <div className="text-[#191A23] font-bold text-lg">
-                      {project.created_by_name}
+                      {project.student_batch || "2020-2024"}
                     </div>
                   </div>
 
@@ -508,21 +510,6 @@ const ProjectDetailPage: React.FC = () => {
               </div>
             )}
 
-            {/* Student Batch */}
-            {project.student_batch && (
-              <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-6">
-                <h3 className="text-xl font-bold text-[#191A23] mb-4 flex items-center">
-                  <div className="w-6 h-6 bg-[#B9FF66] rounded-lg flex items-center justify-center mr-2">
-                    <Users className="w-3 h-3 text-[#191A23]" />
-                  </div>
-                  Student Batch
-                </h3>
-                <div className="bg-[#191A23]/5 border border-[#191A23]/10 text-[#191A23] px-4 py-3 rounded-xl text-lg font-semibold text-center">
-                  {project.student_batch}
-                </div>
-              </div>
-            )}
-
             {/* Team Members */}
             {project.team_members && project.team_members.length > 0 && (
               <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-6">
@@ -600,7 +587,7 @@ const ProjectDetailPage: React.FC = () => {
                       // Create a simple gallery view or navigate to images
                       const firstImage = project.images![0];
                       if (firstImage && firstImage.image) {
-                        window.open(firstImage.image, '_blank');
+                        window.open(firstImage.image, "_blank");
                       }
                     }}
                     className="w-full h-12 bg-purple-100 hover:bg-purple-200 border border-purple-200 text-purple-800 px-4 py-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center"
