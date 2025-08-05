@@ -1,10 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Linkedin, Facebook, Twitter } from "lucide-react";
 import MarqueeNotifications from "@/components/ui/MarqueeNotifications";
 import AutoScrollCarousel from "@/components/ui/AutoScrollCarousel";
 import { EventCard, ProjectCard } from "@/components/ui/CarouselCards";
@@ -415,62 +413,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
-            {/* Logo and Contact */}
-            <div className="space-y-6 text-center md:text-left">
-              <div className="flex items-center justify-center md:justify-start">
-                <Image
-                  src="/eesa-logo.svg"
-                  alt="EESA Logo"
-                  width={40}
-                  height={40}
-                  className="w-10 h-10 filter invert"
-                />
-                <span className="ml-3 text-xl font-bold">EESA</span>
-              </div>
-
-              <div className="space-y-4">
-                <div className="inline-block bg-lime-400 text-black px-4 py-2 rounded-full text-sm font-medium">
-                  Contact us:
-                </div>
-                <p className="text-gray-300">Email: eesacusatweb@gmail.com</p>
-              </div>
-            </div>
-
-            {/* Social Media */}
-            <div className="flex items-center justify-center space-x-4">
-              <a
-                href="#"
-                className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-700 transition-colors border border-gray-700"
-              >
-                <Linkedin className="w-5 h-5" />
-              </a>
-              <a
-                href="#"
-                className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-700 transition-colors border border-gray-700"
-              >
-                <Facebook className="w-5 h-5" />
-              </a>
-              <a
-                href="#"
-                className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-700 transition-colors border border-gray-700"
-              >
-                <Twitter className="w-5 h-5" />
-              </a>
-            </div>
-
-            {/* Copyright */}
-            <div className="text-center md:text-right">
-              <p className="text-gray-400 text-sm">
-                © EESA CUSAT All Rights Reserved.
-              </p>
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

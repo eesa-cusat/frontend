@@ -69,6 +69,53 @@ interface FilterState {
   module: string;
 }
 
+// Cache keys for localStorage
+const CACHE_KEYS = {
+  FILTERS: 'academics_filters',
+  RESOURCES: 'academics_resources',
+  TIMESTAMP: 'academics_timestamp',
+  VIEW_STATE: 'academics_view_state'
+};
+
+// Cache duration in milliseconds (30 minutes)
+const CACHE_DURATION = 30 * 60 * 1000;
+
+// Cache management functions
+const getCachedData = (key: string) => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const cached = localStorage.getItem(key);
+    if (!cached) return null;
+    const data = JSON.parse(cached);
+    const timestamp = localStorage.getItem(CACHE_KEYS.TIMESTAMP);
+    if (!timestamp || Date.now() - parseInt(timestamp) > CACHE_DURATION) {
+      // Cache expired
+      clearCache();
+      return null;
+    }
+    return data;
+  } catch {
+    return null;
+  }
+};
+
+const setCachedData = (key: string, data: unknown) => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+    localStorage.setItem(CACHE_KEYS.TIMESTAMP, Date.now().toString());
+  } catch {
+    // Storage quota exceeded or other error
+  }
+};
+
+const clearCache = () => {
+  if (typeof window === 'undefined') return;
+  Object.values(CACHE_KEYS).forEach(key => {
+    localStorage.removeItem(key);
+  });
+};
+
 const AcademicsPage = () => {
   const [showFilters, setShowFilters] = useState(true);
   const [filters, setFilters] = useState<FilterState>({
@@ -80,6 +127,7 @@ const AcademicsPage = () => {
     module: "",
   });
   const [resources, setResources] = useState<AcademicResource[]>([]);
+  const [isHydrated, setIsHydrated] = useState(false);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [backendError, setBackendError] = useState(false);
@@ -93,6 +141,36 @@ const AcademicsPage = () => {
   useEffect(() => {
     fetchInitialData();
   }, []);
+
+  // Load cached data after hydration to prevent hydration mismatch
+  useEffect(() => {
+    setIsHydrated(true);
+    
+    // Load cached data only on client side
+    const cachedFilters = getCachedData(CACHE_KEYS.FILTERS);
+    const cachedResources = getCachedData(CACHE_KEYS.RESOURCES);
+    const cachedViewState = getCachedData(CACHE_KEYS.VIEW_STATE);
+    
+    if (cachedFilters) {
+      setFilters(cachedFilters);
+    }
+    
+    if (cachedResources) {
+      setResources(cachedResources);
+    }
+    
+    if (cachedViewState?.showFilters === false) {
+      setShowFilters(false);
+    }
+  }, []);
+
+  // Load subjects when cached filters are restored on component mount
+  useEffect(() => {
+    if (isHydrated && filters.scheme_id && filters.semester) {
+      fetchSubjects();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHydrated, filters.scheme_id, filters.semester]);
 
   const fetchInitialData = async () => {
     setInitialLoading(true);
@@ -179,24 +257,41 @@ const AcademicsPage = () => {
   const modules = ["1", "2", "3", "4", "5"];
 
   const handleFilterChange = (field: keyof FilterState, value: string) => {
-    setFilters((prev) => ({ ...prev, [field]: value }));
+    const updatedFilters = { ...filters, [field]: value };
+    setFilters(updatedFilters);
+    
+    // Cache the updated filters
+    setCachedData(CACHE_KEYS.FILTERS, updatedFilters);
 
     // Reset dependent fields
     if (field === "department") {
-      setFilters((prev) => ({
-        ...prev,
+      const resetFilters = {
+        ...updatedFilters,
         scheme_id: "",
         semester: "",
         subject_id: "",
-      }));
+      };
+      setFilters(resetFilters);
+      setCachedData(CACHE_KEYS.FILTERS, resetFilters);
       setSubjects([]);
     }
     if (field === "scheme_id") {
-      setFilters((prev) => ({ ...prev, semester: "", subject_id: "" }));
+      const resetFilters = {
+        ...updatedFilters,
+        semester: "",
+        subject_id: ""
+      };
+      setFilters(resetFilters);
+      setCachedData(CACHE_KEYS.FILTERS, resetFilters);
       setSubjects([]);
     }
     if (field === "semester") {
-      setFilters((prev) => ({ ...prev, subject_id: "" }));
+      const resetFilters = {
+        ...updatedFilters,
+        subject_id: ""
+      };
+      setFilters(resetFilters);
+      setCachedData(CACHE_KEYS.FILTERS, resetFilters);
     }
   };
 
@@ -244,7 +339,15 @@ const AcademicsPage = () => {
 
       // Handle different response formats (results array or direct array)
       const resourcesArray = data.results || data || [];
-      setResources(Array.isArray(resourcesArray) ? resourcesArray : []);
+      const transformedResources = Array.isArray(resourcesArray) ? resourcesArray : [];
+      
+      setResources(transformedResources);
+      
+      // Cache the filters, resources, and view state
+      setCachedData(CACHE_KEYS.FILTERS, filters);
+      setCachedData(CACHE_KEYS.RESOURCES, transformedResources);
+      setCachedData(CACHE_KEYS.VIEW_STATE, { showFilters: false });
+      
       setShowFilters(false);
     } catch (error) {
       console.error("Error fetching resources:", error);
@@ -254,6 +357,28 @@ const AcademicsPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleBackToFilters = () => {
+    setShowFilters(true);
+    // Update view state cache
+    setCachedData(CACHE_KEYS.VIEW_STATE, { showFilters: true });
+  };
+
+  const handleNewSearch = () => {
+    // Clear all cache and reset state
+    clearCache();
+    setShowFilters(true);
+    setFilters({
+      department: "",
+      scheme_id: "",
+      semester: "",
+      subject_id: "",
+      category: "",
+      module: "",
+    });
+    setResources([]);
+    setSubjects([]);
   };
 
   const getSelectedScheme = () => {
@@ -699,12 +824,20 @@ const AcademicsPage = () => {
         {/* Header with back button */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <button
-              onClick={() => setShowFilters(true)}
-              className="text-black hover:text-gray-600 font-medium mb-4"
-            >
-              ← Back to Filters
-            </button>
+            <div className="flex items-center gap-4 mb-4">
+              <button
+                onClick={handleBackToFilters}
+                className="text-black hover:text-gray-600 font-medium"
+              >
+                ← Back to Filters
+              </button>
+              <button
+                onClick={handleNewSearch}
+                className="bg-gray-100 hover:bg-gray-200 text-black px-4 py-2 rounded-lg font-medium transition-colors"
+              >
+                New Search
+              </button>
+            </div>
             <h1 className="text-3xl font-bold text-black">
               Academic Resources
             </h1>
@@ -834,15 +967,6 @@ const AcademicsPage = () => {
                         try {
                           const downloadUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/academics/resources/${resource.id}/download/`;
                           
-                          // Update the local state to increment download count immediately for better UX
-                          setResources((prev) =>
-                            prev.map((res) =>
-                              res.id === resource.id
-                                ? { ...res, download_count: (res.download_count || 0) + 1 }
-                                : res
-                            )
-                          );
-                          
                           // Fetch the file and trigger download
                           const response = await fetch(downloadUrl, {
                             method: 'GET',
@@ -852,6 +976,15 @@ const AcademicsPage = () => {
                           });
                           
                           if (response.ok) {
+                            // Only update local state after successful server response
+                            setResources((prev) =>
+                              prev.map((res) =>
+                                res.id === resource.id
+                                  ? { ...res, download_count: (res.download_count || 0) + 1 }
+                                  : res
+                              )
+                            );
+                            
                             // Get the filename from the Content-Disposition header or use the resource title
                             const contentDisposition = response.headers.get('Content-Disposition');
                             let filename = resource.title || 'download';
