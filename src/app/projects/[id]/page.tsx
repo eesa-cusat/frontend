@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -15,7 +15,6 @@ import {
   Eye,
   Clock,
   AlertCircle,
-  Loader2,
 } from "lucide-react";
 
 // This is the correct directive for client components in Next.js App Router.
@@ -123,7 +122,7 @@ const ProjectDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchProject = async () => {
+  const fetchProject = useCallback(async () => {
     if (!projectId) return;
 
     try {
@@ -179,11 +178,11 @@ const ProjectDetailPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId]);
 
   useEffect(() => {
     fetchProject();
-  }, [projectId]);
+  }, [projectId, fetchProject]);
 
   const formatDate = (dateString: string) => {
     try {
@@ -206,13 +205,9 @@ const ProjectDetailPage: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F3F3F3] flex items-center justify-center">
-        <div className="backdrop-blur-xl bg-white/80 border border-white/40 shadow-lg rounded-2xl p-8">
-          <div className="flex items-center space-x-4">
-            <Loader2 className="animate-spin h-8 w-8 text-[#191A23]" />
-            <span className="text-[#191A23] font-medium text-lg">
-              Loading project details...
-            </span>
-          </div>
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-[#191A23] border-t-[#B9FF66] rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-[#191A23] font-medium">Loading project details...</p>
         </div>
       </div>
     );
@@ -300,7 +295,7 @@ const ProjectDetailPage: React.FC = () => {
                   {project.title}
                 </h1>
 
-                <div className="inline-flex items-center bg-[#191A23]/5 backdrop-blur-sm border border-[#191A23]/10 px-6 py-3 rounded-full mb-8">
+                <div className="inline-flex items-center justify-center bg-[#191A23]/5 backdrop-blur-sm border border-[#191A23]/10 px-6 py-3 rounded-full mb-8 w-48 h-12">
                   <Tag className="w-5 h-5 text-[#191A23] mr-2" />
                   <span className="text-[#191A23] font-semibold text-lg">
                     {project.category}
@@ -310,7 +305,7 @@ const ProjectDetailPage: React.FC = () => {
                 {/* Project Status */}
                 {project.status && (
                   <div
-                    className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${
+                    className={`inline-flex items-center justify-center px-4 py-2 rounded-full text-sm font-medium w-48 h-12 ${
                       project.status === "completed"
                         ? "bg-green-100 text-green-800 border border-green-200"
                         : "bg-orange-100 text-orange-800 border border-orange-200"
@@ -430,9 +425,9 @@ const ProjectDetailPage: React.FC = () => {
                   </div>
                   Abstract
                 </h2>
-                <p className="text-[#191A23]/80 text-lg leading-relaxed">
+                <div className="text-[#191A23]/80 text-lg leading-relaxed break-words overflow-wrap-break-word hyphens-auto">
                   {project.abstract}
-                </p>
+                </div>
               </div>
             )}
 
@@ -566,7 +561,7 @@ const ProjectDetailPage: React.FC = () => {
                 {project.demo_url && (
                   <button
                     onClick={() => openLink(project.demo_url!)}
-                    className="w-full bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66] px-4 py-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center shadow-lg"
+                    className="w-full h-12 bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66] px-4 py-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center shadow-lg"
                   >
                     <Play className="w-4 h-4 mr-2" />
                     Live Demo
@@ -575,19 +570,43 @@ const ProjectDetailPage: React.FC = () => {
                 {project.github_url && (
                   <button
                     onClick={() => openLink(project.github_url!)}
-                    className="w-full bg-white/80 hover:bg-white border border-white/80 hover:border-gray-200 text-[#191A23] px-4 py-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center shadow-lg"
+                    className="w-full h-12 bg-white/80 hover:bg-white border border-white/80 hover:border-gray-200 text-[#191A23] px-4 py-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center shadow-lg"
                   >
                     <Github className="w-4 h-4 mr-2" />
-                    Source Code
+                    GitHub Repository
                   </button>
                 )}
                 {project.project_report && (
                   <button
                     onClick={() => openLink(project.project_report!)}
-                    className="w-full bg-blue-100 hover:bg-blue-200 border border-blue-200 text-blue-800 px-4 py-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center"
+                    className="w-full h-12 bg-blue-100 hover:bg-blue-200 border border-blue-200 text-blue-800 px-4 py-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center"
                   >
                     <Eye className="w-4 h-4 mr-2" />
-                    View Report
+                    Project Report PDF
+                  </button>
+                )}
+                {project.featured_video && (
+                  <button
+                    onClick={() => openLink(project.featured_video!)}
+                    className="w-full h-12 bg-red-100 hover:bg-red-200 border border-red-200 text-red-800 px-4 py-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center"
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    Project Video
+                  </button>
+                )}
+                {project.images && project.images.length > 0 && (
+                  <button
+                    onClick={() => {
+                      // Create a simple gallery view or navigate to images
+                      const firstImage = project.images![0];
+                      if (firstImage && firstImage.image) {
+                        window.open(firstImage.image, '_blank');
+                      }
+                    }}
+                    className="w-full h-12 bg-purple-100 hover:bg-purple-200 border border-purple-200 text-purple-800 px-4 py-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center"
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    Project Images ({project.images.length})
                   </button>
                 )}
               </div>

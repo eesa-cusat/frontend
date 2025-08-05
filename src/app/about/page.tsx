@@ -310,13 +310,9 @@ export default function AboutPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F3F3F3] flex items-center justify-center">
-        <div className="bg-white border-2 border-[#B9FF66]/30 shadow-xl rounded-3xl p-12">
-          <div className="flex items-center space-x-6">
-            <div className="w-12 h-12 border-4 border-[#B9FF66] border-t-[#191A23] rounded-full animate-spin"></div>
-            <span className="text-[#191A23] font-bold text-2xl">
-              Loading about us...
-            </span>
-          </div>
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-[#191A23] border-t-[#B9FF66] rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-[#191A23] font-medium">Loading about us...</p>
         </div>
       </div>
     );

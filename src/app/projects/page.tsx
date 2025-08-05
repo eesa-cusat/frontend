@@ -15,7 +15,8 @@ import {
 } from "lucide-react";
 
 // API Configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
 
 // Simple Project interface matching backend response
 interface Project {
@@ -294,13 +295,13 @@ const ProjectsPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Section Header */}
           <div className="text-center mb-16">
-            <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold text-[#191A23] mb-6">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-[#191A23] mb-6">
               All Student{" "}
-              <span className="text-[#B9FF66] bg-[#191A23] px-2 md:px-4 py-1 md:py-2 rounded-xl">
+              <span className="text-[#191A23]  px-2 md:px-4 py-1 md:py-2 rounded-xl">
                 Projects
               </span>
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
               Explore the complete collection of innovative projects created by
               our talented students across various categories and technologies
             </p>
@@ -520,12 +521,12 @@ const ProjectsPage: React.FC = () => {
                   {/* Project Content */}
                   <div className="relative p-8 space-y-4">
                     {/* Title */}
-                    <h3 className="text-2xl font-bold text-[#191A23] mb-3 line-clamp-2 group-hover:text-[#2A2B35] transition-colors">
+                    <h3 className="text-xl md:text-2xl font-bold text-[#191A23] mb-3 line-clamp-2 group-hover:text-[#2A2B35] transition-colors">
                       {project.title}
                     </h3>
 
                     {/* Description */}
-                    <p className="text-gray-600 leading-relaxed line-clamp-3 mb-4">
+                    <p className="text-gray-600 text-sm md:text-base leading-relaxed line-clamp-3 mb-4">
                       {project.description}
                     </p>
 
