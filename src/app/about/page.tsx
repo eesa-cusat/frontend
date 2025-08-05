@@ -25,6 +25,7 @@ import {
   Rocket,
   Building,
   ArrowRight,
+  X,
 } from "lucide-react";
 
 // Interfaces for data from the API
@@ -33,7 +34,7 @@ interface TeamMember {
   name: string;
   position: string;
   bio: string;
-  image?: string;
+  image?: string | null;
   email?: string;
   linkedin_url?: string;
   github_url?: string;
@@ -46,7 +47,28 @@ interface AlumniStats {
   total_alumni: number;
   employed_count: number;
   higher_studies_count: number;
-  entrepreneurship_count: number;
+  self_employed_count: number; // This represents self-employed alumni (different from entrepreneurs)
+  unemployment_rate: number;
+  top_companies: Array<{
+    current_company: string;
+    count: number;
+  }>;
+}
+
+interface EntrepreneurshipStats {
+  total_alumni: number;
+  total_entrepreneurs: number;
+  entrepreneurship_rate: number;
+  recent_entrepreneurs_count: number;
+  startup_sectors: Array<{
+    job_title: string;
+    count: number;
+  }>;
+  entrepreneurship_by_year: Array<{
+    year_of_passout: number;
+    count: number;
+  }>;
+  success_stories_count: number;
 }
 
 // Reusable Team Member Card component
@@ -100,6 +122,7 @@ const TeamMemberCard = ({
             href={`mailto:${member.email}`}
             onClick={(e) => e.stopPropagation()}
             className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-[#B9FF66] hover:text-black transition-all duration-300"
+            title={`Email ${member.name}`}
           >
             <Mail className="w-4 h-4" />
           </a>
@@ -111,6 +134,7 @@ const TeamMemberCard = ({
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
             className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-[#B9FF66] hover:text-black transition-all duration-300"
+            title={`${member.name} on LinkedIn`}
           >
             <Linkedin className="w-4 h-4" />
           </a>
@@ -122,9 +146,15 @@ const TeamMemberCard = ({
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
             className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-[#B9FF66] hover:text-black transition-all duration-300"
+            title={`${member.name} on GitHub`}
           >
             <Github className="w-4 h-4" />
           </a>
+        )}
+        {!member.email && !member.linkedin_url && !member.github_url && (
+          <span className="text-xs text-gray-400 italic px-2 py-1 bg-gray-50 rounded">
+            Contact details coming soon
+          </span>
         )}
       </div>
     </div>
@@ -211,6 +241,7 @@ export default function AboutPage() {
   const [eesaTeam, setEesaTeam] = useState<TeamMember[]>([]);
   const [techTeam, setTechTeam] = useState<TeamMember[]>([]);
   const [alumniStats, setAlumniStats] = useState<AlumniStats | null>(null);
+  const [entrepreneurshipStats, setEntrepreneurshipStats] = useState<EntrepreneurshipStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
@@ -223,10 +254,11 @@ export default function AboutPage() {
       setLoading(true);
       setError(null);
       try {
-        // Consolidated API call for team members and alumni stats
-        const [teamResponse, statsResponse] = await Promise.all([
+        // Consolidated API call for team members, alumni stats, and entrepreneurship stats
+        const [teamResponse, statsResponse, entrepreneurshipResponse] = await Promise.all([
           fetch(`${API_BASE_URL}/accounts/team-members/`),
           fetch(`${API_BASE_URL}/alumni/alumni/stats/`),
+          fetch(`${API_BASE_URL}/alumni/entrepreneurship-stats/`),
         ]);
 
         if (teamResponse.ok) {
@@ -250,7 +282,15 @@ export default function AboutPage() {
         } else {
           throw new Error("Failed to fetch alumni statistics.");
         }
-      } catch (e: any) {
+
+        if (entrepreneurshipResponse.ok) {
+          const entrepreneurshipData = await entrepreneurshipResponse.json();
+          setEntrepreneurshipStats(entrepreneurshipData);
+        } else {
+          console.warn("Failed to fetch entrepreneurship statistics.");
+          setEntrepreneurshipStats(null);
+        }
+      } catch (e: unknown) {
         console.error("Error fetching about page data:", e);
         setError(
           "Failed to load content. Please check your network or try again later."
@@ -259,6 +299,7 @@ export default function AboutPage() {
         setEesaTeam([]);
         setTechTeam([]);
         setAlumniStats(null);
+        setEntrepreneurshipStats(null);
       } finally {
         setLoading(false);
       }
@@ -439,7 +480,8 @@ export default function AboutPage() {
                 icon={Rocket}
                 label="Entrepreneurs"
                 value={
-                  alumniStats.entrepreneurship_count?.toLocaleString() || "N/A"
+                  entrepreneurshipStats?.total_entrepreneurs?.toLocaleString() || 
+                  "N/A"
                 }
                 color="bg-purple-500"
                 bgColor="bg-gradient-to-br from-orange-50 to-orange-100"
@@ -565,10 +607,10 @@ export default function AboutPage() {
             className="bg-white rounded-2xl max-w-md w-full relative shadow-2xl overflow-hidden"
           >
             <button
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl z-10 bg-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg"
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-10 bg-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200"
               onClick={() => setSelectedMember(null)}
             >
-              ×
+              <X className="w-4 h-4" />
             </button>
             <div className="relative h-48 bg-gradient-to-br from-[#B9FF66]/10 to-[#B9FF66]/5">
               {selectedMember.image ? (
@@ -628,6 +670,12 @@ export default function AboutPage() {
                     <Github className="w-4 h-4" />
                     <span className="text-sm">GitHub</span>
                   </a>
+                )}
+                {!selectedMember.email && !selectedMember.linkedin_url && !selectedMember.github_url && (
+                  <div className="text-sm text-gray-400 italic bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+                    <span className="block font-medium text-gray-500 mb-1">Contact Information</span>
+                    Contact details will be updated soon. Please check back later or contact the team directly.
+                  </div>
                 )}
               </div>
             </div>
