@@ -39,3 +39,26 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# backup and temporary files
+*.backup
+*.bak
+*_backup*
+*_old*
+*_new*
+*_clean*
+*_broken*
+*_fixed*
+*_copy*
+*.tmp
+*.temp
+
+# test directories
+/test/
+/tests/
+test-*/
+**/test-*/
+
+# development files
+.DS_Store
+.vscode/settings.json

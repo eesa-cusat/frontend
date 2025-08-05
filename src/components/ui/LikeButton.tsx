@@ -5,7 +5,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Heart } from 'lucide-react';
-import { getCSRFHeaders, clearCSRFToken, initializeSession } from '@/utils/csrf';
 
 interface LikeButtonProps {
   resourceId: number;
@@ -18,11 +17,11 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8
 // API Functions
 const toggleLike = async (resourceId: number) => {
   try {
-    const headers = await getCSRFHeaders();
-    
     const response = await fetch(`${API_BASE_URL}/academics/resources/${resourceId}/like/`, {
       method: 'POST',
-      headers,
+      headers: {
+        'Content-Type': 'application/json',
+      },
       mode: 'cors',
       credentials: 'include'
     });
@@ -35,27 +34,6 @@ const toggleLike = async (resourceId: number) => {
         likeCount: data.like_count // updated total like count
       };
     } else {
-      // If CSRF error, clear token and retry once
-      if (response.status === 403 && data.detail?.includes('CSRF')) {
-        clearCSRFToken();
-        
-        const retryHeaders = await getCSRFHeaders();
-        const retryResponse = await fetch(`${API_BASE_URL}/academics/resources/${resourceId}/like/`, {
-          method: 'POST',
-          headers: retryHeaders,
-          mode: 'cors',
-          credentials: 'include'
-        });
-        
-        if (retryResponse.ok) {
-          const retryData = await retryResponse.json();
-          return {
-            liked: retryData.liked,
-            likeCount: retryData.like_count
-          };
-        }
-      }
-      
       throw new Error(data.error || data.detail || 'Failed to toggle like');
     }
   } catch (error) {
@@ -119,9 +97,6 @@ const LikeButton: React.FC<LikeButtonProps> = ({
     setLoading(true);
     
     try {
-      // Initialize session first to ensure cookies are set
-      await initializeSession();
-      
       const result = await toggleLike(resourceId);
       
       setLiked(result.liked);
