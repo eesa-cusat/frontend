@@ -2,6 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay, Pagination } from "swiper/modules";
+import { motion } from "framer-motion";
+import "swiper/css";
+import "swiper/css/pagination";
 import {
   Users,
   Target,
@@ -13,6 +19,15 @@ import {
   Mail,
   Linkedin,
   Github,
+  GraduationCap,
+  TrendingUp,
+  Globe,
+  Award,
+  Lightbulb,
+  Zap,
+  Rocket,
+  Building,
+  ArrowRight,
 } from "lucide-react";
 
 interface TeamMember {
@@ -20,98 +35,198 @@ interface TeamMember {
   name: string;
   position: string;
   bio: string;
-  image: string;
-  email: string;
-  linkedin_url: string;
-  github_url: string;
+  image?: string;
+  email?: string;
+  linkedin_url?: string;
+  github_url?: string;
   team_type: "eesa" | "tech";
   is_active: boolean;
   order: number;
 }
 
+interface AlumniStats {
+  total_alumni: number;
+  employed_count: number;
+  higher_studies_count: number;
+  entrepreneurship_count: number;
+}
+
+// Mock data to ensure components render correctly
+const mockEesaTeam: TeamMember[] = [
+  {
+    id: 1,
+    name: "Jane Doe",
+    position: "President",
+    bio: "Passionate leader dedicated to fostering a strong community. I believe in the power of collaboration to drive innovation in the field of EEE.",
+    image: "https://via.placeholder.com/200/B9FF66/191A23?text=Jane",
+    email: "jane.doe@eesa.com",
+    linkedin_url: "https://www.linkedin.com/in/janedoe/",
+    github_url: undefined,
+    team_type: "eesa",
+    is_active: true,
+    order: 1,
+  },
+  {
+    id: 2,
+    name: "John Smith",
+    position: "Vice President",
+    bio: "I manage day-to-day operations and strategic initiatives for EESA. My goal is to expand our reach and provide more opportunities for students.",
+    image: "https://via.placeholder.com/200/191A23/B9FF66?text=John",
+    email: "john.smith@eesa.com",
+    linkedin_url: "https://www.linkedin.com/in/johnsmith/",
+    github_url: undefined,
+    team_type: "eesa",
+    is_active: true,
+    order: 2,
+  },
+  {
+    id: 3,
+    name: "Emily White",
+    position: "Events Coordinator",
+    bio: "I organize all our major events, from technical workshops to networking mixers. I'm always looking for new ideas to engage our members.",
+    image: undefined,
+    email: "emily.white@eesa.com",
+    linkedin_url: "https://www.linkedin.com/in/emilywhite/",
+    github_url: undefined,
+    team_type: "eesa",
+    is_active: true,
+    order: 3,
+  },
+  {
+    id: 4,
+    name: "Michael Brown",
+    position: "Secretary",
+    bio: "I handle all documentation and communication for EESA. Ensuring transparency and clear communication is my priority.",
+    image: "https://via.placeholder.com/200/B9FF66/191A23?text=Mike",
+    email: "michael.b@eesa.com",
+    linkedin_url: "https://www.linkedin.com/in/michaelbrown/",
+    github_url: undefined,
+    team_type: "eesa",
+    is_active: true,
+    order: 4,
+  },
+  {
+    id: 5,
+    name: "Sarah Davis",
+    position: "Treasurer",
+    bio: "I manage EESA's finances and ensure responsible budget allocation for our various initiatives and events.",
+    image: "https://via.placeholder.com/200/191A23/B9FF66?text=Sarah",
+    email: "sarah.d@eesa.com",
+    linkedin_url: "https://www.linkedin.com/in/sarahdavis/",
+    github_url: undefined,
+    team_type: "eesa",
+    is_active: true,
+    order: 5,
+  },
+];
+
+const mockTechTeam: TeamMember[] = [
+  {
+    id: 4,
+    name: "Alex Johnson",
+    position: "Lead Developer",
+    bio: "I lead the development of our digital platforms, including this website. My focus is on creating seamless and intuitive user experiences.",
+    image: "https://via.placeholder.com/200/191A23/B9FF66?text=Alex",
+    email: "alex.j@eesa.com",
+    linkedin_url: "https://www.linkedin.com/in/alexjohnson/",
+    github_url: "https://github.com/alexjohnson",
+    team_type: "tech",
+    is_active: true,
+    order: 1,
+  },
+  {
+    id: 5,
+    name: "Sarah Chen",
+    position: "UI/UX Designer",
+    bio: "I design the look and feel of our website and applications. I ensure our platforms are not only functional but also visually appealing.",
+    image: "https://via.placeholder.com/200/B9FF66/191A23?text=Sarah",
+    email: "sarah.c@eesa.com",
+    linkedin_url: "https://www.linkedin.com/in/sarahchen/",
+    github_url: undefined,
+    team_type: "tech",
+    is_active: true,
+    order: 2,
+  },
+];
+
+const mockAlumniStats: AlumniStats = {
+  total_alumni: 1250,
+  employed_count: 890,
+  higher_studies_count: 310,
+  entrepreneurship_count: 50,
+};
+
 export default function AboutPage() {
   const [eesaTeam, setEesaTeam] = useState<TeamMember[]>([]);
   const [techTeam, setTechTeam] = useState<TeamMember[]>([]);
+  const [alumniStats, setAlumniStats] = useState<AlumniStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
 
   useEffect(() => {
-    fetchTeamData();
+    // In a real application, you'd fetch data here.
+    // For this example, we use mock data to show the layout.
+    const fetchData = () => {
+      setLoading(true);
+      setTimeout(() => {
+        setEesaTeam(mockEesaTeam);
+        setTechTeam(mockTechTeam);
+        setAlumniStats(mockAlumniStats);
+        setLoading(false);
+      }, 1000); // Simulate a network delay
+    };
+    fetchData();
   }, []);
 
-  const fetchTeamData = async () => {
-    try {
-      // Try to fetch from the API first
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/accounts/team-members/`
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        // Handle paginated response format
-        const allMembers = data.results || data || [];
-
-        // Separate team members by type
-        setEesaTeam(
-          allMembers
-            .filter(
-              (member: TeamMember) =>
-                member.team_type === "eesa" && member.is_active
-            )
-            .sort((a: TeamMember, b: TeamMember) => a.order - b.order)
-        );
-        setTechTeam(
-          allMembers
-            .filter(
-              (member: TeamMember) =>
-                member.team_type === "tech" && member.is_active
-            )
-            .sort((a: TeamMember, b: TeamMember) => a.order - b.order)
-        );
-      } else {
-        // If API fails, show empty state
-        setEesaTeam([]);
-        setTechTeam([]);
-      }
-    } catch (error) {
-      console.error("Error fetching team data:", error);
-      // On error, show empty state
-      setEesaTeam([]);
-      setTechTeam([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const TeamMemberCard = ({ member }: { member: TeamMember }) => (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-      <div className="aspect-square relative">
+  const TeamMemberCard = ({ member, index }: { member: TeamMember; index: number }) => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.1 }}
+      viewport={{ once: true }}
+      onClick={() => setSelectedMember(member)}
+      className="group bg-white rounded-2xl border border-gray-200 shadow-lg hover:shadow-xl overflow-hidden transition-all duration-300 transform hover:-translate-y-1 w-80 flex-shrink-0 cursor-pointer"
+    >
+      {/* Profile Image */}
+      <div className="relative h-48 bg-gradient-to-br from-[#B9FF66]/10 to-[#B9FF66]/5 overflow-hidden">
         {member.image ? (
           <Image
             src={member.image}
             alt={member.name}
             fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
+            sizes="320px"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-            <Users className="w-16 h-16 text-white" />
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="w-16 h-16 bg-[#B9FF66] rounded-2xl flex items-center justify-center shadow-lg">
+              <Users className="w-8 h-8 text-[#191A23]" />
+            </div>
           </div>
         )}
       </div>
-      <div className="p-6">
-        <h3 className="text-xl font-semibold text-gray-900 mb-2">
+
+      {/* Content */}
+      <div className="p-6 space-y-3">
+        <h3 className="text-xl font-semibold text-black mb-2 group-hover:text-[#B9FF66] transition-colors">
           {member.name}
         </h3>
-        <p className="text-blue-600 font-medium mb-3">{member.position}</p>
-        <p className="text-gray-600 text-sm mb-4">{member.bio}</p>
-        <div className="flex gap-3">
+        <div className="inline-block bg-lime-400 text-black px-3 py-1 rounded-full text-sm font-medium">
+          {member.position}
+        </div>
+        <p className="text-gray-600 leading-relaxed line-clamp-2 text-sm">
+          {member.bio}
+        </p>
+
+        {/* Social Links */}
+        <div className="flex gap-2 pt-2">
           {member.email && (
             <a
               href={`mailto:${member.email}`}
-              className="text-gray-500 hover:text-blue-600 transition-colors"
+              onClick={(e) => e.stopPropagation()}
+              className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-[#B9FF66] hover:text-black transition-all duration-300"
             >
-              <Mail className="w-5 h-5" />
+              <Mail className="w-4 h-4" />
             </a>
           )}
           {member.linkedin_url && (
@@ -119,9 +234,10 @@ export default function AboutPage() {
               href={member.linkedin_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-gray-500 hover:text-blue-600 transition-colors"
+              onClick={(e) => e.stopPropagation()}
+              className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-[#B9FF66] hover:text-black transition-all duration-300"
             >
-              <Linkedin className="w-5 h-5" />
+              <Linkedin className="w-4 h-4" />
             </a>
           )}
           {member.github_url && (
@@ -129,200 +245,505 @@ export default function AboutPage() {
               href={member.github_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-gray-500 hover:text-gray-900 transition-colors"
+              onClick={(e) => e.stopPropagation()}
+              className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-[#B9FF66] hover:text-black transition-all duration-300"
             >
-              <Github className="w-5 h-5" />
+              <Github className="w-4 h-4" />
             </a>
           )}
         </div>
       </div>
+    </motion.div>
+  );
+
+  const StatCard = ({
+    icon: Icon,
+    label,
+    value,
+    color,
+    bgColor,
+  }: {
+    icon: React.ComponentType<{ className?: string }>;
+    label: string;
+    value: string | number;
+    color: string;
+    bgColor: string;
+  }) => (
+    <div
+      className={`${bgColor} border-2 border-white/50 shadow-lg rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8 text-center transform hover:scale-105 transition-all duration-300 hover:shadow-2xl`}
+    >
+      <div
+        className={`w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 ${color} rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 lg:mb-6 shadow-lg`}
+      >
+        <Icon className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-white" />
+      </div>
+      <div className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-bold text-[#191A23] mb-1 sm:mb-2 lg:mb-3">
+        {value}
+      </div>
+      <div className="text-xs sm:text-sm lg:text-base xl:text-lg text-gray-600 font-semibold">
+        {label}
+      </div>
     </div>
   );
 
-  const features = [
-    {
-      icon: BookOpen,
-      title: "Digital Library",
-      description:
-        "Comprehensive collection of study materials, notes, and academic resources.",
-    },
-    {
-      icon: Calendar,
-      title: "Events & Workshops",
-      description:
-        "Regular technical workshops, seminars, and networking events.",
-    },
-    {
-      icon: Briefcase,
-      title: "Career Support",
-      description:
-        "Job placement assistance, internship opportunities, and career guidance.",
-    },
-    {
-      icon: Code,
-      title: "Project Showcase",
-      description:
-        "Platform to showcase innovative projects and collaborate with peers.",
-    },
-  ];
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 pt-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">Loading about us...</div>
+      <div className="min-h-screen bg-[#F3F3F3] flex items-center justify-center">
+        <div className="bg-white border-2 border-[#B9FF66]/30 shadow-xl rounded-3xl p-12">
+          <div className="flex items-center space-x-6">
+            <div className="w-12 h-12 border-4 border-[#B9FF66] border-t-[#191A23] rounded-full animate-spin"></div>
+            <span className="text-[#191A23] font-bold text-2xl">
+              Loading about us...
+            </span>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-blue-600 to-indigo-800 text-white py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">About EESA</h1>
-            <p className="text-xl md:text-2xl max-w-3xl mx-auto opacity-90">
-              Empowering the next generation of electrical and electronics
-              engineers through collaboration, innovation, and community.
-            </p>
+    <div className="min-h-screen bg-[#F3F3F3]">
+      {/* Mission & Vision - Glass Design */}
+      <section className="relative overflow-hidden min-h-screen flex items-center py-12 sm:py-16 lg:py-24 bg-[#F3F3F3]">
+        <div className="relative z-10 w-full">
+          <div className="backdrop-blur-xl bg-white/50 border border-white/80 shadow-xl rounded-3xl mx-auto max-w-6xl overflow-hidden">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
+              <div className="text-center text-[#191A23] mb-12 sm:mb-16 lg:mb-20">
+                <div className="inline-flex items-center bg-[#B9FF66] text-[#191A23] px-4 sm:px-6 py-2 sm:py-3 rounded-full font-bold text-sm sm:text-base mb-6 sm:mb-8 shadow-lg">
+                  <Building className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                  ABOUT EESA
+                </div>
+
+                <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-medium text-black leading-tight mb-4 sm:mb-6">
+                  Electrical & Electronics <br className="hidden sm:block" />
+                  Engineering Alliance
+                </h1>
+
+                <p className="text-base md:text-lg lg:text-xl text-black max-w-4xl mx-auto opacity-90 leading-relaxed">
+                  Empowering the next generation of electrical and electronics
+                  engineers through collaboration, innovation, and community.
+                </p>
+              </div>
+
+              <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16">
+                <div className="backdrop-blur-xl bg-white/20 border border-white/30 shadow-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-10 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-[#B9FF66]/20 rounded-full transform translate-x-10 -translate-y-10"></div>
+
+                  <div className="flex items-center mb-6 sm:mb-8 relative z-10">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#B9FF66] rounded-xl sm:rounded-2xl flex items-center justify-center mr-3 sm:mr-4 shadow-lg">
+                      <Target className="w-5 h-5 sm:w-6 sm:h-6 text-[#191A23]" />
+                    </div>
+                    <h2 className="text-2xl md:text-3xl font-medium text-black">
+                      Our Mission
+                    </h2>
+                  </div>
+
+                  <p className="text-lg text-gray-700 leading-relaxed mb-6 sm:mb-8 relative z-10">
+                    To create a vibrant community of electrical and electronics
+                    engineering students, faculty, and alumni that fosters
+                    learning, innovation, and professional growth through shared
+                    knowledge, collaborative projects, and meaningful
+                    connections.
+                  </p>
+
+                  <div className="flex flex-wrap gap-2 sm:gap-3 relative z-10">
+                    <span className="inline-flex items-center bg-[#B9FF66]/30 text-[#191A23] px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-bold">
+                      <Lightbulb className="w-3 h-3 mr-1 sm:mr-2" />
+                      Innovation
+                    </span>
+                    <span className="inline-flex items-center bg-[#B9FF66]/30 text-[#191A23] px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-bold">
+                      <Users className="w-3 h-3 mr-1 sm:mr-2" />
+                      Community
+                    </span>
+                    <span className="inline-flex items-center bg-[#B9FF66]/30 text-[#191A23] px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-bold">
+                      <TrendingUp className="w-3 h-3 mr-1 sm:mr-2" />
+                      Growth
+                    </span>
+                  </div>
+                </div>
+
+                <div className="backdrop-blur-xl bg-white/20 border border-white/30 shadow-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-10 relative overflow-hidden">
+                  <div className="absolute bottom-0 left-0 w-24 h-24 bg-[#B9FF66]/20 rounded-full transform -translate-x-12 translate-y-12"></div>
+
+                  <div className="flex items-center mb-6 sm:mb-8 relative z-10">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#B9FF66] rounded-xl sm:rounded-2xl flex items-center justify-center mr-3 sm:mr-4 shadow-lg">
+                      <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-[#191A23]" />
+                    </div>
+                    <h2 className="text-2xl md:text-3xl font-medium text-black">
+                      Our Vision
+                    </h2>
+                  </div>
+
+                  <p className="text-lg text-gray-700 leading-relaxed mb-6 sm:mb-8 relative z-10">
+                    To be the leading platform that connects and empowers
+                    electrical engineering professionals worldwide, driving
+                    innovation and excellence in the field through collaborative
+                    learning and knowledge sharing.
+                  </p>
+
+                  <div className="flex flex-wrap gap-2 sm:gap-3 relative z-10">
+                    <span className="inline-flex items-center bg-[#B9FF66]/30 text-[#191A23] px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-bold">
+                      <Globe className="w-3 h-3 mr-1 sm:mr-2" />
+                      Global Impact
+                    </span>
+                    <span className="inline-flex items-center bg-[#B9FF66]/30 text-[#191A23] px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-bold">
+                      <Award className="w-3 h-3 mr-1 sm:mr-2" />
+                      Excellence
+                    </span>
+                    <span className="inline-flex items-center bg-[#B9FF66]/30 text-[#191A23] px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-bold">
+                      <Zap className="w-3 h-3 mr-1 sm:mr-2" />
+                      Innovation
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center items-center mt-12 sm:mt-16">
+                <Link
+                  href="/projects"
+                  className="w-full sm:w-auto inline-flex items-center justify-center bg-[#B9FF66] text-[#191A23] px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-base shadow-xl hover:bg-[#A8EE55] transition-all duration-300 transform hover:-translate-y-1"
+                >
+                  <Rocket className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3" />
+                  Explore Projects
+                  <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2 sm:ml-3" />
+                </Link>
+
+                <Link
+                  href="/events"
+                  className="w-full sm:w-auto inline-flex items-center justify-center border-2 border-[#B9FF66] text-[#191A23] px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-base hover:bg-[#B9FF66] hover:text-[#191A23] transition-all duration-300 transform hover:-translate-y-1"
+                >
+                  <Calendar className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3" />
+                  Join Events
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Mission & Vision */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 gap-12">
-            <div className="text-center md:text-left">
-              <div className="flex items-center justify-center md:justify-start mb-4">
-                <Target className="w-8 h-8 text-blue-600 mr-3" />
-                <h2 className="text-3xl font-bold text-gray-900">
-                  Our Mission
-                </h2>
-              </div>
-              <p className="text-lg text-gray-600">
-                To create a vibrant community of electrical and electronics
-                engineering students, teachers, and alumni that fosters
-                learning, innovation, and professional growth through shared
-                knowledge, collaborative projects, and meaningful connections.
+      {/* Stats Section */}
+      {alumniStats && (
+        <section className="py-12 sm:py-16 lg:py-20 bg-gradient-to-br from-[#B9FF66]/5 to-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-10 sm:mb-12 lg:mb-16">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-medium text-black mb-3 sm:mb-4">
+                Our Impact
+              </h2>
+              <p className="text-lg text-gray-600 max-w-4xl mx-auto">
+                Numbers that speak to our community&apos;s success and growth
               </p>
             </div>
-            <div className="text-center md:text-left">
-              <div className="flex items-center justify-center md:justify-start mb-4">
-                <Heart className="w-8 h-8 text-red-500 mr-3" />
-                <h2 className="text-3xl font-bold text-gray-900">Our Vision</h2>
-              </div>
-              <p className="text-lg text-gray-600">
-                To be the leading platform that connects and empowers electrical
-                engineering professionals worldwide, driving innovation and
-                excellence in the field through collaborative learning and
-                knowledge sharing.
-              </p>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
+              <StatCard
+                icon={GraduationCap}
+                label="Total Alumni"
+                value={alumniStats.total_alumni.toLocaleString()}
+                color="bg-[#191A23]"
+                bgColor="bg-gradient-to-br from-blue-50 to-blue-100"
+              />
+              <StatCard
+                icon={Briefcase}
+                label="Employed"
+                value={alumniStats.employed_count.toLocaleString()}
+                color="bg-green-500"
+                bgColor="bg-gradient-to-br from-green-50 to-green-100"
+              />
+              <StatCard
+                icon={BookOpen}
+                label="Higher Studies"
+                value={alumniStats.higher_studies_count.toLocaleString()}
+                color="bg-blue-500"
+                bgColor="bg-gradient-to-br from-purple-50 to-purple-100"
+              />
+              <StatCard
+                icon={Rocket}
+                label="Entrepreneurs"
+                value={alumniStats.entrepreneurship_count.toLocaleString()}
+                color="bg-purple-500"
+                bgColor="bg-gradient-to-br from-orange-50 to-orange-100"
+              />
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* Features Section */}
-      <section className="py-16 bg-gray-50">
+      {/* What We Offer */}
+      <section className="py-12 sm:py-16 lg:py-20 bg-gradient-to-br from-[#F3F3F3] to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+          <div className="text-center mb-10 sm:mb-12 lg:mb-16">
+            <h2 className="text-3xl md:text-4xl font-medium text-black mb-4 sm:mb-6">
               What We Offer
             </h2>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+            <p className="text-lg text-gray-600 max-w-4xl mx-auto">
               Comprehensive resources and opportunities designed to enhance your
-              academic and professional journey in electrical engineering.
+              academic and professional journey
             </p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {features.map((feature, index) => (
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 lg:gap-10">
+            {[
+              {
+                icon: BookOpen,
+                title: "Digital Library",
+                description:
+                  "Comprehensive collection of study materials, notes, and academic resources.",
+                color: "from-blue-500 to-blue-600",
+                bgColor: "from-blue-50 to-blue-100",
+              },
+              {
+                icon: Calendar,
+                title: "Events & Workshops",
+                description:
+                  "Regular technical workshops, seminars, and networking events.",
+                color: "from-green-500 to-green-600",
+                bgColor: "from-green-50 to-green-100",
+              },
+              {
+                icon: Briefcase,
+                title: "Career Support",
+                description:
+                  "Job placement assistance, internship opportunities, and career guidance.",
+                color: "from-purple-500 to-purple-600",
+                bgColor: "from-purple-50 to-purple-100",
+              },
+              {
+                icon: Code,
+                title: "Project Showcase",
+                description:
+                  "Platform to showcase innovative projects and collaborate with peers.",
+                color: "from-orange-500 to-orange-600",
+                bgColor: "from-orange-50 to-orange-100",
+              },
+            ].map((feature, index) => (
               <div
                 key={index}
-                className="text-center p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow"
+                className={`group bg-gradient-to-br ${feature.bgColor} border-2 border-white shadow-lg rounded-2xl sm:rounded-3xl p-6 sm:p-8 text-center hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 sm:hover:-translate-y-4`}
               >
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <feature.icon className="w-8 h-8 text-blue-600" />
+                <div
+                  className={`w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br ${feature.color} rounded-2xl sm:rounded-3xl flex items-center justify-center mx-auto mb-6 sm:mb-8 shadow-lg group-hover:scale-110 transition-transform duration-300`}
+                >
+                  <feature.icon className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                <h3 className="text-xl md:text-2xl font-bold text-[#191A23] mb-4 sm:mb-6 group-hover:text-[#B9FF66] transition-colors">
                   {feature.title}
                 </h3>
-                <p className="text-gray-600">{feature.description}</p>
+                <p className="text-sm md:text-base text-gray-600 leading-relaxed">
+                  {feature.description}
+                </p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* EESA Team Section */}
-      {eesaTeam.length > 0 && (
-        <section className="py-16 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                EESA Executive Team
-              </h2>
-              <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-                Meet the dedicated team leading the EESA community and driving
-                our mission forward.
-              </p>
+      {/* Team Sections */}
+      <section className="py-12 sm:py-16 lg:py-20 bg-gradient-to-br from-[#F3F3F3] to-[#B9FF66]/5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16 sm:space-y-20 lg:space-y-24">
+          {/* EESA Team */}
+          {eesaTeam.length > 0 && (
+            <div>
+              <div className="text-center mb-10 sm:mb-12 lg:mb-16">
+                <h2 className="text-3xl md:text-4xl font-medium text-black mb-4 sm:mb-6">
+                  EESA Team
+                </h2>
+                <p className="text-lg text-gray-600 max-w-4xl mx-auto">
+                  Meet the dedicated leaders driving our organization forward
+                </p>
+              </div>
+              
+              <Swiper
+                modules={[Autoplay, Pagination]}
+                slidesPerView={1.2}
+                spaceBetween={20}
+                loop
+                autoplay={{ delay: 3000, disableOnInteraction: false }}
+                pagination={{ clickable: true }}
+                breakpoints={{
+                  640: { slidesPerView: 1.5 },
+                  768: { slidesPerView: 2.2 },
+                  1024: { slidesPerView: 3 },
+                  1280: { slidesPerView: 3.5 },
+                }}
+                className="py-4 pb-12"
+              >
+                {eesaTeam.map((member, index) => (
+                  <SwiperSlide key={member.id} className="flex justify-center">
+                    <TeamMemberCard member={member} index={index} />
+                  </SwiperSlide>
+                ))}
+              </Swiper>
             </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {eesaTeam.map((member) => (
-                <TeamMemberCard key={member.id} member={member} />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
+          )}
 
-      {/* Tech Team Section */}
-      {techTeam.length > 0 && (
-        <section className="py-16 bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                Technical Team
-              </h2>
-              <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-                The talented developers and technical experts behind the EESA
-                platform.
+          {/* Tech Team */}
+          {techTeam.length > 0 && (
+            <div>
+              <div className="text-center mb-10 sm:mb-12 lg:mb-16">
+                <h2 className="text-3xl md:text-4xl font-medium text-black mb-4 sm:mb-6">
+                  Tech Team
+                </h2>
+                <p className="text-lg text-gray-600 max-w-4xl mx-auto">
+                  The technical minds behind our digital infrastructure
+                </p>
+              </div>
+              
+              <Swiper
+                modules={[Autoplay, Pagination]}
+                slidesPerView={1.2}
+                spaceBetween={20}
+                loop
+                autoplay={{ delay: 3500, disableOnInteraction: false }}
+                pagination={{ clickable: true }}
+                breakpoints={{
+                  640: { slidesPerView: 1.5 },
+                  768: { slidesPerView: 2.2 },
+                  1024: { slidesPerView: 3 },
+                  1280: { slidesPerView: 3.5 },
+                }}
+                className="py-4 pb-12"
+              >
+                {techTeam.map((member, index) => (
+                  <SwiperSlide key={member.id} className="flex justify-center">
+                    <TeamMemberCard member={member} index={index} />
+                  </SwiperSlide>
+                ))}
+              </Swiper>
+            </div>
+          )}
+
+          {/* Fallback if no team data */}
+          {eesaTeam.length === 0 && techTeam.length === 0 && (
+            <div className="text-center py-12 sm:py-16 lg:py-20">
+              <div className="w-24 h-24 sm:w-32 sm:h-32 bg-[#B9FF66]/20 rounded-full flex items-center justify-center mx-auto mb-6 sm:mb-8">
+                <Users className="w-12 h-12 sm:w-16 sm:h-16 text-[#191A23]" />
+              </div>
+              <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-[#191A23] mb-3 sm:mb-4">
+                Team Information Coming Soon
+              </h3>
+              <p className="text-sm sm:text-base lg:text-lg xl:text-xl text-gray-600 max-w-2xl mx-auto">
+                We&apos;re working on updating our team information. Check back soon
+                to meet our amazing team members!
               </p>
             </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {techTeam.map((member) => (
-                <TeamMemberCard key={member.id} member={member} />
-              ))}
+          )}
+        </div>
+      </section>
+
+      {/* Team Member Modal */}
+      {selectedMember && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="bg-white rounded-2xl max-w-md w-full relative shadow-2xl overflow-hidden"
+          >
+            <button
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl z-10 bg-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg"
+              onClick={() => setSelectedMember(null)}
+            >
+              ×
+            </button>
+            
+            {/* Profile Image */}
+            <div className="relative h-48 bg-gradient-to-br from-[#B9FF66]/10 to-[#B9FF66]/5">
+              {selectedMember.image ? (
+                <Image
+                  src={selectedMember.image}
+                  alt={selectedMember.name}
+                  fill
+                  className="object-cover"
+                  sizes="400px"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <div className="w-20 h-20 bg-[#B9FF66] rounded-2xl flex items-center justify-center shadow-lg">
+                    <Users className="w-10 h-10 text-[#191A23]" />
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        </section>
+
+            {/* Content */}
+            <div className="p-6 space-y-4">
+              <h3 className="text-2xl font-bold text-black">
+                {selectedMember.name}
+              </h3>
+              <div className="inline-block bg-lime-400 text-black px-3 py-1 rounded-full text-sm font-medium">
+                {selectedMember.position}
+              </div>
+              <p className="text-gray-600 leading-relaxed">
+                {selectedMember.bio}
+              </p>
+
+              {/* Social Links */}
+              <div className="flex gap-3 pt-2">
+                {selectedMember.email && (
+                  <a
+                    href={`mailto:${selectedMember.email}`}
+                    className="flex items-center gap-2 bg-gray-100 hover:bg-[#B9FF66] text-gray-600 hover:text-black px-3 py-2 rounded-lg transition-all duration-300"
+                  >
+                    <Mail className="w-4 h-4" />
+                    <span className="text-sm">Email</span>
+                  </a>
+                )}
+                {selectedMember.linkedin_url && (
+                  <a
+                    href={selectedMember.linkedin_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 bg-gray-100 hover:bg-[#B9FF66] text-gray-600 hover:text-black px-3 py-2 rounded-lg transition-all duration-300"
+                  >
+                    <Linkedin className="w-4 h-4" />
+                    <span className="text-sm">LinkedIn</span>
+                  </a>
+                )}
+                {selectedMember.github_url && (
+                  <a
+                    href={selectedMember.github_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 bg-gray-100 hover:bg-[#B9FF66] text-gray-600 hover:text-black px-3 py-2 rounded-lg transition-all duration-300"
+                  >
+                    <Github className="w-4 h-4" />
+                    <span className="text-sm">GitHub</span>
+                  </a>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        </div>
       )}
 
       {/* Contact Section */}
-      <section className="py-16 bg-blue-600 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold mb-6">Get in Touch</h2>
-          <p className="text-xl mb-8 max-w-2xl mx-auto">
-            Have questions or want to get involved? We&apos;d love to hear from
-            you!
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a
-              href="mailto:contact@eesa.org"
-              className="inline-flex items-center px-6 py-3 bg-white text-blue-600 rounded-lg font-medium hover:bg-gray-100 transition-colors"
-            >
-              <Mail className="w-5 h-5 mr-2" />
-              Contact Us
-            </a>
-            <a
-              href="/events"
-              className="inline-flex items-center px-6 py-3 border border-white text-white rounded-lg font-medium hover:bg-white hover:text-blue-600 transition-colors"
-            >
-              <Calendar className="w-5 h-5 mr-2" />
-              Join Our Events
-            </a>
+      <section className="py-12 sm:py-16 lg:py-20 bg-gradient-to-br from-[#B9FF66]/10 to-[#B9FF66]/5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white border-2 border-[#B9FF66]/30 shadow-xl rounded-2xl sm:rounded-3xl p-8 sm:p-12 lg:p-16 text-center">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-medium text-black mb-6 sm:mb-8">
+              Let&apos;s Connect
+            </h2>
+            <p className="text-base md:text-lg text-gray-600 mb-8 sm:mb-12 max-w-4xl mx-auto">
+              Join our community and be part of the future of electrical
+              engineering
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 lg:gap-8 justify-center items-center">
+              <a
+                href="mailto:contact@eesa.org"
+                className="w-full sm:w-auto inline-flex items-center justify-center bg-[#191A23] text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-medium text-base hover:bg-[#2A2B35] transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl"
+              >
+                <Mail className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3" />
+                Get in Touch
+              </a>
+
+              <Link
+                href="/events"
+                className="w-full sm:w-auto inline-flex items-center justify-center border-2 border-[#B9FF66] text-[#191A23] px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-medium text-base hover:bg-[#B9FF66] hover:text-[#191A23] transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg"
+              >
+                <Calendar className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3" />
+                View Events
+              </Link>
+            </div>
           </div>
         </div>
       </section>
