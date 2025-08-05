@@ -17,7 +17,7 @@ const formatTime = (timeString: string) => {
     // Handle different time formats
     let date;
     if (timeString.includes('T')) {
-      // ISO format: "2024-01-15T14:30:00"
+      // ISO format: "2024-01-15T14:30:00" or "2025-09-24T09:24:26Z"
       date = new Date(timeString);
     } else if (timeString.includes(':')) {
       // Time only format: "14:30:00" or "14:30"
@@ -35,6 +35,42 @@ const formatTime = (timeString: string) => {
     });
   } catch {
     return timeString; // Return original if parsing fails
+  }
+};
+
+// Utility function to format date and time
+const formatDateTime = (dateTimeString: string) => {
+  if (!dateTimeString) return dateTimeString;
+  
+  try {
+    const date = new Date(dateTimeString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    }) + ' at ' + date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  } catch {
+    return dateTimeString; // Return original if parsing fails
+  }
+};
+
+// Utility function to format date only
+const formatDate = (dateString: string) => {
+  if (!dateString) return dateString;
+  
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  } catch {
+    return dateString; // Return original if parsing fails
   }
 };
 
@@ -243,10 +279,10 @@ function EventDetailPage() {
             </span>
             <span className="text-sm text-gray-500 flex items-center">
               <Calendar className="w-4 h-4 mr-1" />
-              {event.start_date}
+              {formatDate(event.start_date)}
               {event.end_date &&
                 event.start_date !== event.end_date &&
-                ` - ${event.end_date}`}
+                ` - ${formatDate(event.end_date)}`}
             </span>
             <span className="text-sm text-gray-500 flex items-center">
               <MapPin className="w-4 h-4 mr-1" />
@@ -343,7 +379,7 @@ function EventDetailPage() {
 
             {event.registration_deadline && (
               <p className="text-gray-700 mb-4">
-                Deadline: {event.registration_deadline}
+                Deadline: {formatDateTime(event.registration_deadline)}
               </p>
             )}
 

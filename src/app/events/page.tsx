@@ -13,7 +13,9 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import RegistrationModal, { RegistrationFormData } from "@/components/ui/RegistrationModal";
+import RegistrationModal, {
+  RegistrationFormData,
+} from "@/components/ui/RegistrationModal";
 
 // Simplified Event interface
 interface Event {
@@ -46,7 +48,8 @@ export default function EventsPage() {
     new Set()
   );
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
-  const [selectedEventForRegistration, setSelectedEventForRegistration] = useState<Event | null>(null);
+  const [selectedEventForRegistration, setSelectedEventForRegistration] =
+    useState<Event | null>(null);
 
   // Fetch events and user's registrations from Django API
   useEffect(() => {
@@ -138,7 +141,7 @@ export default function EventsPage() {
       }
 
       // Find the event and open registration modal
-      const event = events.find(e => e.id === eventId);
+      const event = events.find((e) => e.id === eventId);
       if (event) {
         setSelectedEventForRegistration(event);
         setShowRegistrationModal(true);
@@ -470,6 +473,7 @@ export default function EventsPage() {
                   : "Join us for exciting upcoming events and workshops"}
               </p>
             </div>
+            {/* THIS IS THE UPDATED BLOCK */}
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#191A23]/50 w-5 h-5" />
@@ -492,7 +496,7 @@ export default function EventsPage() {
               <div className="flex bg-white/80 border border-[#191A23]/20 rounded-lg overflow-hidden">
                 <button
                   onClick={() => setShowPastEvents(false)}
-                  className={`flex-1 px-6 py-3 font-medium transition-all duration-300 ${
+                  className={`flex-1 sm:flex-none px-6 py-3 font-medium transition-all duration-300 ${
                     !showPastEvents
                       ? "bg-[#191A23] text-[#B9FF66]"
                       : "text-[#191A23] hover:bg-[#191A23]/10"
@@ -502,7 +506,7 @@ export default function EventsPage() {
                 </button>
                 <button
                   onClick={() => setShowPastEvents(true)}
-                  className={`flex-1 px-6 py-3 font-medium transition-all duration-300 ${
+                  className={`flex-1 sm:flex-none px-6 py-3 font-medium transition-all duration-300 ${
                     showPastEvents
                       ? "bg-[#191A23] text-[#B9FF66]"
                       : "text-[#191A23] hover:bg-[#191A23]/10"
@@ -512,6 +516,7 @@ export default function EventsPage() {
                 </button>
               </div>
             </div>
+            {/* END OF UPDATED BLOCK */}
             {/* Events Grid */}
             {filteredEvents.length > 0 ? (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -666,7 +671,11 @@ export default function EventsPage() {
         }}
         onSubmit={handleRegistrationSubmit}
         eventTitle={selectedEventForRegistration?.title || ""}
-        isRegistering={selectedEventForRegistration ? registeringEvents.has(selectedEventForRegistration.id) : false}
+        isRegistering={
+          selectedEventForRegistration
+            ? registeringEvents.has(selectedEventForRegistration.id)
+            : false
+        }
       />
     </>
   );
