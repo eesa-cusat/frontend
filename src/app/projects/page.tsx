@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import Image from "next/image"; // Use Next.js Image for performance
 import {
   Calendar,
   Users,
@@ -31,7 +32,7 @@ interface Project {
   github_url?: string;
   demo_url?: string;
   project_report?: string;
-  featured_image?: string;
+  thumbnail_image?: string | null; // Direct image URL from API
   featured_video?: string;
   is_featured?: boolean;
   created_by?: {
@@ -50,54 +51,25 @@ interface Project {
     id: number;
     image: string;
     caption?: string;
+    is_featured?: boolean;
+    created_at: string;
   }>;
   videos?: Array<{
     id: number;
     video: string;
     caption?: string;
   }>;
-  // For compatibility with frontend display
+  // For frontend display
   batch?: string;
   team_count?: number;
   created_by_name?: string;
   technologies?: string[];
   status?: string;
-  thumbnail_image?: string;
 }
 
-// Sample projects data
-const sampleProjects: Project[] = [
-  {
-    id: 1,
-    title: "Mobile App",
-    description: "Flutter application",
-    category: "mobile_app",
-    student_batch: "2024", // Replaced "iot student batch" with a year
-    created_at: "2025-08-05T17:55:08Z", // Matches the date in the screenshot
-    team_count: 2,
-  },
-  {
-    id: 2,
-    title: "Student Portal",
-    description: "Web-based management",
-    category: "mobile_app",
-    student_batch: "2024", // Replaced "iot student batch" with a year
-    created_at: "2025-08-03T00:00:00Z",
-    team_count: 2,
-  },
-  {
-    id: 3,
-    title: "Smart Home System",
-    description: "IoT-based automation",
-    category: "iot",
-    student_batch: "2024", // Replaced "iot student batch" with a year
-    created_at: "2025-08-03T00:00:00Z",
-    team_count: 2,
-  },
-];
-
 const ProjectsPage: React.FC = () => {
-  const [projects, setProjects] = useState<Project[]>(sampleProjects);
+  // Initialize with an empty array; no more sample data
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -135,6 +107,7 @@ const ProjectsPage: React.FC = () => {
           params.append("category", categoryFilter);
         }
         const queryString = params.toString();
+        // Use the API endpoint you provided
         const url = `${API_BASE_URL}/projects/${
           queryString ? `?${queryString}` : ""
         }`;
@@ -156,10 +129,11 @@ const ProjectsPage: React.FC = () => {
         const transformedProjects = Array.isArray(projectsData)
           ? projectsData.map((project: Project) => ({
               ...project,
-              student_batch: project.student_batch || "2024", // Use a default year if not available
+              student_batch: project.student_batch || "2024",
               team_count: project.team_members?.length || 1,
               created_by_name: project.created_by_name,
-              thumbnail_image: project.featured_image,
+              // Use thumbnail_image directly from the API response
+              thumbnail_image: project.thumbnail_image || null,
               status: project.status || "completed",
               technologies: project.technologies || [],
             }))
@@ -169,7 +143,6 @@ const ProjectsPage: React.FC = () => {
       } catch (err) {
         console.error("Error fetching projects:", err);
         setError("Failed to load projects. Please try again later.");
-        setProjects(sampleProjects);
       } finally {
         setLoading(false);
       }
@@ -225,9 +198,6 @@ const ProjectsPage: React.FC = () => {
     fetchProjects(searchQuery, selectedCategory);
   };
 
-  // The rest of the component's JSX remains the same as your previous code.
-  // I have included the full JSX below for completeness.
-
   if (loading && projects.length === 0) {
     return (
       <div className="min-h-screen bg-[#F3F3F3] flex items-center justify-center">
@@ -261,14 +231,12 @@ const ProjectsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#F3F3F3]">
-      {/* Enhanced Projects List Section */}
       <section className="py-20 bg-gradient-to-b from-[#F3F3F3] to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Section Header */}
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-[#191A23] mb-6">
               All Student{" "}
-              <span className="text-[#191A23]  px-2 md:px-4 py-1 md:py-2 rounded-xl">
+              <span className="text-[#191A23] px-2 md:px-4 py-1 md:py-2 rounded-xl">
                 Projects
               </span>
             </h2>
@@ -278,10 +246,8 @@ const ProjectsPage: React.FC = () => {
             </p>
           </div>
 
-          {/* Enhanced Search and Filter Controls */}
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 mb-12">
             <div className="flex flex-col gap-6">
-              {/* Search Input */}
               <div className="relative w-full">
                 <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
                   <Search className="w-5 h-5" />
@@ -303,7 +269,6 @@ const ProjectsPage: React.FC = () => {
                 )}
               </div>
 
-              {/* Category Filter Dropdown */}
               <div className="relative w-full max-w-md mx-auto lg:mx-0">
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -324,7 +289,6 @@ const ProjectsPage: React.FC = () => {
                   />
                 </button>
 
-                {/* Enhanced Dropdown Menu */}
                 {isDropdownOpen && (
                   <div className="absolute top-full left-0 mt-2 w-full bg-white border border-gray-100 rounded-xl shadow-xl z-20 overflow-hidden">
                     <div className="py-2">
@@ -354,7 +318,6 @@ const ProjectsPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Active Filters Display */}
             {(searchQuery || selectedCategory !== "all") && (
               <div className="mt-6 pt-6 border-t border-gray-100">
                 <div className="flex flex-wrap items-center gap-3">
@@ -393,7 +356,6 @@ const ProjectsPage: React.FC = () => {
             )}
           </div>
 
-          {/* Results Summary */}
           {(searchQuery || selectedCategory !== "all") && (
             <div className="mb-8 text-center">
               <p className="text-gray-600 text-lg">
@@ -428,7 +390,6 @@ const ProjectsPage: React.FC = () => {
             </div>
           )}
 
-          {/* Enhanced Projects Grid */}
           {projects.length > 0 ? (
             <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
               {projects.map((project) => (
@@ -437,43 +398,43 @@ const ProjectsPage: React.FC = () => {
                   className="group relative bg-white rounded-3xl border border-gray-100 shadow-lg hover:shadow-2xl overflow-hidden transition-all duration-500 transform hover:-translate-y-2 cursor-pointer"
                   onClick={() => handleProjectClick(project.id)}
                 >
-                  {/* Background Gradient */}
                   <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
-                  {/* Project Visual Section */}
-                  <div className="relative h-64 bg-gradient-to-br from-[#191A23] to-[#2A2B35] overflow-hidden">
-                    {/* Background Pattern */}
-                    <div className="absolute inset-0 opacity-10">
-                      <div
-                        className="h-full w-full"
-                        style={{
-                          backgroundImage: `
-                          radial-gradient(circle at 25% 25%, rgba(185, 255, 102, 0.3) 0%, transparent 50%),
-                          radial-gradient(circle at 75% 75%, rgba(185, 255, 102, 0.2) 0%, transparent 50%)
-                        `,
-                        }}
-                      ></div>
-                    </div>
-
-                    {/* Floating Elements */}
-                    <div className="absolute top-4 left-4 w-3 h-3 bg-[#B9FF66] rounded-full animate-pulse"></div>
-                    <div className="absolute top-8 right-8 w-2 h-2 bg-white/50 rounded-full animate-ping"></div>
-                    <div className="absolute bottom-6 left-6 w-4 h-4 border border-[#B9FF66]/50 rounded-full animate-bounce"></div>
-
-                    {/* Project Icon */}
-                    <div className="flex items-center justify-center h-full relative z-10">
-                      <div className="text-center transform group-hover:scale-110 transition-transform duration-300">
-                        <div className="w-20 h-20 bg-[#B9FF66] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg transform rotate-3 group-hover:rotate-0 transition-transform duration-300">
-                          <Code2 className="w-10 h-10 text-[#191A23]" />
+                  <div className="relative h-64 bg-gray-200 overflow-hidden">
+                    {project.thumbnail_image ? (
+                      <Image
+                        src={`http://localhost:8000${project.thumbnail_image}`}
+                        alt={`${project.title} cover image`}
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        style={{ objectFit: 'cover' }}
+                        className="transition-transform duration-500 group-hover:scale-110"
+                        priority={false}
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full relative z-10 bg-gradient-to-br from-[#191A23] to-[#2A2B35]">
+                        <div className="absolute inset-0 opacity-10">
+                          <div
+                            className="h-full w-full"
+                            style={{
+                              backgroundImage: `
+                                  radial-gradient(circle at 25% 25%, rgba(185, 255, 102, 0.3) 0%, transparent 50%),
+                                  radial-gradient(circle at 75% 75%, rgba(185, 255, 102, 0.2) 0%, transparent 50%)
+                                `,
+                            }}
+                          ></div>
                         </div>
-                        <div className="bg-white/10 backdrop-blur-sm text-[#B9FF66] px-4 py-2 rounded-full text-sm font-medium">
-                          {project.category}
+                        <div className="text-center transform group-hover:scale-110 transition-transform duration-300">
+                          <div className="w-20 h-20 bg-[#B9FF66] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg transform rotate-3 group-hover:rotate-0 transition-transform duration-300">
+                            <Code2 className="w-10 h-10 text-[#191A23]" />
+                          </div>
+                          <div className="bg-white/10 backdrop-blur-sm text-[#B9FF66] px-4 py-2 rounded-full text-sm font-medium">
+                            {project.category}
+                          </div>
                         </div>
                       </div>
-                    </div>
-
-                    {/* Badges */}
-                    <div className="absolute top-4 right-4 flex flex-col gap-2">
+                    )}
+                    <div className="absolute top-4 right-4 flex flex-col gap-2 z-20">
                       {project.is_featured && (
                         <div className="bg-[#B9FF66] text-[#191A23] px-3 py-1 text-xs font-bold rounded-full flex items-center shadow-lg">
                           <Star className="w-3 h-3 mr-1" />
@@ -496,19 +457,15 @@ const ProjectsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Project Content */}
                   <div className="relative p-8 space-y-4">
-                    {/* Title */}
                     <h3 className="text-xl md:text-2xl font-bold text-[#191A23] mb-3 line-clamp-2 group-hover:text-[#2A2B35] transition-colors">
                       {project.title}
                     </h3>
 
-                    {/* Description */}
                     <p className="text-gray-600 text-sm md:text-base leading-relaxed line-clamp-3 mb-4">
                       {project.description}
                     </p>
 
-                    {/* Project Meta */}
                     <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
                       <div className="flex items-center">
                         <Calendar className="w-4 h-4 mr-2" />
@@ -522,7 +479,6 @@ const ProjectsPage: React.FC = () => {
                       )}
                     </div>
 
-                    {/* Batch Year */}
                     {project.student_batch && (
                       <div className="flex items-center bg-gray-50 px-4 py-3 rounded-xl mb-4">
                         <div className="w-8 h-8 bg-[#191A23] rounded-full flex items-center justify-center mr-3">
@@ -537,7 +493,6 @@ const ProjectsPage: React.FC = () => {
                       </div>
                     )}
 
-                    {/* Technologies */}
                     {project.technologies &&
                       project.technologies.length > 0 && (
                         <div className="flex flex-wrap gap-2 mb-6">
@@ -559,7 +514,6 @@ const ProjectsPage: React.FC = () => {
                         </div>
                       )}
 
-                    {/* Action Buttons */}
                     <div className="flex gap-3 pt-4 border-t border-gray-100">
                       {project.demo_url && (
                         <button
@@ -581,7 +535,6 @@ const ProjectsPage: React.FC = () => {
                       )}
                     </div>
 
-                    {/* Hover Overlay */}
                     <div className="absolute inset-0 bg-gradient-to-t from-[#B9FF66]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-b-3xl"></div>
                   </div>
                 </div>
@@ -612,7 +565,6 @@ const ProjectsPage: React.FC = () => {
                   : "No projects available at the moment"}
               </h3>
 
-              {/* Clear Filters Buttons */}
               {(searchQuery || selectedCategory !== "all") && (
                 <div className="flex gap-2 justify-center">
                   {searchQuery && (
@@ -638,7 +590,6 @@ const ProjectsPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Click outside to close dropdown */}
       {isDropdownOpen && (
         <div
           className="fixed inset-0 z-10"

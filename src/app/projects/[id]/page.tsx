@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   ArrowLeft,
   ExternalLink,
@@ -23,6 +24,18 @@ import {
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
 
+// Helper function to extract YouTube video ID from URL
+const getYouTubeVideoId = (url: string): string | null => {
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = url.match(regExp);
+  return match && match[2].length === 11 ? match[2] : null;
+};
+
+// Helper function to check if URL is a YouTube URL
+const isYouTubeUrl = (url: string): boolean => {
+  return url.includes('youtube.com') || url.includes('youtu.be');
+};
+
 interface Project {
   id: number;
   title: string;
@@ -35,8 +48,8 @@ interface Project {
   github_url?: string;
   demo_url?: string;
   project_report?: string;
-  featured_image?: string;
-  featured_video?: string;
+  thumbnail_image?: string | null; // Main project image
+  featured_video?: string | null;
   is_featured?: boolean;
   created_by?: {
     id: number;
@@ -50,15 +63,24 @@ interface Project {
     name: string;
     role?: string;
   }>;
-  images?: Array<{
+  gallery_images?: Array<{
     id: number;
+    project: number;
     image: string;
     caption?: string;
+    is_featured?: boolean;
+    created_at: string;
   }>;
   videos?: Array<{
     id: number;
-    video: string;
+    project: number;
+    video?: string; // Direct video file URL
+    video_url?: string; // YouTube or external video URL
+    title?: string;
+    description?: string;
     caption?: string;
+    is_featured?: boolean;
+    created_at: string;
   }>;
   created_by_name?: string;
   team_count?: number;
@@ -400,6 +422,133 @@ const ProjectDetailPage: React.FC = () => {
         </div>
       </section>
 
+      {/* Project Images Gallery */}
+      {project.gallery_images && project.gallery_images.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-8">
+            <h2 className="text-2xl font-bold text-[#191A23] mb-6 text-center">Project Gallery</h2>
+            
+            <div>
+              <h3 className="text-lg font-semibold text-[#191A23] mb-4">
+                Gallery Images ({project.gallery_images.length})
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {project.gallery_images.map((galleryImage, index) => (
+                  <div key={galleryImage.id} className="relative group">
+                    <div className="relative h-48 bg-gray-200 rounded-xl overflow-hidden">
+                      <Image
+                        src={`http://localhost:8000${galleryImage.image}`}
+                        alt={galleryImage.caption || `Gallery image ${index + 1}`}
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        style={{ objectFit: 'cover' }}
+                        className="transition-transform duration-500 group-hover:scale-110 cursor-pointer"
+                        onClick={() => window.open(`http://localhost:8000${galleryImage.image}`, '_blank')}
+                      />
+                      {galleryImage.is_featured && (
+                        <div className="absolute top-2 right-2">
+                          <div className="bg-[#B9FF66] text-[#191A23] px-2 py-1 text-xs font-bold rounded-full flex items-center">
+                            <Star className="w-3 h-3 mr-1" />
+                            FEATURED
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    {galleryImage.caption && (
+                      <p className="mt-2 text-sm text-gray-600 text-center">{galleryImage.caption}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Project Videos */}
+      {(project.featured_video || (project.videos && project.videos.length > 0)) && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-8">
+            <h2 className="text-2xl font-bold text-[#191A23] mb-6 text-center">Project Videos</h2>
+            
+            {project.featured_video && (
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold text-[#191A23] mb-4">Featured Video</h3>
+                <div className="relative h-64 md:h-96 bg-gray-200 rounded-xl overflow-hidden">
+                  <video
+                    src={`http://localhost:8000${project.featured_video}`}
+                    controls
+                    className="w-full h-full object-cover"
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+              </div>
+            )}
+            
+            {project.videos && project.videos.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold text-[#191A23] mb-4">
+                  Project Videos ({project.videos.length})
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {project.videos.map((video) => {
+                    const videoUrl = video.video_url || video.video;
+                    const isYouTube = videoUrl && isYouTubeUrl(videoUrl);
+                    const youTubeId = isYouTube ? getYouTubeVideoId(videoUrl) : null;
+                    
+                    return (
+                      <div key={video.id} className="relative">
+                        <div className="relative h-48 bg-gray-200 rounded-xl overflow-hidden">
+                          {isYouTube && youTubeId ? (
+                            // YouTube Video Embed
+                            <iframe
+                              src={`https://www.youtube.com/embed/${youTubeId}`}
+                              title={video.title || `Project video ${video.id}`}
+                              className="w-full h-full"
+                              frameBorder="0"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                            />
+                          ) : videoUrl ? (
+                            // Direct Video File
+                            <video
+                              src={videoUrl.startsWith('http') ? videoUrl : `http://localhost:8000${videoUrl}`}
+                              controls
+                              className="w-full h-full object-cover"
+                            >
+                              Your browser does not support the video tag.
+                            </video>
+                          ) : (
+                            // Fallback for missing video
+                            <div className="flex items-center justify-center h-full">
+                              <p className="text-gray-500">Video not available</p>
+                            </div>
+                          )}
+                        </div>
+                        {(video.title || video.description || video.caption) && (
+                          <div className="mt-2 text-center">
+                            {video.title && (
+                              <h4 className="font-semibold text-[#191A23] text-sm">{video.title}</h4>
+                            )}
+                            {video.description && (
+                              <p className="text-xs text-gray-600 mt-1">{video.description}</p>
+                            )}
+                            {video.caption && (
+                              <p className="text-xs text-gray-500 mt-1">{video.caption}</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Project Details */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid lg:grid-cols-3 gap-8">
@@ -579,21 +728,6 @@ const ProjectDetailPage: React.FC = () => {
                   >
                     <Play className="w-4 h-4 mr-2" />
                     Project Video
-                  </button>
-                )}
-                {project.images && project.images.length > 0 && (
-                  <button
-                    onClick={() => {
-                      // Create a simple gallery view or navigate to images
-                      const firstImage = project.images![0];
-                      if (firstImage && firstImage.image) {
-                        window.open(firstImage.image, "_blank");
-                      }
-                    }}
-                    className="w-full h-12 bg-purple-100 hover:bg-purple-200 border border-purple-200 text-purple-800 px-4 py-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center"
-                  >
-                    <Eye className="w-4 h-4 mr-2" />
-                    Project Images ({project.images.length})
                   </button>
                 )}
               </div>

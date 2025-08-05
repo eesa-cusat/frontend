@@ -12,13 +12,13 @@ const Navbar = () => {
 
   const navigation = [
     { name: "Home", href: "/" },
-    { name: "About", href: "/about" },
     { name: "Events", href: "/events" },
+    { name: "Library", href: "/academics" },
     { name: "Projects", href: "/projects" },
-    { name: "Academics", href: "/academics" },
-    { name: "Gallery", href: "/gallery" },
-    { name: "Alumni", href: "/alumni" },
-    { name: "Career", href: "/career" },
+    { name: "About", href: "/about" },
+    // { name: "Gallery", href: "/gallery" },
+    // { name: "Alumni", href: "/alumni" },
+    // { name: "Career", href: "/career" },
   ];
 
   const isActive = (href: string) => {
