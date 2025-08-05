@@ -46,6 +46,9 @@ export default function EventsPage() {
   const [registeringEvents, setRegisteringEvents] = useState<Set<number>>(
     new Set()
   );
+  const [registeredEvents, setRegisteredEvents] = useState<Set<number>>(
+    new Set()
+  );
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [selectedEventForRegistration, setSelectedEventForRegistration] =
     useState<Event | null>(null);
@@ -123,8 +126,8 @@ export default function EventsPage() {
 
   const handleRegister = async (eventId: number) => {
     try {
-      // Prevent multiple registration attempts
-      if (registeringEvents.has(eventId)) {
+      // Prevent multiple registration attempts or registering already registered events
+      if (registeringEvents.has(eventId) || registeredEvents.has(eventId)) {
         return;
       }
 
@@ -173,6 +176,8 @@ export default function EventsPage() {
       if (response.ok) {
         setShowRegistrationModal(false);
         setSelectedEventForRegistration(null);
+        // Mark event as registered
+        setRegisteredEvents((prev) => new Set([...prev, eventId]));
         showSuccess("🎉 Registration successful! We're excited to have you join us for this event.");
       } else {
         const errorData = await response.json().catch(() => ({}));
@@ -182,6 +187,8 @@ export default function EventsPage() {
         ) {
           setShowRegistrationModal(false);
           setSelectedEventForRegistration(null);
+          // Mark event as registered since they're already registered
+          setRegisteredEvents((prev) => new Set([...prev, eventId]));
           showError("You are already registered for this event.");
         } else {
           throw new Error(
@@ -367,16 +374,25 @@ export default function EventsPage() {
                         <Button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleRegister(event.id);
+                            if (!registeredEvents.has(event.id)) {
+                              handleRegister(event.id);
+                            }
                           }}
-                          disabled={registeringEvents.has(event.id)}
+                          disabled={registeringEvents.has(event.id) || registeredEvents.has(event.id)}
                           className={`w-full transition-all duration-300 ${
-                            registeringEvents.has(event.id)
+                            registeredEvents.has(event.id)
+                              ? "bg-green-500 text-white cursor-default"
+                              : registeringEvents.has(event.id)
                               ? "bg-gray-400 text-white cursor-not-allowed"
                               : "bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66]"
                           }`}
                         >
-                          {registeringEvents.has(event.id) ? (
+                          {registeredEvents.has(event.id) ? (
+                            <>
+                              <UserPlus className="w-4 h-4 mr-2" />
+                              Registered ✓
+                            </>
+                          ) : registeringEvents.has(event.id) ? (
                             <>
                               <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                               Registering...

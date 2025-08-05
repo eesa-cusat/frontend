@@ -830,9 +830,8 @@ const AcademicsPage = () => {
                     <button
                       className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium bg-blue-500 hover:bg-blue-600 text-white transition-colors w-full sm:w-auto"
                       onClick={async () => {
-                        // Update download count by making a request to the download endpoint
+                        // Download the file using fetch to handle proper download
                         try {
-                          // Use the download endpoint which automatically increments count and returns the file
                           const downloadUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/academics/resources/${resource.id}/download/`;
                           
                           // Update the local state to increment download count immediately for better UX
@@ -844,12 +843,48 @@ const AcademicsPage = () => {
                             )
                           );
                           
-                          // Open the download URL which will automatically increment the server count
-                          window.open(downloadUrl, "_blank");
+                          // Fetch the file and trigger download
+                          const response = await fetch(downloadUrl, {
+                            method: 'GET',
+                            headers: {
+                              'Accept': 'application/octet-stream, */*',
+                            },
+                          });
+                          
+                          if (response.ok) {
+                            // Get the filename from the Content-Disposition header or use the resource title
+                            const contentDisposition = response.headers.get('Content-Disposition');
+                            let filename = resource.title || 'download';
+                            
+                            if (contentDisposition) {
+                              const filenameMat = contentDisposition.match(/filename="?([^"]*)"?/);
+                              if (filenameMat && filenameMat[1]) {
+                                filename = filenameMat[1];
+                              }
+                            }
+                            
+                            const blob = await response.blob();
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = filename;
+                            a.style.display = 'none';
+                            document.body.appendChild(a);
+                            a.click();
+                            window.URL.revokeObjectURL(url);
+                            document.body.removeChild(a);
+                          } else {
+                            throw new Error(`Download failed with status: ${response.status}`);
+                          }
                         } catch (error) {
-                          console.error('Failed to process download:', error);
-                          // Fallback to the original file URL if the download endpoint fails
-                          window.open(resource.file, "_blank");
+                          console.error('Failed to download file:', error);
+                          // Fallback: try to open the direct file URL
+                          if (resource.file) {
+                            const fileUrl = resource.file.startsWith('http') 
+                              ? resource.file 
+                              : `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://localhost:8000'}${resource.file}`;
+                            window.open(fileUrl, "_blank");
+                          }
                         }
                       }}
                     >
