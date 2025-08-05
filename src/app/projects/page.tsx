@@ -235,7 +235,7 @@ const ProjectsPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-[#191A23] mb-6">
-              All Student{" "}
+              Student{" "}
               <span className="text-[#191A23] px-2 md:px-4 py-1 md:py-2 rounded-xl">
                 Projects
               </span>
@@ -407,7 +407,7 @@ const ProjectsPage: React.FC = () => {
                         alt={`${project.title} cover image`}
                         fill
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        style={{ objectFit: 'cover' }}
+                        style={{ objectFit: "cover" }}
                         className="transition-transform duration-500 group-hover:scale-110"
                         priority={false}
                       />

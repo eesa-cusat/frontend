@@ -8,7 +8,6 @@ import {
   Users,
   Clock,
   UserPlus,
-  Zap,
   Search,
   X,
 } from "lucide-react";
@@ -28,6 +27,7 @@ interface Event {
   event_type?: string;
   registration_required: boolean;
   banner_image?: string;
+  event_flyer?: string;
   is_featured?: boolean;
   max_participants?: number;
   registration_count?: number;
@@ -94,9 +94,6 @@ export default function EventsPage() {
       return matchesSearch && isUpcoming;
     }
   });
-
-  // Get featured event for hero section
-  const featuredEvent = events.find((event) => event.is_featured) || events[0];
 
   const handleRegister = async (eventId: number) => {
     try {
@@ -198,212 +195,6 @@ export default function EventsPage() {
   return (
     <>
       <div className="min-h-screen bg-[#F3F3F3]">
-        {/* Hero Section with Featured Event */}
-        {featuredEvent && !showPastEvents && (
-          <section className="relative overflow-hidden min-h-[70vh]">
-            <div className="absolute inset-0">
-              <div className="absolute inset-0 bg-[#F3F3F3]"></div>
-              <div className="absolute inset-0 backdrop-blur-sm bg-white/30"></div>
-            </div>
-            <div className="relative z-10">
-              <div className="backdrop-blur-xl bg-[#F3F3F3]/60 border border-white/40 shadow-lg mx-4 my-8 rounded-2xl overflow-hidden">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-12 lg:py-16">
-                  {/* Mobile Layout */}
-                  <div className="block md:hidden">
-                    <div className="flex justify-center mb-6">
-                      <div className="bg-white/80 border border-white/60 relative overflow-hidden w-48 aspect-[3/4] rounded-lg">
-                        {featuredEvent.banner_image ? (
-                          <Image
-                            src={featuredEvent.banner_image}
-                            alt={featuredEvent.title}
-                            fill
-                            className="object-cover"
-                            sizes="192px"
-                          />
-                        ) : (
-                          <div className="p-4 flex items-center justify-center h-full">
-                            <div className="text-center">
-                              <div className="w-16 h-16 bg-[#191A23] flex items-center justify-center mx-auto mb-4 rounded-lg">
-                                <Zap className="w-8 h-8 text-[#B9FF66]" />
-                              </div>
-                              <h3 className="text-lg font-bold text-[#191A23] mb-2">
-                                EVENT
-                              </h3>
-                              <p className="text-[#191A23]/70 text-sm bg-white/60 px-3 py-1 rounded">
-                                {featuredEvent.event_type || "Conference"}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                        <div className="absolute top-2 left-2 bg-[#191A23]/90 text-[#B9FF66] px-2 py-1 text-xs font-medium rounded">
-                          {featuredEvent.event_type || "Event"}
-                        </div>
-                        {featuredEvent.is_featured && (
-                          <div className="absolute top-2 right-2 bg-[#B9FF66] text-[#191A23] px-2 py-1 text-xs font-bold rounded">
-                            FEATURED
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <div className="inline-block bg-[#191A23] text-[#B9FF66] px-4 py-2 text-sm font-medium mb-4 rounded-lg">
-                        {new Date(featuredEvent.start_date).toLocaleDateString(
-                          "en-US",
-                          { month: "long", day: "numeric" }
-                        )}{" "}
-                        •{" "}
-                        {new Date(featuredEvent.start_date).toLocaleTimeString(
-                          "en-US",
-                          { hour: "numeric", minute: "2-digit", hour12: true }
-                        )}
-                      </div>
-                      <h1 className="text-2xl font-bold text-[#191A23] leading-tight mb-4">
-                        {featuredEvent.title}
-                      </h1>
-                      <p className="text-[#191A23]/80 leading-relaxed mb-4">
-                        {featuredEvent.description}
-                      </p>
-                      {featuredEvent.location && (
-                        <div className="flex items-center justify-center text-[#191A23]/80 bg-white/40 p-3 border border-white/40 mb-6 rounded-lg">
-                          <MapPin className="w-5 h-5 mr-3 text-[#191A23] flex-shrink-0" />
-                          <span>{featuredEvent.location}</span>
-                        </div>
-                      )}
-                      {featuredEvent.registration_required && (
-                        <Button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRegister(featuredEvent.id);
-                          }}
-                          disabled={registeringEvents.has(featuredEvent.id)}
-                          className={`w-full px-6 py-3 text-base font-medium transition-all duration-300 rounded-lg ${
-                            registeringEvents.has(featuredEvent.id)
-                              ? "bg-gray-400 text-white cursor-not-allowed"
-                              : "bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66]"
-                          }`}
-                        >
-                          {registeringEvents.has(featuredEvent.id) ? (
-                            <>
-                              <div className="w-5 h-5 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                              Registering...
-                            </>
-                          ) : (
-                            <>
-                              <UserPlus className="w-5 h-5 mr-2" />
-                              Register Now
-                            </>
-                          )}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  {/* Desktop Layout */}
-                  <div className="hidden md:flex gap-8 lg:gap-12 items-start">
-                    <div className="flex-shrink-0">
-                      <div className="bg-white/80 border border-white/60 relative overflow-hidden w-48 lg:w-64 aspect-[3/4] rounded-lg mb-4">
-                        {featuredEvent.banner_image ? (
-                          <Image
-                            src={featuredEvent.banner_image}
-                            alt={featuredEvent.title}
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 1024px) 192px, 256px"
-                          />
-                        ) : (
-                          <div className="p-4 lg:p-6 flex items-center justify-center h-full">
-                            <div className="text-center">
-                              <div className="w-16 h-16 lg:w-20 lg:h-20 bg-[#191A23] flex items-center justify-center mx-auto mb-4 lg:mb-6 rounded-lg">
-                                <Zap className="w-8 h-8 lg:w-10 lg:h-10 text-[#B9FF66]" />
-                              </div>
-                              <h3 className="text-lg lg:text-xl font-bold text-[#191A23] mb-2">
-                                EVENT
-                              </h3>
-                              <p className="text-[#191A23]/70 text-sm bg-white/60 px-3 py-1 rounded">
-                                {featuredEvent.event_type || "Conference"}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                        <div className="absolute top-2 left-2 bg-[#191A23]/90 text-[#B9FF66] px-2 py-1 text-xs font-medium rounded">
-                          {featuredEvent.event_type || "Event"}
-                        </div>
-                        {featuredEvent.is_featured && (
-                          <div className="absolute top-2 right-2 bg-[#B9FF66] text-[#191A23] px-2 py-1 text-xs font-bold rounded">
-                            FEATURED
-                          </div>
-                        )}
-                      </div>
-                      {featuredEvent.registration_required && (
-                        <Button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRegister(featuredEvent.id);
-                          }}
-                          disabled={registeringEvents.has(featuredEvent.id)}
-                          className={`w-full px-6 py-4 text-base font-medium transition-all duration-300 rounded-lg ${
-                            registeringEvents.has(featuredEvent.id)
-                              ? "bg-gray-400 text-white cursor-not-allowed"
-                              : "bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66]"
-                          }`}
-                        >
-                          {registeringEvents.has(featuredEvent.id) ? (
-                            <>
-                              <div className="w-5 h-5 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                              Registering...
-                            </>
-                          ) : (
-                            <>
-                              <UserPlus className="w-5 h-5 mr-2" />
-                              Register Now
-                            </>
-                          )}
-                        </Button>
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <div className="inline-block bg-[#191A23] text-[#B9FF66] px-4 py-2 text-sm font-medium mb-6 rounded-lg">
-                        {new Date(featuredEvent.start_date).toLocaleDateString(
-                          "en-US",
-                          { month: "long", day: "numeric", year: "numeric" }
-                        )}{" "}
-                        •{" "}
-                        {new Date(featuredEvent.start_date).toLocaleTimeString(
-                          "en-US",
-                          { hour: "numeric", minute: "2-digit", hour12: true }
-                        )}
-                      </div>
-                      <h1 className="text-3xl lg:text-4xl font-bold text-[#191A23] leading-tight mb-6">
-                        {featuredEvent.title}
-                      </h1>
-                      <p className="text-[#191A23]/80 text-lg leading-relaxed mb-6">
-                        {featuredEvent.description}
-                      </p>
-                      <div className="grid gap-4 mb-6">
-                        {featuredEvent.location && (
-                          <div className="flex items-center text-[#191A23]/80 bg-white/40 p-4 border border-white/40 rounded-lg">
-                            <MapPin className="w-6 h-6 mr-4 text-[#191A23] flex-shrink-0" />
-                            <span className="text-lg">
-                              {featuredEvent.location}
-                            </span>
-                          </div>
-                        )}
-                        {featuredEvent.max_participants && (
-                          <div className="flex items-center text-[#191A23]/80 bg-white/40 p-4 border border-white/40 rounded-lg">
-                            <Users className="w-6 h-6 mr-4 text-[#191A23] flex-shrink-0" />
-                            <span className="text-lg">
-                              {featuredEvent.registration_count || 0} /{" "}
-                              {featuredEvent.max_participants} registered
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
         {/* Events List Section */}
         <section className="py-8 md:py-12 lg:py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -472,9 +263,9 @@ export default function EventsPage() {
                   >
                     {/* Event Image */}
                     <div className="relative h-48 bg-[#F3F3F3]">
-                      {event.banner_image ? (
+                      {event.event_flyer ? (
                         <Image
-                          src={event.banner_image}
+                          src={event.event_flyer}
                           alt={event.title}
                           fill
                           className="object-cover"
