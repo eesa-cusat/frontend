@@ -41,9 +41,6 @@ export default function EventsPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [showPastEvents, setShowPastEvents] = useState(false);
-  const [registeredEvents, setRegisteredEvents] = useState<Set<number>>(
-    new Set()
-  );
   const [registeringEvents, setRegisteringEvents] = useState<Set<number>>(
     new Set()
   );
@@ -51,13 +48,13 @@ export default function EventsPage() {
   const [selectedEventForRegistration, setSelectedEventForRegistration] =
     useState<Event | null>(null);
 
-  // Fetch events and user's registrations from Django API
+  // Fetch events from Django API
   useEffect(() => {
-    const fetchEventsAndRegistrations = async () => {
+    const fetchEvents = async () => {
       try {
         setLoading(true);
 
-        // 1. Fetch events
+        // Fetch events
         const eventsResponse = await fetch(`${API_BASE_URL}/events/events/`, {
           headers: { "Content-Type": "application/json" },
         });
@@ -70,38 +67,6 @@ export default function EventsPage() {
           ? eventsData.results
           : [];
         setEvents(eventsArray);
-
-        // 2. Fetch user's registrations based on the session/cookie
-        const registrationsResponse = await fetch(
-          `${API_BASE_URL}/events/registrations/`,
-          {
-            headers: { "Content-Type": "application/json" },
-          }
-        );
-
-        if (registrationsResponse.ok) {
-          const registrationsData = await registrationsResponse.json();
-          const registrationList = Array.isArray(registrationsData.results)
-            ? registrationsData.results
-            : [];
-
-          // Create a Set of event IDs the user is registered for
-          const registeredEventIds = new Set<number>(
-            registrationList
-              .map((reg: { event_id?: number; event?: number }) =>
-                Number(reg.event_id || reg.event)
-              )
-              .filter((id: number) => !isNaN(id))
-          );
-          setRegisteredEvents(registeredEventIds);
-        } else {
-          console.error(
-            "Error fetching registration status:",
-            registrationsResponse.statusText
-          );
-          // If registrations cannot be fetched, assume no prior registrations
-          setRegisteredEvents(new Set());
-        }
       } catch (error) {
         console.error("Error fetching data:", error);
         setEvents([]); // Set empty array if API fails
@@ -110,7 +75,7 @@ export default function EventsPage() {
       }
     };
 
-    fetchEventsAndRegistrations();
+    fetchEvents();
   }, []);
 
   // Filter events based on search and date
@@ -136,7 +101,7 @@ export default function EventsPage() {
   const handleRegister = async (eventId: number) => {
     try {
       // Prevent multiple registration attempts
-      if (registeringEvents.has(eventId) || registeredEvents.has(eventId)) {
+      if (registeringEvents.has(eventId)) {
         return;
       }
 
@@ -183,16 +148,15 @@ export default function EventsPage() {
       });
 
       if (response.ok) {
-        setRegisteredEvents((prev) => new Set([...prev, eventId]));
         setShowRegistrationModal(false);
         setSelectedEventForRegistration(null);
+        alert("Registration successful!");
       } else {
         const errorData = await response.json().catch(() => ({}));
         if (
           errorData.detail &&
           errorData.detail.includes("already registered")
         ) {
-          setRegisteredEvents((prev) => new Set([...prev, eventId]));
           setShowRegistrationModal(false);
           setSelectedEventForRegistration(null);
           alert("You are already registered for this event.");
@@ -311,14 +275,9 @@ export default function EventsPage() {
                             e.stopPropagation();
                             handleRegister(featuredEvent.id);
                           }}
-                          disabled={
-                            registeringEvents.has(featuredEvent.id) ||
-                            registeredEvents.has(featuredEvent.id)
-                          }
+                          disabled={registeringEvents.has(featuredEvent.id)}
                           className={`w-full px-6 py-3 text-base font-medium transition-all duration-300 rounded-lg ${
-                            registeredEvents.has(featuredEvent.id)
-                              ? "bg-green-600 text-white cursor-not-allowed"
-                              : registeringEvents.has(featuredEvent.id)
+                            registeringEvents.has(featuredEvent.id)
                               ? "bg-gray-400 text-white cursor-not-allowed"
                               : "bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66]"
                           }`}
@@ -327,11 +286,6 @@ export default function EventsPage() {
                             <>
                               <div className="w-5 h-5 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                               Registering...
-                            </>
-                          ) : registeredEvents.has(featuredEvent.id) ? (
-                            <>
-                              <UserPlus className="w-5 h-5 mr-2" />
-                              Registered
                             </>
                           ) : (
                             <>
@@ -385,14 +339,9 @@ export default function EventsPage() {
                             e.stopPropagation();
                             handleRegister(featuredEvent.id);
                           }}
-                          disabled={
-                            registeringEvents.has(featuredEvent.id) ||
-                            registeredEvents.has(featuredEvent.id)
-                          }
+                          disabled={registeringEvents.has(featuredEvent.id)}
                           className={`w-full px-6 py-4 text-base font-medium transition-all duration-300 rounded-lg ${
-                            registeredEvents.has(featuredEvent.id)
-                              ? "bg-green-600 text-white cursor-not-allowed"
-                              : registeringEvents.has(featuredEvent.id)
+                            registeringEvents.has(featuredEvent.id)
                               ? "bg-gray-400 text-white cursor-not-allowed"
                               : "bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66]"
                           }`}
@@ -401,11 +350,6 @@ export default function EventsPage() {
                             <>
                               <div className="w-5 h-5 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                               Registering...
-                            </>
-                          ) : registeredEvents.has(featuredEvent.id) ? (
-                            <>
-                              <UserPlus className="w-5 h-5 mr-2" />
-                              Registered
                             </>
                           ) : (
                             <>
@@ -605,14 +549,9 @@ export default function EventsPage() {
                             e.stopPropagation();
                             handleRegister(event.id);
                           }}
-                          disabled={
-                            registeringEvents.has(event.id) ||
-                            registeredEvents.has(event.id)
-                          }
+                          disabled={registeringEvents.has(event.id)}
                           className={`w-full transition-all duration-300 ${
-                            registeredEvents.has(event.id)
-                              ? "bg-green-600 text-white cursor-not-allowed"
-                              : registeringEvents.has(event.id)
+                            registeringEvents.has(event.id)
                               ? "bg-gray-400 text-white cursor-not-allowed"
                               : "bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66]"
                           }`}
@@ -621,11 +560,6 @@ export default function EventsPage() {
                             <>
                               <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                               Registering...
-                            </>
-                          ) : registeredEvents.has(event.id) ? (
-                            <>
-                              <UserPlus className="w-4 h-4 mr-2" />
-                              Registered
                             </>
                           ) : (
                             <>

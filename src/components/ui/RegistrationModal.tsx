@@ -1,7 +1,16 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, UserPlus, User, Mail, Phone, Building, GraduationCap, Calendar } from "lucide-react";
+import {
+  X,
+  UserPlus,
+  User,
+  Mail,
+  Phone,
+  Building,
+  GraduationCap,
+  Calendar,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface RegistrationModalProps {
@@ -76,7 +85,7 @@ export default function RegistrationModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -98,11 +107,14 @@ export default function RegistrationModal({
     }
   };
 
-  const handleInputChange = (field: keyof RegistrationFormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleInputChange = (
+    field: keyof RegistrationFormData,
+    value: string
+  ) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }));
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
   };
 
@@ -119,8 +131,12 @@ export default function RegistrationModal({
                 <UserPlus className="w-6 h-6 text-[#B9FF66]" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-[#191A23]">Event Registration</h2>
-                <p className="text-[#191A23]/70 text-sm">Join us for this amazing event!</p>
+                <h2 className="text-xl font-bold text-[#191A23]">
+                  Event Registration
+                </h2>
+                <p className="text-[#191A23]/70 text-sm">
+                  Join us for this amazing event!
+                </p>
               </div>
             </div>
             <button
@@ -135,7 +151,9 @@ export default function RegistrationModal({
 
         {/* Event Info */}
         <div className="p-4 bg-[#F3F3F3] border-b border-gray-200 flex-shrink-0">
-          <h3 className="font-semibold text-[#191A23] truncate">{eventTitle}</h3>
+          <h3 className="font-semibold text-[#191A23] truncate">
+            {eventTitle}
+          </h3>
         </div>
 
         {/* Scrollable Form Content */}
@@ -157,7 +175,9 @@ export default function RegistrationModal({
                 }`}
                 placeholder="Enter your full name"
               />
-              {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+              {errors.name && (
+                <p className="text-red-500 text-xs mt-1">{errors.name}</p>
+              )}
             </div>
 
             {/* Email Field */}
@@ -176,7 +196,9 @@ export default function RegistrationModal({
                 }`}
                 placeholder="Enter your email address"
               />
-              {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+              {errors.email && (
+                <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+              )}
             </div>
 
             {/* Mobile Field */}
@@ -188,14 +210,20 @@ export default function RegistrationModal({
               <input
                 type="tel"
                 value={formData.mobile_number}
-                onChange={(e) => handleInputChange("mobile_number", e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("mobile_number", e.target.value)
+                }
                 disabled={isRegistering}
                 className={`w-full px-4 py-3 border rounded-lg bg-white text-[#191A23] placeholder-[#191A23]/50 focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all ${
                   errors.mobile_number ? "border-red-500" : "border-gray-300"
                 }`}
                 placeholder="Enter your mobile number"
               />
-              {errors.mobile_number && <p className="text-red-500 text-xs mt-1">{errors.mobile_number}</p>}
+              {errors.mobile_number && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.mobile_number}
+                </p>
+              )}
             </div>
 
             {/* Institution Field */}
@@ -207,14 +235,20 @@ export default function RegistrationModal({
               <input
                 type="text"
                 value={formData.institution}
-                onChange={(e) => handleInputChange("institution", e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("institution", e.target.value)
+                }
                 disabled={isRegistering}
                 className={`w-full px-4 py-3 border rounded-lg bg-white text-[#191A23] placeholder-[#191A23]/50 focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all ${
                   errors.institution ? "border-red-500" : "border-gray-300"
                 }`}
                 placeholder="Enter your institution/college name"
               />
-              {errors.institution && <p className="text-red-500 text-xs mt-1">{errors.institution}</p>}
+              {errors.institution && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.institution}
+                </p>
+              )}
             </div>
 
             {/* Department Field */}
@@ -226,14 +260,18 @@ export default function RegistrationModal({
               <input
                 type="text"
                 value={formData.department}
-                onChange={(e) => handleInputChange("department", e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("department", e.target.value)
+                }
                 disabled={isRegistering}
                 className={`w-full px-4 py-3 border rounded-lg bg-white text-[#191A23] placeholder-[#191A23]/50 focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all ${
                   errors.department ? "border-red-500" : "border-gray-300"
                 }`}
                 placeholder="Enter your department"
               />
-              {errors.department && <p className="text-red-500 text-xs mt-1">{errors.department}</p>}
+              {errors.department && (
+                <p className="text-red-500 text-xs mt-1">{errors.department}</p>
+              )}
             </div>
 
             {/* Year of Study Field */}
@@ -244,7 +282,9 @@ export default function RegistrationModal({
               </label>
               <select
                 value={formData.year_of_study}
-                onChange={(e) => handleInputChange("year_of_study", e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("year_of_study", e.target.value)
+                }
                 disabled={isRegistering}
                 className={`w-full px-4 py-3 border rounded-lg bg-white text-[#191A23] focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all ${
                   errors.year_of_study ? "border-red-500" : "border-gray-300"
@@ -256,12 +296,13 @@ export default function RegistrationModal({
                 <option value="Third Year">Third Year</option>
                 <option value="Fourth Year">Fourth Year</option>
                 <option value="Graduate">Graduate</option>
-                <option value="Post Graduate">Post Graduate</option>
-                <option value="PhD">PhD</option>
-                <option value="Faculty">Faculty</option>
                 <option value="Other">Other</option>
               </select>
-              {errors.year_of_study && <p className="text-red-500 text-xs mt-1">{errors.year_of_study}</p>}
+              {errors.year_of_study && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.year_of_study}
+                </p>
+              )}
             </div>
 
             {/* Form Actions */}
