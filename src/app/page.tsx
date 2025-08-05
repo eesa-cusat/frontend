@@ -390,25 +390,9 @@ export default function Home() {
           {/* Projects Container - Carousel */}
           <div className="relative">
             {loading ? (
-              <AutoScrollCarousel autoplayDelay={0} spaceBetween={20}>
-                {[1, 2, 3, 4, 5, 6].map((index) => (
-                  <div
-                    key={index}
-                    className="w-full h-64 bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl border-2 border-gray-300 animate-pulse"
-                  >
-                    <div className="p-6 space-y-4">
-                      <div className="h-4 bg-gray-300 rounded-lg w-3/4 animate-pulse"></div>
-                      <div className="h-3 bg-gray-300 rounded w-full animate-pulse"></div>
-                      <div className="h-3 bg-gray-300 rounded w-5/6 animate-pulse"></div>
-                      <div className="flex gap-2 mt-4">
-                        <div className="h-6 bg-gray-300 rounded-full w-16 animate-pulse"></div>
-                        <div className="h-6 bg-gray-300 rounded-full w-20 animate-pulse"></div>
-                        <div className="h-6 bg-gray-300 rounded-full w-14 animate-pulse"></div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </AutoScrollCarousel>
+              <div className="flex justify-center items-center h-48">
+                <div className="text-gray-500">Loading featured projects...</div>
+              </div>
             ) : featuredProjects.length > 0 ? (
               <AutoScrollCarousel autoplayDelay={5000} spaceBetween={20}>
                 {featuredProjects.map((project) => (

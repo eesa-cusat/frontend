@@ -8,12 +8,12 @@ import {
   Users,
   Clock,
   UserPlus,
-  Star,
   Zap,
   Search,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import RegistrationModal, { RegistrationFormData } from "@/components/ui/RegistrationModal";
 
 // Simplified Event interface
 interface Event {
@@ -39,41 +39,75 @@ export default function EventsPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [showPastEvents, setShowPastEvents] = useState(false);
+  const [registeredEvents, setRegisteredEvents] = useState<Set<number>>(
+    new Set()
+  );
+  const [registeringEvents, setRegisteringEvents] = useState<Set<number>>(
+    new Set()
+  );
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+  const [selectedEventForRegistration, setSelectedEventForRegistration] = useState<Event | null>(null);
 
-  // Fetch events from Django API
+  // Fetch events and user's registrations from Django API
   useEffect(() => {
-    const fetchEvents = async () => {
+    const fetchEventsAndRegistrations = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${API_BASE_URL}/events/events/`, {
-          headers: {
-            "Content-Type": "application/json",
-          },
+
+        // 1. Fetch events
+        const eventsResponse = await fetch(`${API_BASE_URL}/events/events/`, {
+          headers: { "Content-Type": "application/json" },
         });
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        if (!eventsResponse.ok) {
+          throw new Error(`HTTP error! status: ${eventsResponse.status}`);
         }
-
-        const data = await response.json();
-
-        // Ensure the events state is always an array
-        const eventsArray = Array.isArray(data.results)
-          ? data.results
-          : Array.isArray(data)
-          ? data
+        const eventsData = await eventsResponse.json();
+        const eventsArray = Array.isArray(eventsData.results)
+          ? eventsData.results
           : [];
         setEvents(eventsArray);
+
+        // 2. Fetch user's registrations based on the session/cookie
+        const registrationsResponse = await fetch(
+          `${API_BASE_URL}/events/registrations/`,
+          {
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+
+        if (registrationsResponse.ok) {
+          const registrationsData = await registrationsResponse.json();
+          const registrationList = Array.isArray(registrationsData.results)
+            ? registrationsData.results
+            : [];
+
+          // Create a Set of event IDs the user is registered for
+          const registeredEventIds = new Set<number>(
+            registrationList
+              .map((reg: { event_id?: number; event?: number }) =>
+                Number(reg.event_id || reg.event)
+              )
+              .filter((id: number) => !isNaN(id))
+          );
+          setRegisteredEvents(registeredEventIds);
+        } else {
+          console.error(
+            "Error fetching registration status:",
+            registrationsResponse.statusText
+          );
+          // If registrations cannot be fetched, assume no prior registrations
+          setRegisteredEvents(new Set());
+        }
       } catch (error) {
-        console.error("Error fetching events:", error);
-        // Set empty array if API fails - no mock data
-        setEvents([]);
+        console.error("Error fetching data:", error);
+        setEvents([]); // Set empty array if API fails
       } finally {
         setLoading(false);
       }
     };
 
-    fetchEvents();
+    fetchEventsAndRegistrations();
   }, []);
 
   // Filter events based on search and date
@@ -98,10 +132,88 @@ export default function EventsPage() {
 
   const handleRegister = async (eventId: number) => {
     try {
-      // Simple registration - in real app this would open a form or redirect
-      alert("Registration functionality would be implemented here");
+      // Prevent multiple registration attempts
+      if (registeringEvents.has(eventId) || registeredEvents.has(eventId)) {
+        return;
+      }
+
+      // Find the event and open registration modal
+      const event = events.find(e => e.id === eventId);
+      if (event) {
+        setSelectedEventForRegistration(event);
+        setShowRegistrationModal(true);
+      }
     } catch (error) {
       console.error("Registration error:", error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Registration failed. Please try again."
+      );
+    }
+  };
+
+  const handleRegistrationSubmit = async (formData: RegistrationFormData) => {
+    if (!selectedEventForRegistration) return;
+
+    const eventId = selectedEventForRegistration.id;
+
+    try {
+      setRegisteringEvents((prev) => new Set([...prev, eventId]));
+
+      const registrationPayload = {
+        event: eventId,
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        mobile_number: formData.mobile_number.trim(),
+        institution: formData.institution.trim(),
+        department: formData.department.trim(),
+        year_of_study: formData.year_of_study.trim(),
+      };
+
+      const response = await fetch(`${API_BASE_URL}/events/registrations/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(registrationPayload),
+      });
+
+      if (response.ok) {
+        setRegisteredEvents((prev) => new Set([...prev, eventId]));
+        setShowRegistrationModal(false);
+        setSelectedEventForRegistration(null);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        if (
+          errorData.detail &&
+          errorData.detail.includes("already registered")
+        ) {
+          setRegisteredEvents((prev) => new Set([...prev, eventId]));
+          setShowRegistrationModal(false);
+          setSelectedEventForRegistration(null);
+          alert("You are already registered for this event.");
+        } else {
+          throw new Error(
+            errorData.message ||
+              errorData.detail ||
+              `Registration failed (${response.status})`
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Registration error:", error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Registration failed. Please try again."
+      );
+    } finally {
+      setRegisteringEvents((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(eventId);
+        return newSet;
+      });
     }
   };
 
@@ -122,19 +234,15 @@ export default function EventsPage() {
         {/* Hero Section with Featured Event */}
         {featuredEvent && !showPastEvents && (
           <section className="relative overflow-hidden min-h-[70vh]">
-            {/* Background */}
             <div className="absolute inset-0">
               <div className="absolute inset-0 bg-[#F3F3F3]"></div>
               <div className="absolute inset-0 backdrop-blur-sm bg-white/30"></div>
             </div>
-
-            {/* Content Container */}
             <div className="relative z-10">
               <div className="backdrop-blur-xl bg-[#F3F3F3]/60 border border-white/40 shadow-lg mx-4 my-8 rounded-2xl overflow-hidden">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-12 lg:py-16">
                   {/* Mobile Layout */}
                   <div className="block md:hidden">
-                    {/* Poster Image at Top */}
                     <div className="flex justify-center mb-6">
                       <div className="bg-white/80 border border-white/60 relative overflow-hidden w-48 aspect-[3/4] rounded-lg">
                         {featuredEvent.banner_image ? (
@@ -160,11 +268,9 @@ export default function EventsPage() {
                             </div>
                           </div>
                         )}
-                        {/* Event Type Overlay */}
                         <div className="absolute top-2 left-2 bg-[#191A23]/90 text-[#B9FF66] px-2 py-1 text-xs font-medium rounded">
                           {featuredEvent.event_type || "Event"}
                         </div>
-                        {/* Featured Badge */}
                         {featuredEvent.is_featured && (
                           <div className="absolute top-2 right-2 bg-[#B9FF66] text-[#191A23] px-2 py-1 text-xs font-bold rounded">
                             FEATURED
@@ -172,58 +278,70 @@ export default function EventsPage() {
                         )}
                       </div>
                     </div>
-
-                    {/* Event Info */}
                     <div className="text-center">
                       <div className="inline-block bg-[#191A23] text-[#B9FF66] px-4 py-2 text-sm font-medium mb-4 rounded-lg">
                         {new Date(featuredEvent.start_date).toLocaleDateString(
                           "en-US",
-                          {
-                            month: "long",
-                            day: "numeric",
-                          }
+                          { month: "long", day: "numeric" }
                         )}{" "}
                         •{" "}
                         {new Date(featuredEvent.start_date).toLocaleTimeString(
                           "en-US",
-                          {
-                            hour: "numeric",
-                            minute: "2-digit",
-                            hour12: true,
-                          }
+                          { hour: "numeric", minute: "2-digit", hour12: true }
                         )}
                       </div>
-
                       <h1 className="text-2xl font-bold text-[#191A23] leading-tight mb-4">
                         {featuredEvent.title}
                       </h1>
-
                       <p className="text-[#191A23]/80 leading-relaxed mb-4">
                         {featuredEvent.description}
                       </p>
-
                       {featuredEvent.location && (
                         <div className="flex items-center justify-center text-[#191A23]/80 bg-white/40 p-3 border border-white/40 mb-6 rounded-lg">
                           <MapPin className="w-5 h-5 mr-3 text-[#191A23] flex-shrink-0" />
                           <span>{featuredEvent.location}</span>
                         </div>
                       )}
-
                       {featuredEvent.registration_required && (
                         <Button
-                          onClick={() => handleRegister(featuredEvent.id)}
-                          className="w-full bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66] px-6 py-3 text-base font-medium transition-all duration-300 rounded-lg"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRegister(featuredEvent.id);
+                          }}
+                          disabled={
+                            registeringEvents.has(featuredEvent.id) ||
+                            registeredEvents.has(featuredEvent.id)
+                          }
+                          className={`w-full px-6 py-3 text-base font-medium transition-all duration-300 rounded-lg ${
+                            registeredEvents.has(featuredEvent.id)
+                              ? "bg-green-600 text-white cursor-not-allowed"
+                              : registeringEvents.has(featuredEvent.id)
+                              ? "bg-gray-400 text-white cursor-not-allowed"
+                              : "bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66]"
+                          }`}
                         >
-                          <UserPlus className="w-5 h-5 mr-2" />
-                          Register Now
+                          {registeringEvents.has(featuredEvent.id) ? (
+                            <>
+                              <div className="w-5 h-5 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                              Registering...
+                            </>
+                          ) : registeredEvents.has(featuredEvent.id) ? (
+                            <>
+                              <UserPlus className="w-5 h-5 mr-2" />
+                              Registered
+                            </>
+                          ) : (
+                            <>
+                              <UserPlus className="w-5 h-5 mr-2" />
+                              Register Now
+                            </>
+                          )}
                         </Button>
                       )}
                     </div>
                   </div>
-
                   {/* Desktop Layout */}
                   <div className="hidden md:flex gap-8 lg:gap-12 items-start">
-                    {/* Left Column: Poster */}
                     <div className="flex-shrink-0">
                       <div className="bg-white/80 border border-white/60 relative overflow-hidden w-48 lg:w-64 aspect-[3/4] rounded-lg mb-4">
                         {featuredEvent.banner_image ? (
@@ -249,7 +367,6 @@ export default function EventsPage() {
                             </div>
                           </div>
                         )}
-                        {/* Overlays */}
                         <div className="absolute top-2 left-2 bg-[#191A23]/90 text-[#B9FF66] px-2 py-1 text-xs font-medium rounded">
                           {featuredEvent.event_type || "Event"}
                         </div>
@@ -259,48 +376,61 @@ export default function EventsPage() {
                           </div>
                         )}
                       </div>
-
                       {featuredEvent.registration_required && (
                         <Button
-                          onClick={() => handleRegister(featuredEvent.id)}
-                          className="w-full bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66] px-6 py-4 text-base font-medium transition-all duration-300 rounded-lg"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRegister(featuredEvent.id);
+                          }}
+                          disabled={
+                            registeringEvents.has(featuredEvent.id) ||
+                            registeredEvents.has(featuredEvent.id)
+                          }
+                          className={`w-full px-6 py-4 text-base font-medium transition-all duration-300 rounded-lg ${
+                            registeredEvents.has(featuredEvent.id)
+                              ? "bg-green-600 text-white cursor-not-allowed"
+                              : registeringEvents.has(featuredEvent.id)
+                              ? "bg-gray-400 text-white cursor-not-allowed"
+                              : "bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66]"
+                          }`}
                         >
-                          <UserPlus className="w-5 h-5 mr-2" />
-                          Register Now
+                          {registeringEvents.has(featuredEvent.id) ? (
+                            <>
+                              <div className="w-5 h-5 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                              Registering...
+                            </>
+                          ) : registeredEvents.has(featuredEvent.id) ? (
+                            <>
+                              <UserPlus className="w-5 h-5 mr-2" />
+                              Registered
+                            </>
+                          ) : (
+                            <>
+                              <UserPlus className="w-5 h-5 mr-2" />
+                              Register Now
+                            </>
+                          )}
                         </Button>
                       )}
                     </div>
-
-                    {/* Right Column: Event Details */}
                     <div className="flex-1">
                       <div className="inline-block bg-[#191A23] text-[#B9FF66] px-4 py-2 text-sm font-medium mb-6 rounded-lg">
                         {new Date(featuredEvent.start_date).toLocaleDateString(
                           "en-US",
-                          {
-                            month: "long",
-                            day: "numeric",
-                            year: "numeric",
-                          }
+                          { month: "long", day: "numeric", year: "numeric" }
                         )}{" "}
                         •{" "}
                         {new Date(featuredEvent.start_date).toLocaleTimeString(
                           "en-US",
-                          {
-                            hour: "numeric",
-                            minute: "2-digit",
-                            hour12: true,
-                          }
+                          { hour: "numeric", minute: "2-digit", hour12: true }
                         )}
                       </div>
-
                       <h1 className="text-3xl lg:text-4xl font-bold text-[#191A23] leading-tight mb-6">
                         {featuredEvent.title}
                       </h1>
-
                       <p className="text-[#191A23]/80 text-lg leading-relaxed mb-6">
                         {featuredEvent.description}
                       </p>
-
                       <div className="grid gap-4 mb-6">
                         {featuredEvent.location && (
                           <div className="flex items-center text-[#191A23]/80 bg-white/40 p-4 border border-white/40 rounded-lg">
@@ -310,7 +440,6 @@ export default function EventsPage() {
                             </span>
                           </div>
                         )}
-
                         {featuredEvent.max_participants && (
                           <div className="flex items-center text-[#191A23]/80 bg-white/40 p-4 border border-white/40 rounded-lg">
                             <Users className="w-6 h-6 mr-4 text-[#191A23] flex-shrink-0" />
@@ -328,11 +457,9 @@ export default function EventsPage() {
             </div>
           </section>
         )}
-
         {/* Events List Section */}
         <section className="py-8 md:py-12 lg:py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Section Header */}
             <div className="text-center mb-12">
               <h2 className="text-3xl lg:text-4xl font-bold text-[#191A23] mb-4">
                 {showPastEvents ? "Past Events" : "Upcoming Events"}
@@ -343,10 +470,7 @@ export default function EventsPage() {
                   : "Join us for exciting upcoming events and workshops"}
               </p>
             </div>
-
-            {/* Controls */}
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
-              {/* Search */}
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#191A23]/50 w-5 h-5" />
                 <input
@@ -365,8 +489,6 @@ export default function EventsPage() {
                   </button>
                 )}
               </div>
-
-              {/* Toggle */}
               <div className="flex bg-white/80 border border-[#191A23]/20 rounded-lg overflow-hidden">
                 <button
                   onClick={() => setShowPastEvents(false)}
@@ -390,14 +512,14 @@ export default function EventsPage() {
                 </button>
               </div>
             </div>
-
             {/* Events Grid */}
             {filteredEvents.length > 0 ? (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {filteredEvents.map((event) => (
                   <div
                     key={event.id}
-                    className="bg-white/80 border border-white/60 rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300 backdrop-blur-sm"
+                    onClick={() => window.open(`/events/${event.id}`, "_self")}
+                    className="bg-white/80 border border-white/60 rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300 backdrop-blur-sm cursor-pointer group"
                   >
                     {/* Event Image */}
                     <div className="relative h-48 bg-[#F3F3F3]">
@@ -425,14 +547,12 @@ export default function EventsPage() {
                       <div className="absolute top-3 left-3 bg-[#191A23]/90 text-[#B9FF66] px-3 py-1 text-xs font-medium rounded">
                         {event.event_type || "Event"}
                       </div>
-                      {/* Featured Badge */}
                       {event.is_featured && (
                         <div className="absolute top-3 right-3 bg-[#B9FF66] text-[#191A23] px-3 py-1 text-xs font-bold rounded">
                           FEATURED
                         </div>
                       )}
                     </div>
-
                     {/* Event Content */}
                     <div className="p-6">
                       <div className="flex items-center text-[#191A23]/60 text-sm mb-3">
@@ -440,34 +560,23 @@ export default function EventsPage() {
                         <span>
                           {new Date(event.start_date).toLocaleDateString(
                             "en-US",
-                            {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            }
+                            { month: "short", day: "numeric", year: "numeric" }
                           )}
                         </span>
                         <Clock className="w-4 h-4 ml-4 mr-2" />
                         <span>
                           {new Date(event.start_date).toLocaleTimeString(
                             "en-US",
-                            {
-                              hour: "numeric",
-                              minute: "2-digit",
-                              hour12: true,
-                            }
+                            { hour: "numeric", minute: "2-digit", hour12: true }
                           )}
                         </span>
                       </div>
-
                       <h3 className="text-xl font-bold text-[#191A23] mb-3 line-clamp-2">
                         {event.title}
                       </h3>
-
                       <p className="text-[#191A23]/70 mb-4 line-clamp-3">
                         {event.description}
                       </p>
-
                       {event.location && (
                         <div className="flex items-center text-[#191A23]/60 mb-4">
                           <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
@@ -476,7 +585,6 @@ export default function EventsPage() {
                           </span>
                         </div>
                       )}
-
                       {event.max_participants && (
                         <div className="flex items-center text-[#191A23]/60 mb-4">
                           <Users className="w-4 h-4 mr-2 flex-shrink-0" />
@@ -486,14 +594,40 @@ export default function EventsPage() {
                           </span>
                         </div>
                       )}
-
                       {event.registration_required && (
                         <Button
-                          onClick={() => handleRegister(event.id)}
-                          className="w-full bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66] transition-all duration-300"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRegister(event.id);
+                          }}
+                          disabled={
+                            registeringEvents.has(event.id) ||
+                            registeredEvents.has(event.id)
+                          }
+                          className={`w-full transition-all duration-300 ${
+                            registeredEvents.has(event.id)
+                              ? "bg-green-600 text-white cursor-not-allowed"
+                              : registeringEvents.has(event.id)
+                              ? "bg-gray-400 text-white cursor-not-allowed"
+                              : "bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66]"
+                          }`}
                         >
-                          <UserPlus className="w-4 h-4 mr-2" />
-                          Register
+                          {registeringEvents.has(event.id) ? (
+                            <>
+                              <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                              Registering...
+                            </>
+                          ) : registeredEvents.has(event.id) ? (
+                            <>
+                              <UserPlus className="w-4 h-4 mr-2" />
+                              Registered
+                            </>
+                          ) : (
+                            <>
+                              <UserPlus className="w-4 h-4 mr-2" />
+                              Register
+                            </>
+                          )}
                         </Button>
                       )}
                     </div>
@@ -522,6 +656,18 @@ export default function EventsPage() {
           </div>
         </section>
       </div>
+
+      {/* Registration Modal */}
+      <RegistrationModal
+        isOpen={showRegistrationModal}
+        onClose={() => {
+          setShowRegistrationModal(false);
+          setSelectedEventForRegistration(null);
+        }}
+        onSubmit={handleRegistrationSubmit}
+        eventTitle={selectedEventForRegistration?.title || ""}
+        isRegistering={selectedEventForRegistration ? registeringEvents.has(selectedEventForRegistration.id) : false}
+      />
     </>
   );
 }

@@ -1,0 +1,300 @@
+"use client";
+
+import React, { useState } from "react";
+import { X, UserPlus, User, Mail, Phone, Building, GraduationCap, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+interface RegistrationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (formData: RegistrationFormData) => Promise<void>;
+  eventTitle: string;
+  isRegistering: boolean;
+}
+
+export interface RegistrationFormData {
+  name: string;
+  email: string;
+  mobile_number: string;
+  institution: string;
+  department: string;
+  year_of_study: string;
+}
+
+export default function RegistrationModal({
+  isOpen,
+  onClose,
+  onSubmit,
+  eventTitle,
+  isRegistering,
+}: RegistrationModalProps) {
+  const [formData, setFormData] = useState<RegistrationFormData>({
+    name: "",
+    email: "",
+    mobile_number: "",
+    institution: "",
+    department: "",
+    year_of_study: "",
+  });
+
+  const [errors, setErrors] = useState<Partial<RegistrationFormData>>({});
+
+  const validateForm = (): boolean => {
+    const newErrors: Partial<RegistrationFormData> = {};
+
+    if (!formData.name.trim()) {
+      newErrors.name = "Full name is required";
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+
+    if (!formData.mobile_number.trim()) {
+      newErrors.mobile_number = "Mobile number is required";
+    } else if (!/^\+?[\d\s-()]{8,15}$/.test(formData.mobile_number)) {
+      newErrors.mobile_number = "Please enter a valid mobile number";
+    }
+
+    if (!formData.institution.trim()) {
+      newErrors.institution = "Institution/College name is required";
+    }
+
+    if (!formData.department.trim()) {
+      newErrors.department = "Department is required";
+    }
+
+    if (!formData.year_of_study.trim()) {
+      newErrors.year_of_study = "Year of study is required";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    try {
+      await onSubmit(formData);
+      // Reset form on success
+      setFormData({
+        name: "",
+        email: "",
+        mobile_number: "",
+        institution: "",
+        department: "",
+        year_of_study: "",
+      });
+      setErrors({});
+    } catch (error) {
+      // Error handling is done in the parent component
+    }
+  };
+
+  const handleInputChange = (field: keyof RegistrationFormData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+      <div className="bg-white border-2 border-[#B9FF66]/30 shadow-2xl rounded-2xl max-w-md w-full relative max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-[#B9FF66] to-[#A8EE55] p-6 rounded-t-2xl flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="w-10 h-10 bg-[#191A23] rounded-xl flex items-center justify-center mr-3">
+                <UserPlus className="w-6 h-6 text-[#B9FF66]" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-[#191A23]">Event Registration</h2>
+                <p className="text-[#191A23]/70 text-sm">Join us for this amazing event!</p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              disabled={isRegistering}
+              className="text-[#191A23]/60 hover:text-[#191A23] transition-colors p-1"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+
+        {/* Event Info */}
+        <div className="p-4 bg-[#F3F3F3] border-b border-gray-200 flex-shrink-0">
+          <h3 className="font-semibold text-[#191A23] truncate">{eventTitle}</h3>
+        </div>
+
+        {/* Scrollable Form Content */}
+        <div className="flex-1 overflow-y-auto">
+          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            {/* Name Field */}
+            <div>
+              <label className="block text-sm font-medium text-[#191A23] mb-2">
+                <User className="w-4 h-4 inline mr-2" />
+                Full Name *
+              </label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => handleInputChange("name", e.target.value)}
+                disabled={isRegistering}
+                className={`w-full px-4 py-3 border rounded-lg bg-white text-[#191A23] placeholder-[#191A23]/50 focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all ${
+                  errors.name ? "border-red-500" : "border-gray-300"
+                }`}
+                placeholder="Enter your full name"
+              />
+              {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+            </div>
+
+            {/* Email Field */}
+            <div>
+              <label className="block text-sm font-medium text-[#191A23] mb-2">
+                <Mail className="w-4 h-4 inline mr-2" />
+                Email Address *
+              </label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => handleInputChange("email", e.target.value)}
+                disabled={isRegistering}
+                className={`w-full px-4 py-3 border rounded-lg bg-white text-[#191A23] placeholder-[#191A23]/50 focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all ${
+                  errors.email ? "border-red-500" : "border-gray-300"
+                }`}
+                placeholder="Enter your email address"
+              />
+              {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+            </div>
+
+            {/* Mobile Field */}
+            <div>
+              <label className="block text-sm font-medium text-[#191A23] mb-2">
+                <Phone className="w-4 h-4 inline mr-2" />
+                Mobile Number *
+              </label>
+              <input
+                type="tel"
+                value={formData.mobile_number}
+                onChange={(e) => handleInputChange("mobile_number", e.target.value)}
+                disabled={isRegistering}
+                className={`w-full px-4 py-3 border rounded-lg bg-white text-[#191A23] placeholder-[#191A23]/50 focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all ${
+                  errors.mobile_number ? "border-red-500" : "border-gray-300"
+                }`}
+                placeholder="Enter your mobile number"
+              />
+              {errors.mobile_number && <p className="text-red-500 text-xs mt-1">{errors.mobile_number}</p>}
+            </div>
+
+            {/* Institution Field */}
+            <div>
+              <label className="block text-sm font-medium text-[#191A23] mb-2">
+                <Building className="w-4 h-4 inline mr-2" />
+                Institution/College *
+              </label>
+              <input
+                type="text"
+                value={formData.institution}
+                onChange={(e) => handleInputChange("institution", e.target.value)}
+                disabled={isRegistering}
+                className={`w-full px-4 py-3 border rounded-lg bg-white text-[#191A23] placeholder-[#191A23]/50 focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all ${
+                  errors.institution ? "border-red-500" : "border-gray-300"
+                }`}
+                placeholder="Enter your institution/college name"
+              />
+              {errors.institution && <p className="text-red-500 text-xs mt-1">{errors.institution}</p>}
+            </div>
+
+            {/* Department Field */}
+            <div>
+              <label className="block text-sm font-medium text-[#191A23] mb-2">
+                <GraduationCap className="w-4 h-4 inline mr-2" />
+                Department *
+              </label>
+              <input
+                type="text"
+                value={formData.department}
+                onChange={(e) => handleInputChange("department", e.target.value)}
+                disabled={isRegistering}
+                className={`w-full px-4 py-3 border rounded-lg bg-white text-[#191A23] placeholder-[#191A23]/50 focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all ${
+                  errors.department ? "border-red-500" : "border-gray-300"
+                }`}
+                placeholder="Enter your department"
+              />
+              {errors.department && <p className="text-red-500 text-xs mt-1">{errors.department}</p>}
+            </div>
+
+            {/* Year of Study Field */}
+            <div>
+              <label className="block text-sm font-medium text-[#191A23] mb-2">
+                <Calendar className="w-4 h-4 inline mr-2" />
+                Year of Study *
+              </label>
+              <select
+                value={formData.year_of_study}
+                onChange={(e) => handleInputChange("year_of_study", e.target.value)}
+                disabled={isRegistering}
+                className={`w-full px-4 py-3 border rounded-lg bg-white text-[#191A23] focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all ${
+                  errors.year_of_study ? "border-red-500" : "border-gray-300"
+                }`}
+              >
+                <option value="">Select your year of study</option>
+                <option value="First Year">First Year</option>
+                <option value="Second Year">Second Year</option>
+                <option value="Third Year">Third Year</option>
+                <option value="Fourth Year">Fourth Year</option>
+                <option value="Graduate">Graduate</option>
+                <option value="Post Graduate">Post Graduate</option>
+                <option value="PhD">PhD</option>
+                <option value="Faculty">Faculty</option>
+                <option value="Other">Other</option>
+              </select>
+              {errors.year_of_study && <p className="text-red-500 text-xs mt-1">{errors.year_of_study}</p>}
+            </div>
+
+            {/* Form Actions */}
+            <div className="flex gap-3 pt-4">
+              <Button
+                type="button"
+                onClick={onClose}
+                disabled={isRegistering}
+                className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-3 rounded-lg font-medium transition-all"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isRegistering}
+                className="flex-1 bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66] py-3 rounded-lg font-medium transition-all"
+              >
+                {isRegistering ? (
+                  <>
+                    <div className="w-4 h-4 mr-2 border-2 border-[#B9FF66] border-t-transparent rounded-full animate-spin"></div>
+                    Registering...
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Register Now
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
