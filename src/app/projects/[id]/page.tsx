@@ -17,6 +17,7 @@ import {
   Clock,
   AlertCircle,
 } from "lucide-react";
+import { getImageUrl } from "@/utils/api";
 
 // This is the correct directive for client components in Next.js App Router.
 // It must be at the very top of the file to work correctly.
@@ -436,15 +437,21 @@ const ProjectDetailPage: React.FC = () => {
                 {project.gallery_images.map((galleryImage, index) => (
                   <div key={galleryImage.id} className="relative group">
                     <div className="relative h-48 bg-gray-200 rounded-xl overflow-hidden">
-                      <Image
-                        src={`http://localhost:8000${galleryImage.image}`}
-                        alt={galleryImage.caption || `Gallery image ${index + 1}`}
-                        fill
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        style={{ objectFit: 'cover' }}
-                        className="transition-transform duration-500 group-hover:scale-110 cursor-pointer"
-                        onClick={() => window.open(`http://localhost:8000${galleryImage.image}`, '_blank')}
-                      />
+                      {galleryImage.image ? (
+                        <Image
+                          src={getImageUrl(galleryImage.image) || ''}
+                          alt={galleryImage.caption || `Gallery image ${index + 1}`}
+                          fill
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          style={{ objectFit: 'cover' }}
+                          className="transition-transform duration-500 group-hover:scale-110 cursor-pointer"
+                          onClick={() => window.open(getImageUrl(galleryImage.image) || '', '_blank')}
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full">
+                          <p className="text-gray-500">Image not available</p>
+                        </div>
+                      )}
                       {galleryImage.is_featured && (
                         <div className="absolute top-2 right-2">
                           <div className="bg-[#B9FF66] text-[#191A23] px-2 py-1 text-xs font-bold rounded-full flex items-center">
@@ -476,7 +483,7 @@ const ProjectDetailPage: React.FC = () => {
                 <h3 className="text-lg font-semibold text-[#191A23] mb-4">Featured Video</h3>
                 <div className="relative h-64 md:h-96 bg-gray-200 rounded-xl overflow-hidden">
                   <video
-                    src={`http://localhost:8000${project.featured_video}`}
+                    src={getImageUrl(project.featured_video) || ''}
                     controls
                     className="w-full h-full object-cover"
                   >
@@ -513,7 +520,7 @@ const ProjectDetailPage: React.FC = () => {
                           ) : videoUrl ? (
                             // Direct Video File
                             <video
-                              src={videoUrl.startsWith('http') ? videoUrl : `http://localhost:8000${videoUrl}`}
+                              src={videoUrl.startsWith('http') ? videoUrl : getImageUrl(videoUrl) || ''}
                               controls
                               className="w-full h-full object-cover"
                             >

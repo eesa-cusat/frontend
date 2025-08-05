@@ -16,6 +16,7 @@ import RegistrationModal, {
   RegistrationFormData,
 } from "@/components/ui/RegistrationModal";
 import { getImageUrl } from "@/utils/api";
+import { useToast } from "@/components/ui/Toast";
 
 // Simplified Event interface
 interface Event {
@@ -48,6 +49,9 @@ export default function EventsPage() {
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [selectedEventForRegistration, setSelectedEventForRegistration] =
     useState<Event | null>(null);
+
+  // Toast notifications
+  const { showSuccess, showError, ToastContainer } = useToast();
 
   // Fetch events from Django API
   useEffect(() => {
@@ -132,7 +136,7 @@ export default function EventsPage() {
       }
     } catch (error) {
       console.error("Registration error:", error);
-      alert(
+      showError(
         error instanceof Error
           ? error.message
           : "Registration failed. Please try again."
@@ -169,7 +173,7 @@ export default function EventsPage() {
       if (response.ok) {
         setShowRegistrationModal(false);
         setSelectedEventForRegistration(null);
-        alert("Registration successful!");
+        showSuccess("🎉 Registration successful! We're excited to have you join us for this event.");
       } else {
         const errorData = await response.json().catch(() => ({}));
         if (
@@ -178,7 +182,7 @@ export default function EventsPage() {
         ) {
           setShowRegistrationModal(false);
           setSelectedEventForRegistration(null);
-          alert("You are already registered for this event.");
+          showError("You are already registered for this event.");
         } else {
           throw new Error(
             errorData.message ||
@@ -189,7 +193,7 @@ export default function EventsPage() {
       }
     } catch (error) {
       console.error("Registration error:", error);
-      alert(
+      showError(
         error instanceof Error
           ? error.message
           : "Registration failed. Please try again."
@@ -216,6 +220,9 @@ export default function EventsPage() {
 
   return (
     <>
+      {/* Toast Container */}
+      <ToastContainer />
+      
       <div className="min-h-screen bg-[#F3F3F3]">
         {/* Events List Section */}
         <section className="py-8 md:py-12 lg:py-16">

@@ -830,34 +830,27 @@ const AcademicsPage = () => {
                     <button
                       className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium bg-blue-500 hover:bg-blue-600 text-white transition-colors w-full sm:w-auto"
                       onClick={async () => {
-                        // Update download count on click
+                        // Update download count by making a request to the download endpoint
                         try {
-                          const response = await fetch(
-                            `${process.env.NEXT_PUBLIC_API_BASE_URL}/academics/resources/${resource.id}/download/`,
-                            {
-                              method: 'POST',
-                              headers: {
-                                'Content-Type': 'application/json',
-                              },
-                            }
+                          // Use the download endpoint which automatically increments count and returns the file
+                          const downloadUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/academics/resources/${resource.id}/download/`;
+                          
+                          // Update the local state to increment download count immediately for better UX
+                          setResources((prev) =>
+                            prev.map((res) =>
+                              res.id === resource.id
+                                ? { ...res, download_count: (res.download_count || 0) + 1 }
+                                : res
+                            )
                           );
                           
-                          if (response.ok) {
-                            // Update the local state to increment download count
-                            setResources((prev) =>
-                              prev.map((res) =>
-                                res.id === resource.id
-                                  ? { ...res, download_count: (res.download_count || 0) + 1 }
-                                  : res
-                              )
-                            );
-                          }
+                          // Open the download URL which will automatically increment the server count
+                          window.open(downloadUrl, "_blank");
                         } catch (error) {
-                          console.error('Failed to update download count:', error);
+                          console.error('Failed to process download:', error);
+                          // Fallback to the original file URL if the download endpoint fails
+                          window.open(resource.file, "_blank");
                         }
-                        
-                        // Open the file regardless of API call success
-                        window.open(resource.file, "_blank");
                       }}
                     >
                       <FileText className="w-4 h-4" />
