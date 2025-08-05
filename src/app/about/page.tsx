@@ -3,11 +3,8 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay, Pagination } from "swiper/modules";
 import { motion } from "framer-motion";
-import "swiper/css";
-import "swiper/css/pagination";
+import AutoScrollCarousel from "@/components/ui/AutoScrollCarousel";
 import {
   Users,
   Target,
@@ -185,7 +182,7 @@ export default function AboutPage() {
       transition={{ delay: index * 0.1 }}
       viewport={{ once: true }}
       onClick={() => setSelectedMember(member)}
-      className="group bg-white rounded-2xl border border-gray-200 shadow-lg hover:shadow-xl overflow-hidden transition-all duration-300 transform hover:-translate-y-1 w-80 flex-shrink-0 cursor-pointer"
+      className="group bg-white rounded-2xl border border-gray-200 shadow-lg hover:shadow-xl overflow-hidden transition-all duration-300 transform hover:-translate-y-1 w-full cursor-pointer"
     >
       {/* Profile Image */}
       <div className="relative h-48 bg-gradient-to-br from-[#B9FF66]/10 to-[#B9FF66]/5 overflow-hidden">
@@ -551,27 +548,22 @@ export default function AboutPage() {
                 </p>
               </div>
               
-              <Swiper
-                modules={[Autoplay, Pagination]}
-                slidesPerView={1.2}
-                spaceBetween={20}
-                loop
-                autoplay={{ delay: 3000, disableOnInteraction: false }}
-                pagination={{ clickable: true }}
-                breakpoints={{
-                  640: { slidesPerView: 1.5 },
-                  768: { slidesPerView: 2.2 },
-                  1024: { slidesPerView: 3 },
-                  1280: { slidesPerView: 3.5 },
-                }}
-                className="py-4 pb-12"
-              >
-                {eesaTeam.map((member, index) => (
-                  <SwiperSlide key={member.id} className="flex justify-center">
-                    <TeamMemberCard member={member} index={index} />
-                  </SwiperSlide>
-                ))}
-              </Swiper>
+              <div className="px-2 sm:px-0">
+                <AutoScrollCarousel
+                  autoplayDelay={3000}
+                  spaceBetween={16}
+                  slidesPerView={{
+                    mobile: 1.1,
+                    tablet: 1.8,
+                    desktop: 3,
+                    large: 3.5,
+                  }}
+                >
+                  {eesaTeam.map((member, index) => (
+                    <TeamMemberCard key={member.id} member={member} index={index} />
+                  ))}
+                </AutoScrollCarousel>
+              </div>
             </div>
           )}
 
@@ -587,27 +579,22 @@ export default function AboutPage() {
                 </p>
               </div>
               
-              <Swiper
-                modules={[Autoplay, Pagination]}
-                slidesPerView={1.2}
-                spaceBetween={20}
-                loop
-                autoplay={{ delay: 3500, disableOnInteraction: false }}
-                pagination={{ clickable: true }}
-                breakpoints={{
-                  640: { slidesPerView: 1.5 },
-                  768: { slidesPerView: 2.2 },
-                  1024: { slidesPerView: 3 },
-                  1280: { slidesPerView: 3.5 },
-                }}
-                className="py-4 pb-12"
-              >
-                {techTeam.map((member, index) => (
-                  <SwiperSlide key={member.id} className="flex justify-center">
-                    <TeamMemberCard member={member} index={index} />
-                  </SwiperSlide>
-                ))}
-              </Swiper>
+              <div className="px-2 sm:px-0">
+                <AutoScrollCarousel
+                  autoplayDelay={3500}
+                  spaceBetween={16}
+                  slidesPerView={{
+                    mobile: 1.1,
+                    tablet: 1.8,
+                    desktop: 3,
+                    large: 3.5,
+                  }}
+                >
+                  {techTeam.map((member, index) => (
+                    <TeamMemberCard key={member.id} member={member} index={index} />
+                  ))}
+                </AutoScrollCarousel>
+              </div>
             </div>
           )}
 
