@@ -31,7 +31,8 @@ interface Event {
   registration_count?: number;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
 
 export default function EventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -44,9 +45,9 @@ export default function EventsPage() {
     const fetchEvents = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${API_BASE_URL}/events/`, {
+        const response = await fetch(`${API_BASE_URL}/events/events/`, {
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
         });
 
@@ -55,35 +56,18 @@ export default function EventsPage() {
         }
 
         const data = await response.json();
-        setEvents(data.results || data || []);
+
+        // Ensure the events state is always an array
+        const eventsArray = Array.isArray(data.results)
+          ? data.results
+          : Array.isArray(data)
+          ? data
+          : [];
+        setEvents(eventsArray);
       } catch (error) {
-        console.error('Error fetching events:', error);
-        // Use fallback mock data if API fails
-        setEvents([
-          {
-            id: 1,
-            title: "Tech Innovation Summit 2025",
-            description: "Join industry leaders and innovators for a day of cutting-edge technology discussions and networking.",
-            start_date: "2025-08-15T10:00:00Z",
-            location: "CUSAT Auditorium",
-            event_type: "Conference",
-            registration_required: true,
-            is_featured: true,
-            max_participants: 500,
-            registration_count: 320,
-          },
-          {
-            id: 2,
-            title: "Electrical Engineering Workshop",
-            description: "Hands-on workshop covering the latest trends in electrical engineering and smart systems.",
-            start_date: "2025-08-20T14:00:00Z",
-            location: "EE Department Lab",
-            event_type: "Workshop",
-            registration_required: true,
-            max_participants: 50,
-            registration_count: 35,
-          }
-        ]);
+        console.error("Error fetching events:", error);
+        // Set empty array if API fails - no mock data
+        setEvents([]);
       } finally {
         setLoading(false);
       }
@@ -94,13 +78,14 @@ export default function EventsPage() {
 
   // Filter events based on search and date
   const filteredEvents = events.filter((event) => {
-    const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         event.description.toLowerCase().includes(searchQuery.toLowerCase());
-    
+    const matchesSearch =
+      event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      event.description.toLowerCase().includes(searchQuery.toLowerCase());
+
     const eventDate = new Date(event.start_date);
     const today = new Date();
     const isUpcoming = eventDate >= today;
-    
+
     if (showPastEvents) {
       return matchesSearch && !isUpcoming;
     } else {
@@ -109,14 +94,14 @@ export default function EventsPage() {
   });
 
   // Get featured event for hero section
-  const featuredEvent = events.find(event => event.is_featured) || events[0];
+  const featuredEvent = events.find((event) => event.is_featured) || events[0];
 
   const handleRegister = async (eventId: number) => {
     try {
       // Simple registration - in real app this would open a form or redirect
-      alert('Registration functionality would be implemented here');
+      alert("Registration functionality would be implemented here");
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error("Registration error:", error);
     }
   };
 
@@ -147,7 +132,6 @@ export default function EventsPage() {
             <div className="relative z-10">
               <div className="backdrop-blur-xl bg-[#F3F3F3]/60 border border-white/40 shadow-lg mx-4 my-8 rounded-2xl overflow-hidden">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-12 lg:py-16">
-                  
                   {/* Mobile Layout */}
                   <div className="block md:hidden">
                     {/* Poster Image at Top */}
@@ -167,7 +151,9 @@ export default function EventsPage() {
                               <div className="w-16 h-16 bg-[#191A23] flex items-center justify-center mx-auto mb-4 rounded-lg">
                                 <Zap className="w-8 h-8 text-[#B9FF66]" />
                               </div>
-                              <h3 className="text-lg font-bold text-[#191A23] mb-2">EVENT</h3>
+                              <h3 className="text-lg font-bold text-[#191A23] mb-2">
+                                EVENT
+                              </h3>
                               <p className="text-[#191A23]/70 text-sm bg-white/60 px-3 py-1 rounded">
                                 {featuredEvent.event_type || "Conference"}
                               </p>
@@ -190,16 +176,22 @@ export default function EventsPage() {
                     {/* Event Info */}
                     <div className="text-center">
                       <div className="inline-block bg-[#191A23] text-[#B9FF66] px-4 py-2 text-sm font-medium mb-4 rounded-lg">
-                        {new Date(featuredEvent.start_date).toLocaleDateString("en-US", {
-                          month: "long",
-                          day: "numeric",
-                        })}{" "}
+                        {new Date(featuredEvent.start_date).toLocaleDateString(
+                          "en-US",
+                          {
+                            month: "long",
+                            day: "numeric",
+                          }
+                        )}{" "}
                         •{" "}
-                        {new Date(featuredEvent.start_date).toLocaleTimeString("en-US", {
-                          hour: "numeric",
-                          minute: "2-digit",
-                          hour12: true,
-                        })}
+                        {new Date(featuredEvent.start_date).toLocaleTimeString(
+                          "en-US",
+                          {
+                            hour: "numeric",
+                            minute: "2-digit",
+                            hour12: true,
+                          }
+                        )}
                       </div>
 
                       <h1 className="text-2xl font-bold text-[#191A23] leading-tight mb-4">
@@ -248,7 +240,9 @@ export default function EventsPage() {
                               <div className="w-16 h-16 lg:w-20 lg:h-20 bg-[#191A23] flex items-center justify-center mx-auto mb-4 lg:mb-6 rounded-lg">
                                 <Zap className="w-8 h-8 lg:w-10 lg:h-10 text-[#B9FF66]" />
                               </div>
-                              <h3 className="text-lg lg:text-xl font-bold text-[#191A23] mb-2">EVENT</h3>
+                              <h3 className="text-lg lg:text-xl font-bold text-[#191A23] mb-2">
+                                EVENT
+                              </h3>
                               <p className="text-[#191A23]/70 text-sm bg-white/60 px-3 py-1 rounded">
                                 {featuredEvent.event_type || "Conference"}
                               </p>
@@ -280,17 +274,23 @@ export default function EventsPage() {
                     {/* Right Column: Event Details */}
                     <div className="flex-1">
                       <div className="inline-block bg-[#191A23] text-[#B9FF66] px-4 py-2 text-sm font-medium mb-6 rounded-lg">
-                        {new Date(featuredEvent.start_date).toLocaleDateString("en-US", {
-                          month: "long",
-                          day: "numeric",
-                          year: "numeric",
-                        })}{" "}
+                        {new Date(featuredEvent.start_date).toLocaleDateString(
+                          "en-US",
+                          {
+                            month: "long",
+                            day: "numeric",
+                            year: "numeric",
+                          }
+                        )}{" "}
                         •{" "}
-                        {new Date(featuredEvent.start_date).toLocaleTimeString("en-US", {
-                          hour: "numeric",
-                          minute: "2-digit",
-                          hour12: true,
-                        })}
+                        {new Date(featuredEvent.start_date).toLocaleTimeString(
+                          "en-US",
+                          {
+                            hour: "numeric",
+                            minute: "2-digit",
+                            hour12: true,
+                          }
+                        )}
                       </div>
 
                       <h1 className="text-3xl lg:text-4xl font-bold text-[#191A23] leading-tight mb-6">
@@ -305,7 +305,9 @@ export default function EventsPage() {
                         {featuredEvent.location && (
                           <div className="flex items-center text-[#191A23]/80 bg-white/40 p-4 border border-white/40 rounded-lg">
                             <MapPin className="w-6 h-6 mr-4 text-[#191A23] flex-shrink-0" />
-                            <span className="text-lg">{featuredEvent.location}</span>
+                            <span className="text-lg">
+                              {featuredEvent.location}
+                            </span>
                           </div>
                         )}
 
@@ -313,7 +315,8 @@ export default function EventsPage() {
                           <div className="flex items-center text-[#191A23]/80 bg-white/40 p-4 border border-white/40 rounded-lg">
                             <Users className="w-6 h-6 mr-4 text-[#191A23] flex-shrink-0" />
                             <span className="text-lg">
-                              {featuredEvent.registration_count || 0} / {featuredEvent.max_participants} registered
+                              {featuredEvent.registration_count || 0} /{" "}
+                              {featuredEvent.max_participants} registered
                             </span>
                           </div>
                         )}
@@ -335,8 +338,8 @@ export default function EventsPage() {
                 {showPastEvents ? "Past Events" : "Upcoming Events"}
               </h2>
               <p className="text-[#191A23]/70 text-lg max-w-2xl mx-auto">
-                {showPastEvents 
-                  ? "Discover the events we've successfully organized" 
+                {showPastEvents
+                  ? "Discover the events we've successfully organized"
                   : "Join us for exciting upcoming events and workshops"}
               </p>
             </div>
@@ -367,7 +370,7 @@ export default function EventsPage() {
               <div className="flex bg-white/80 border border-[#191A23]/20 rounded-lg overflow-hidden">
                 <button
                   onClick={() => setShowPastEvents(false)}
-                  className={`px-6 py-3 font-medium transition-all duration-300 ${
+                  className={`flex-1 px-6 py-3 font-medium transition-all duration-300 ${
                     !showPastEvents
                       ? "bg-[#191A23] text-[#B9FF66]"
                       : "text-[#191A23] hover:bg-[#191A23]/10"
@@ -377,7 +380,7 @@ export default function EventsPage() {
                 </button>
                 <button
                   onClick={() => setShowPastEvents(true)}
-                  className={`px-6 py-3 font-medium transition-all duration-300 ${
+                  className={`flex-1 px-6 py-3 font-medium transition-all duration-300 ${
                     showPastEvents
                       ? "bg-[#191A23] text-[#B9FF66]"
                       : "text-[#191A23] hover:bg-[#191A23]/10"
@@ -412,7 +415,9 @@ export default function EventsPage() {
                             <div className="w-12 h-12 bg-[#191A23] flex items-center justify-center mx-auto mb-2 rounded-lg">
                               <Calendar className="w-6 h-6 text-[#B9FF66]" />
                             </div>
-                            <p className="text-[#191A23]/60 text-sm">{event.event_type || "Event"}</p>
+                            <p className="text-[#191A23]/60 text-sm">
+                              {event.event_type || "Event"}
+                            </p>
                           </div>
                         </div>
                       )}
@@ -433,19 +438,25 @@ export default function EventsPage() {
                       <div className="flex items-center text-[#191A23]/60 text-sm mb-3">
                         <Calendar className="w-4 h-4 mr-2" />
                         <span>
-                          {new Date(event.start_date).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
+                          {new Date(event.start_date).toLocaleDateString(
+                            "en-US",
+                            {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            }
+                          )}
                         </span>
                         <Clock className="w-4 h-4 ml-4 mr-2" />
                         <span>
-                          {new Date(event.start_date).toLocaleTimeString("en-US", {
-                            hour: "numeric",
-                            minute: "2-digit",
-                            hour12: true,
-                          })}
+                          {new Date(event.start_date).toLocaleTimeString(
+                            "en-US",
+                            {
+                              hour: "numeric",
+                              minute: "2-digit",
+                              hour12: true,
+                            }
+                          )}
                         </span>
                       </div>
 
@@ -460,7 +471,9 @@ export default function EventsPage() {
                       {event.location && (
                         <div className="flex items-center text-[#191A23]/60 mb-4">
                           <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
-                          <span className="text-sm truncate">{event.location}</span>
+                          <span className="text-sm truncate">
+                            {event.location}
+                          </span>
                         </div>
                       )}
 
@@ -468,7 +481,8 @@ export default function EventsPage() {
                         <div className="flex items-center text-[#191A23]/60 mb-4">
                           <Users className="w-4 h-4 mr-2 flex-shrink-0" />
                           <span className="text-sm">
-                            {event.registration_count || 0} / {event.max_participants} registered
+                            {event.registration_count || 0} /{" "}
+                            {event.max_participants} registered
                           </span>
                         </div>
                       )}
@@ -492,7 +506,9 @@ export default function EventsPage() {
                   <Calendar className="w-8 h-8 text-[#191A23]/50" />
                 </div>
                 <h3 className="text-xl font-semibold text-[#191A23] mb-2">
-                  {showPastEvents ? "No Past Events Found" : "No Upcoming Events"}
+                  {showPastEvents
+                    ? "No Past Events Found"
+                    : "No Upcoming Events"}
                 </h3>
                 <p className="text-[#191A23]/60">
                   {searchQuery

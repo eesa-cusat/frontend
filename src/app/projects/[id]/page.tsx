@@ -21,7 +21,7 @@ import {
 // This is the correct directive for client components in Next.js App Router.
 // It must be at the very top of the file to work correctly.
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
 
 interface Project {
   id: number;
@@ -131,7 +131,7 @@ const ProjectDetailPage: React.FC = () => {
       setError(null);
 
       const response = await fetch(
-        `${API_BASE_URL}/api/projects/${projectId}/`,
+        `${API_BASE_URL}/projects/${projectId}/`,
         {
           method: "GET",
           headers: {

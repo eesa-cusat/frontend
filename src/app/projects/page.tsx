@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 
 // API Configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
 
 // Simple Project interface matching backend response
 interface Project {
@@ -144,7 +144,7 @@ const ProjectsPage: React.FC = () => {
         }
 
         const queryString = params.toString();
-        const url = `${API_BASE_URL}/api/projects/${
+        const url = `${API_BASE_URL}/projects/${
           queryString ? `?${queryString}` : ""
         }`;
 
