@@ -829,7 +829,36 @@ const AcademicsPage = () => {
                   <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                     <button
                       className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium bg-blue-500 hover:bg-blue-600 text-white transition-colors w-full sm:w-auto"
-                      onClick={() => window.open(resource.file, "_blank")}
+                      onClick={async () => {
+                        // Update download count on click
+                        try {
+                          const response = await fetch(
+                            `${process.env.NEXT_PUBLIC_API_BASE_URL}/academics/resources/${resource.id}/download/`,
+                            {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                            }
+                          );
+                          
+                          if (response.ok) {
+                            // Update the local state to increment download count
+                            setResources((prev) =>
+                              prev.map((res) =>
+                                res.id === resource.id
+                                  ? { ...res, download_count: (res.download_count || 0) + 1 }
+                                  : res
+                              )
+                            );
+                          }
+                        } catch (error) {
+                          console.error('Failed to update download count:', error);
+                        }
+                        
+                        // Open the file regardless of API call success
+                        window.open(resource.file, "_blank");
+                      }}
                     >
                       <FileText className="w-4 h-4" />
                       Download ({resource.download_count || 0})

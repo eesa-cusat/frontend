@@ -14,6 +14,7 @@ import {
   AlertCircle,
   Star,
 } from "lucide-react";
+import { getImageUrl } from "@/utils/api";
 
 // API Configuration
 const API_BASE_URL =
@@ -403,7 +404,7 @@ const ProjectsPage: React.FC = () => {
                   <div className="relative h-64 bg-gray-200 overflow-hidden">
                     {project.thumbnail_image ? (
                       <Image
-                        src={`http://localhost:8000${project.thumbnail_image}`}
+                        src={getImageUrl(project.thumbnail_image) || ''}
                         alt={`${project.title} cover image`}
                         fill
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"

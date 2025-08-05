@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import RegistrationModal, {
   RegistrationFormData,
 } from "@/components/ui/RegistrationModal";
+import { getImageUrl } from "@/utils/api";
 
 // Simplified Event interface
 interface Event {
@@ -66,7 +67,28 @@ export default function EventsPage() {
         const eventsArray = Array.isArray(eventsData.results)
           ? eventsData.results
           : [];
-        setEvents(eventsArray);
+
+        // Fetch detailed data for each event to get event_flyer field
+        const eventsWithFlyers = await Promise.all(
+          eventsArray.map(async (event: Event) => {
+            try {
+              const detailResponse = await fetch(`${API_BASE_URL}/events/events/${event.id}/`);
+              if (detailResponse.ok) {
+                const detailData = await detailResponse.json();
+                return {
+                  ...event,
+                  event_flyer: detailData.event_flyer || null
+                };
+              }
+              return event;
+            } catch (error) {
+              console.error(`Failed to fetch details for event ${event.id}:`, error);
+              return event;
+            }
+          })
+        );
+
+        setEvents(eventsWithFlyers);
       } catch (error) {
         console.error("Error fetching data:", error);
         setEvents([]); // Set empty array if API fails
@@ -263,9 +285,9 @@ export default function EventsPage() {
                   >
                     {/* Event Image */}
                     <div className="relative h-48 bg-[#F3F3F3]">
-                      {event.event_flyer ? (
+                      {(event.event_flyer || event.banner_image) ? (
                         <Image
-                          src={event.event_flyer}
+                          src={getImageUrl(event.event_flyer || event.banner_image) || ''}
                           alt={event.title}
                           fill
                           className="object-cover"
