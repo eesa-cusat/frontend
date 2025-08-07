@@ -74,7 +74,7 @@ export default function RootLayout({
         {/* Service Worker Registration */}
         <Script id="sw-register" strategy="afterInteractive">
           {`
-            if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+            if ('serviceWorker' in navigator && window.location.hostname === 'eesacusat.in') {
               window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
                   .then((registration) => {
