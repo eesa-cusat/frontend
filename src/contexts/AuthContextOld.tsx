@@ -7,13 +7,13 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
-import { User, AuthState, UserGroup } from "@/types/auth";
+import { User, AuthState, LoginCredentials, UserGroup } from "@/types/auth";
 import { authService } from "@/services/auth";
 import toast from "react-hot-toast";
 
 interface AuthContextType extends AuthState {
-  login: (credentials: { username: string; password: string }) => Promise<void>;
-  logout: () => Promise<void>;
+  login: (credentials: LoginCredentials) => Promise<void>;
+  logout: () => void;
   refreshUser: () => Promise<void>;
   hasGroupAccess: (groupName: string) => boolean;
   canAccessAdmin: () => boolean;
@@ -34,7 +34,6 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
       return {
         ...state,
         user: action.payload,
-        tokens: null,
         isAuthenticated: !!action.payload,
         isLoading: false,
       };
@@ -60,12 +59,21 @@ const initialState: AuthState = {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  const login = async (credentials: { username: string; password: string }) => {
+  const login = async (credentials: LoginCredentials) => {
     try {
       dispatch({ type: "SET_LOADING", payload: true });
 
-      const response = await authService.login(credentials);
-      dispatch({ type: "SET_USER", payload: response.user });
+      const response = await apiRequest<{ user: User; tokens: AuthTokens }>(
+        "POST",
+        "/auth/login/",
+        credentials
+      );
+
+      const { user, tokens } = response;
+
+      tokenStorage.setTokens(tokens);
+      dispatch({ type: "SET_TOKENS", payload: tokens });
+      dispatch({ type: "SET_USER", payload: user });
 
       toast.success("Login successful!");
     } catch (error) {
@@ -74,37 +82,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = async () => {
-    try {
-      await authService.logout();
-    } catch (error) {
-      console.error("Logout error:", error);
-    } finally {
-      dispatch({ type: "LOGOUT" });
-      toast.success("Logged out successfully");
-    }
+  const logout = () => {
+    tokenStorage.clearTokens();
+    dispatch({ type: "LOGOUT" });
+    toast.success("Logged out successfully");
   };
 
   const refreshUser = async () => {
     try {
-      const user = await authService.getCurrentUser();
+      const user = await apiRequest<User>("GET", "/auth/profile/");
       dispatch({ type: "SET_USER", payload: user });
     } catch (error) {
       console.error("Failed to refresh user:", error);
-      await logout();
+      logout();
     }
   };
 
   const hasGroupAccess = (groupName: string): boolean => {
     if (!state.user) return false;
     if (state.user.is_superuser) return true;
-    return state.user.groups.includes(groupName as UserGroup);
+    return state.user.groups.includes(groupName as any);
   };
 
   const canAccessAdmin = (): boolean => {
     if (!state.user) return false;
     if (state.user.is_superuser || state.user.is_staff) return true;
     return state.user.groups.length > 0;
+  };
+
+  const hasGroupAccess = (group: UserGroup): boolean => {
+    return authService.hasGroupAccess(state.user, group);
+  };
+
+  const canAccessAdmin = (): boolean => {
+    return authService.canAccessAdmin(state.user);
   };
 
   // Initialize auth state on mount

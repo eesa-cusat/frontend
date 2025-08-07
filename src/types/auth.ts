@@ -1,17 +1,21 @@
 export type UserRole = 'student' | 'teacher' | 'alumni' | 'tech_head' | 'admin';
+export type UserGroup = 'academics_team' | 'events_team' | 'careers_team' | 'people_team';
 
 export interface User {
-  id: string;
+  id: number;
   email: string;
   username: string;
   first_name: string;
   last_name: string;
-  role: UserRole;
+  groups: UserGroup[];
+  is_staff: boolean;
+  is_superuser: boolean;
+  role?: UserRole;
   profile_picture?: string;
-  is_verified: boolean;
-  is_approved: boolean;
-  created_at: string;
-  updated_at: string;
+  is_verified?: boolean;
+  is_approved?: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface AuthTokens {
@@ -27,7 +31,7 @@ export interface AuthState {
 }
 
 export interface LoginCredentials {
-  username_or_email: string;
+  username: string;
   password: string;
 }
 
