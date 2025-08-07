@@ -13,7 +13,7 @@ interface AuthResponse {
 }
 
 class AuthService {
-  private baseUrl = 'http://localhost:8000';
+  private baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
   private static instance: AuthService;
 
   static getInstance(): AuthService {
