@@ -19,6 +19,7 @@
 
 # production
 /build
+/dist
 
 # misc
 .DS_Store
@@ -32,6 +33,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -62,3 +64,21 @@ test-*/
 # development files
 .DS_Store
 .vscode/settings.json
+cookies.txt
+cookie_jar.txt
+test_cookies.txt
+*.sh
+
+# cache and logs
+.turbo
+.cache/
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+Thumbs.db

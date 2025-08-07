@@ -1,0 +1,23 @@
+User-agent: *
+Allow: /
+
+# Allow crawling of main sections
+Allow: /about
+Allow: /academics
+Allow: /events
+Allow: /projects
+Allow: /careers
+Allow: /gallery
+Allow: /alumni
+Allow: /library
+Allow: /placements
+
+# Disallow admin areas and private sections
+Disallow: /eesa/
+Disallow: /admin/
+Disallow: /api/
+Disallow: /_next/
+Disallow: /private/
+
+# Sitemap
+Sitemap: https://eesacusat.in/sitemap.xml

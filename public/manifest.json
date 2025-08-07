@@ -1,0 +1,28 @@
+{
+  "name": "EESA - Electrical and Electronics Students Association",
+  "short_name": "EESA",
+  "description": "Platform for EESA students, teachers, and alumni to share notes, projects, events, and career opportunities",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/eesa-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "32x32",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["education", "productivity", "social"],
+  "lang": "en",
+  "dir": "ltr",
+  "scope": "/",
+  "screenshots": []
+}

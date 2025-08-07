@@ -5,6 +5,31 @@ import toast from 'react-hot-toast';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
 const DJANGO_ADMIN_URL = process.env.NEXT_PUBLIC_DJANGO_ADMIN_URL || 'http://localhost:8000/eesa';
 
+// Simple in-memory cache
+const cache = new Map<string, { data: any; timestamp: number; ttl: number }>();
+
+// Cache utility functions
+const getCacheKey = (url: string, params?: any) => {
+  return `${url}${params ? '?' + new URLSearchParams(params).toString() : ''}`;
+};
+
+const getCachedData = (key: string) => {
+  const cached = cache.get(key);
+  if (cached && Date.now() - cached.timestamp < cached.ttl) {
+    return cached.data;
+  }
+  cache.delete(key);
+  return null;
+};
+
+const setCachedData = (key: string, data: any, ttlMinutes: number = 5) => {
+  cache.set(key, {
+    data,
+    timestamp: Date.now(),
+    ttl: ttlMinutes * 60 * 1000,
+  });
+};
+
 // Create axios instance for public API calls
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -14,10 +39,55 @@ const apiClient = axios.create({
   timeout: 10000, // 10 second timeout
 });
 
-// Response interceptor to handle errors
+// Request interceptor for caching
+apiClient.interceptors.request.use(
+  (config) => {
+    // Enable compression
+    config.headers['Accept-Encoding'] = 'gzip, deflate, br';
+    
+    // Check cache for GET requests
+    if (config.method === 'get' && !config.url?.includes('admin')) {
+      const cacheKey = getCacheKey(config.url || '', config.params);
+      const cachedData = getCachedData(cacheKey);
+      
+      if (cachedData) {
+        // Return cached data by resolving promise
+        return Promise.reject({
+          cached: true,
+          data: cachedData,
+          config
+        });
+      }
+    }
+    
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response interceptor to handle errors and caching
 apiClient.interceptors.response.use(
-  (response: AxiosResponse) => response,
-  async (error: AxiosError) => {
+  (response: AxiosResponse) => {
+    // Cache GET responses (excluding admin endpoints)
+    if (response.config.method === 'get' && !response.config.url?.includes('admin')) {
+      const cacheKey = getCacheKey(response.config.url || '', response.config.params);
+      setCachedData(cacheKey, response.data, 5); // Cache for 5 minutes
+    }
+    
+    return response;
+  },
+  async (error: AxiosError | any) => {
+    // Handle cached responses
+    if (error.cached) {
+      return Promise.resolve({
+        data: error.data,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: error.config,
+      });
+    }
+
     if (error.response?.status === 404) {
       console.warn('API endpoint not found:', error.config?.url);
     } else if (error.response && error.response.status >= 500) {
@@ -85,6 +155,11 @@ export const api = {
   },
 };
 
+// Clear cache function
+export const clearApiCache = () => {
+  cache.clear();
+};
+
 // Helper function to redirect to Django admin
 export const redirectToDjangoAdmin = (path: string = '') => {
   const adminUrl = `${DJANGO_ADMIN_URL}/${path}`;
@@ -109,7 +184,7 @@ export const shouldRedirectToAdmin = (action: string) => {
   );
 };
 
-// Generic API request handler
+// Generic API request handler with caching
 export const apiRequest = async <T>(
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   endpoint: string,
