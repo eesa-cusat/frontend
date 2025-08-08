@@ -52,6 +52,7 @@ interface Subject {
   code: string;
   semester: number;
   scheme_name: string;
+  department?: string; // Add department field if available
 }
 
 interface Category {
@@ -203,18 +204,25 @@ const AcademicsPage = () => {
       }
       const resourcesData = await resourcesResponse.json();
 
-      // Extract unique departments from resources
-      const uniqueDepartments = new Set<string>();
-      const results = resourcesData.results || resourcesData || [];
-      if (Array.isArray(results)) {
-        results.forEach((resource: AcademicResource) => {
-          if (resource.subject && resource.subject.department) {
-            uniqueDepartments.add(resource.subject.department);
-          }
-        });
+        // Extract unique departments from resources
+  const uniqueDepartments = new Set<string>();
+  const results = resourcesData.results || resourcesData || [];
+  if (Array.isArray(results)) {
+    results.forEach((resource: AcademicResource) => {
+      if (resource.subject && resource.subject.department) {
+        uniqueDepartments.add(resource.subject.department);
       }
-      const departmentsList = Array.from(uniqueDepartments).sort();
-      setDepartments(departmentsList);
+    });
+  }
+  
+  // If no departments found in resources, use hardcoded list from backend
+  if (uniqueDepartments.size === 0) {
+    const defaultDepartments = ['EEE', 'ECE', 'IT', 'CS', 'ME', 'SFE', 'CE'];
+    setDepartments(defaultDepartments);
+  } else {
+    const departmentsList = Array.from(uniqueDepartments).sort();
+    setDepartments(departmentsList);
+  }
     } catch (error) {
       console.error("Error in fetchInitialData:", error);
       setBackendError(true);
@@ -323,6 +331,7 @@ const AcademicsPage = () => {
       if (filters.scheme_id) queryParams.append("scheme", filters.scheme_id);
       if (filters.subject_id) queryParams.append("subject", filters.subject_id);
       if (filters.semester) queryParams.append("semester", filters.semester);
+      if (filters.department) queryParams.append("department", filters.department);
       if (filters.module) queryParams.append("module_number", filters.module);
 
       const url = `${
