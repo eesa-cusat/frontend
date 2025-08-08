@@ -1022,9 +1022,12 @@ const AcademicsPage = () => {
                           console.error('Failed to download file:', error);
                           // Fallback: try to open the direct file URL
                           if (resource.file) {
-                            const fileUrl = resource.file.startsWith('http') 
-                              ? resource.file 
-                              : `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/api\/?$/, '') || 'http://localhost:8000'}${resource.file}`;
+                            let fileUrl = resource.file;
+                            if (!resource.file.startsWith('http')) {
+                              // If it's a relative path, construct the full URL
+                              const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/api\/?$/, '') || 'http://localhost:8000';
+                              fileUrl = `${baseUrl}${resource.file.startsWith('/') ? '' : '/'}${resource.file}`;
+                            }
                             window.open(fileUrl, "_blank");
                           }
                         }
