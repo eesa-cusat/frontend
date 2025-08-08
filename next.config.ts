@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'your-backend-domain.com',
+        hostname: 'api.eesacusat.in', // Updated to match your Django backend
         pathname: '/media/**',
       },
       {
@@ -93,15 +93,8 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  // Keep API first-party: proxy frontend /api/* → backend https://api.eesacusat.in/api/*
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: 'https://api.eesacusat.in/api/:path*',
-      },
-    ];
-  },
+
+
 };
 
 export default nextConfig;
