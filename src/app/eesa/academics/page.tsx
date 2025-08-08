@@ -1243,7 +1243,6 @@ export default function AcademicsPage() {
                     <option key={scheme.id} value={scheme.id}>
                       {scheme.name} ({scheme.year})
                     </option>
-                    
                   ))}
                 </select>
               </div>
@@ -1638,39 +1637,46 @@ export default function AcademicsPage() {
       }
     };
 
-    // FIX: The core logic of the bug is in this function.
-    const handleViewResource = (resource: Resource) => {
-      // 1. First, check if a file URL even exists.
+    // The corrected logic for the View button.
+    const handleViewResource = async (resource: Resource) => {
       if (!resource.file_url) {
-        toast.error("Failed to open resource: no file available.");
-        console.error('No file_url available for resource:', resource);
+        toast.error("Failed to open resource - no file available");
         return;
       }
 
-      // 2. The most reliable method is to use the API's designated download endpoint.
-      // This is because the server can handle authentication and proper file serving.
+      // The download endpoint is the most reliable way to serve files,
+      // as it's handled by the backend.
       const downloadUrl = `${API_BASE_URL}/academics/resources/${resource.id}/download/`;
 
       try {
-        // Attempt to open the download URL in a new tab.
-        window.open(downloadUrl, "_blank");
-        console.log('Attempting to open download URL:', downloadUrl);
-      } catch (error) {
-        console.error('Error opening download URL:', error);
-        toast.error("Could not open file. Attempting a fallback.");
+        const response = await fetch(downloadUrl, {
+          method: "GET",
+        });
 
-        // 3. Fallback logic: If the primary method fails, we try to use the direct file_url.
-        let finalUrl = resource.file_url;
-
-        // If the URL is relative, prepend the base URL.
-        if (!finalUrl.startsWith('http')) {
-          // It's crucial to remove '/api' from the base URL to get the root domain.
-          const baseUrl = API_BASE_URL.replace(/\/api\/?$/, '');
-          finalUrl = `${baseUrl}${finalUrl.startsWith('/') ? '' : '/'}${finalUrl}`;
+        if (response.ok) {
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          window.open(url, "_blank");
+          // Revoke the object URL to free up memory
+          setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+        } else {
+          throw new Error(`Download failed with status: ${response.status}`);
         }
-        
-        console.log('Fallback: Attempting to open file URL:', finalUrl);
-        window.open(finalUrl, "_blank");
+      } catch (error) {
+        console.error("Error opening resource:", error);
+        toast.error("Failed to open resource. Attempting direct link.");
+
+        // Fallback: Use the file_url directly if the download endpoint fails
+        let fileUrl = resource.file_url;
+
+        // If it's a relative path, construct the full URL from the base domain
+        if (!fileUrl.startsWith("http")) {
+          const baseUrl = API_BASE_URL.replace(/\/api\/?$/, "");
+          fileUrl = `${baseUrl}${fileUrl.startsWith("/") ? "" : "/"}${fileUrl}`;
+        }
+
+        console.log("Fallback: Opening file URL:", fileUrl);
+        window.open(fileUrl, "_blank");
       }
     };
 
@@ -2286,7 +2292,10 @@ export default function AcademicsPage() {
                                 ? "View/Download Resource"
                                 : "No file available"
                             }
-                            disabled={!resource.file_url}
+                            disabled={
+                              !resource.file_url ||
+                              resource.file_url.trim() === ""
+                            }
                           >
                             <svg
                               className="w-5 h-5 mr-2"
