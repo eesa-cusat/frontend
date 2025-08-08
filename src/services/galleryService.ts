@@ -222,7 +222,7 @@ class GalleryService {
         }
 
         const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
-        const cleanBaseUrl = baseUrl.replace('/api', '');
+        const cleanBaseUrl = baseUrl.replace(/\/api\/?$/, '');
         const cleanImagePath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
 
         return `${cleanBaseUrl}${cleanImagePath}`;

@@ -1640,7 +1640,7 @@ export default function AcademicsPage() {
     const handleViewResource = (resource: Resource) => {
       if (resource.file_url) {
         // Construct the full URL by combining base URL with the relative file path
-        const baseUrl = API_BASE_URL.replace('/api', ''); // Remove /api from base URL
+        const baseUrl = API_BASE_URL.replace(/\/api\/?$/, ''); // Remove /api from base URL
         const fullFileUrl = `${baseUrl}${resource.file_url}`;
         // Open the file in a new tab
         window.open(fullFileUrl, "_blank");

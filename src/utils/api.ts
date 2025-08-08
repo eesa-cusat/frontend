@@ -12,7 +12,7 @@ export const getApiBaseUrl = (): string => {
  */
 export const getMediaBaseUrl = (): string => {
   const apiUrl = getApiBaseUrl();
-  return apiUrl.replace('/api', '');
+  return apiUrl.replace(/\/api\/?$/, '');
 };
 
 /**
@@ -22,12 +22,12 @@ export const getMediaBaseUrl = (): string => {
  */
 export const getImageUrl = (imageUrl: string | null | undefined): string | null => {
   if (!imageUrl) return null;
-  
+
   // If already absolute URL, return as is
   if (imageUrl.startsWith('http')) {
     return imageUrl;
   }
-  
+
   // If relative URL, prepend the media base URL
   const baseUrl = getMediaBaseUrl();
   return `${baseUrl}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;

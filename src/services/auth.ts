@@ -5,7 +5,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8
 
 // Create axios instance for auth operations
 export const authClient = axios.create({
-  baseURL: `${API_BASE_URL.replace('/api', '')}`,
+  baseURL: `${API_BASE_URL.replace(/\/api\/?$/, '')}`,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -52,14 +52,14 @@ export const authService = {
     try {
       // First get CSRF token
       const { csrfToken } = await this.getCsrfToken();
-      
+
       // Then login
       const response = await authClient.post('/api/accounts/auth/login/', credentials, {
         headers: {
           'X-CSRFToken': csrfToken,
         },
       });
-      
+
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -125,7 +125,7 @@ export const authService = {
 
 // Export axios instance with automatic CSRF token handling for other services
 export const axiosWithCredentials = axios.create({
-  baseURL: `${API_BASE_URL.replace('/api', '')}`,
+  baseURL: `${API_BASE_URL.replace(/\/api\/?$/, '')}`,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
