@@ -1243,6 +1243,7 @@ export default function AcademicsPage() {
                     <option key={scheme.id} value={scheme.id}>
                       {scheme.name} ({scheme.year})
                     </option>
+                    
                   ))}
                 </select>
               </div>
@@ -1637,38 +1638,39 @@ export default function AcademicsPage() {
       }
     };
 
+    // FIX: The core logic of the bug is in this function.
     const handleViewResource = (resource: Resource) => {
-      console.log('View button clicked for resource:', resource); // Debug log
-      
+      // 1. First, check if a file URL even exists.
+      if (!resource.file_url) {
+        toast.error("Failed to open resource: no file available.");
+        console.error('No file_url available for resource:', resource);
+        return;
+      }
+
+      // 2. The most reliable method is to use the API's designated download endpoint.
+      // This is because the server can handle authentication and proper file serving.
+      const downloadUrl = `${API_BASE_URL}/academics/resources/${resource.id}/download/`;
+
       try {
-        // Use the download endpoint which handles file serving properly
-        const downloadUrl = `${API_BASE_URL}/academics/resources/${resource.id}/download/`;
-        console.log('Opening download URL:', downloadUrl); // Debug log
-        
-        // Open the file in a new tab
+        // Attempt to open the download URL in a new tab.
         window.open(downloadUrl, "_blank");
+        console.log('Attempting to open download URL:', downloadUrl);
       } catch (error) {
-        console.error('Error opening resource:', error);
-        
-        // Fallback: try to use file_url directly if download endpoint fails
-        if (resource.file_url) {
-          let fileUrl = resource.file_url;
-          
-          // If it's already a full URL (Cloudinary or external), use it directly
-          if (resource.file_url.startsWith('http')) {
-            fileUrl = resource.file_url;
-          } else {
-            // If it's a relative path, construct the full URL
-            const baseUrl = API_BASE_URL.replace(/\/api\/?$/, ''); // Remove /api from base URL
-            fileUrl = `${baseUrl}${resource.file_url.startsWith('/') ? '' : '/'}${resource.file_url}`;
-          }
-          
-          console.log('Fallback: Opening file URL:', fileUrl);
-          window.open(fileUrl, "_blank");
-        } else {
-          toast.error("Failed to open resource - no file available");
-          console.log('No file_url available for resource:', resource);
+        console.error('Error opening download URL:', error);
+        toast.error("Could not open file. Attempting a fallback.");
+
+        // 3. Fallback logic: If the primary method fails, we try to use the direct file_url.
+        let finalUrl = resource.file_url;
+
+        // If the URL is relative, prepend the base URL.
+        if (!finalUrl.startsWith('http')) {
+          // It's crucial to remove '/api' from the base URL to get the root domain.
+          const baseUrl = API_BASE_URL.replace(/\/api\/?$/, '');
+          finalUrl = `${baseUrl}${finalUrl.startsWith('/') ? '' : '/'}${finalUrl}`;
         }
+        
+        console.log('Fallback: Attempting to open file URL:', finalUrl);
+        window.open(finalUrl, "_blank");
       }
     };
 
