@@ -1638,14 +1638,37 @@ export default function AcademicsPage() {
     };
 
     const handleViewResource = (resource: Resource) => {
-      if (resource.file_url) {
-        // Construct the full URL by combining base URL with the relative file path
-        const baseUrl = API_BASE_URL.replace(/\/api\/?$/, ''); // Remove /api from base URL
-        const fullFileUrl = `${baseUrl}${resource.file_url}`;
+      console.log('View button clicked for resource:', resource); // Debug log
+      
+      try {
+        // Use the download endpoint which handles file serving properly
+        const downloadUrl = `${API_BASE_URL}/academics/resources/${resource.id}/download/`;
+        console.log('Opening download URL:', downloadUrl); // Debug log
+        
         // Open the file in a new tab
-        window.open(fullFileUrl, "_blank");
-      } else {
-        toast.error("No file available for this resource");
+        window.open(downloadUrl, "_blank");
+      } catch (error) {
+        console.error('Error opening resource:', error);
+        
+        // Fallback: try to use file_url directly if download endpoint fails
+        if (resource.file_url) {
+          let fileUrl = resource.file_url;
+          
+          // If it's already a full URL (Cloudinary or external), use it directly
+          if (resource.file_url.startsWith('http')) {
+            fileUrl = resource.file_url;
+          } else {
+            // If it's a relative path, construct the full URL
+            const baseUrl = API_BASE_URL.replace(/\/api\/?$/, ''); // Remove /api from base URL
+            fileUrl = `${baseUrl}${resource.file_url.startsWith('/') ? '' : '/'}${resource.file_url}`;
+          }
+          
+          console.log('Fallback: Opening file URL:', fileUrl);
+          window.open(fileUrl, "_blank");
+        } else {
+          toast.error("Failed to open resource - no file available");
+          console.log('No file_url available for resource:', resource);
+        }
       }
     };
 
