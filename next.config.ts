@@ -28,12 +28,12 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  
+
   // Production optimizations
   output: 'standalone',
   compress: true,
   poweredByHeader: false,
-  
+
   // Build optimizations
   eslint: {
     ignoreDuringBuilds: true,
@@ -41,7 +41,7 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  
+
   // Performance optimizations
   experimental: {
     serverActions: {
@@ -49,10 +49,10 @@ const nextConfig: NextConfig = {
     },
     optimizePackageImports: ['lucide-react', 'framer-motion'],
   },
-  
+
   // Static asset optimization
   assetPrefix: process.env.NODE_ENV === 'production' ? '' : '',
-  
+
   // Headers for caching and security
   async headers() {
     return [
@@ -90,6 +90,15 @@ const nextConfig: NextConfig = {
             value: 'public, max-age=31536000, immutable',
           },
         ],
+      },
+    ];
+  },
+  // Keep API first-party: proxy frontend /api/* → backend https://api.eesacusat.in/api/*
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'https://api.eesacusat.in/api/:path*',
       },
     ];
   },
