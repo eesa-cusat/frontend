@@ -1639,7 +1639,8 @@ export default function AcademicsPage() {
 
     // The corrected logic for the View button.
     const handleViewResource = async (resource: Resource) => {
-      if (!resource.file_url) {
+      const fileUrl = resource.file_url || resource.file;
+      if (!fileUrl) {
         toast.error("Failed to open resource - no file available");
         return;
       }
@@ -1666,17 +1667,17 @@ export default function AcademicsPage() {
         console.error("Error opening resource:", error);
         toast.error("Failed to open resource. Attempting direct link.");
 
-        // Fallback: Use the file_url directly if the download endpoint fails
-        let fileUrl = resource.file_url;
+        // Fallback: Use the file_url or file directly if the download endpoint fails
+        let directUrl = fileUrl;
 
         // If it's a relative path, construct the full URL from the base domain
-        if (!fileUrl.startsWith("http")) {
+        if (!directUrl.startsWith("http")) {
           const baseUrl = API_BASE_URL.replace(/\/api\/?$/, "");
-          fileUrl = `${baseUrl}${fileUrl.startsWith("/") ? "" : "/"}${fileUrl}`;
+          directUrl = `${baseUrl}${directUrl.startsWith("/") ? "" : "/"}${directUrl}`;
         }
 
-        console.log("Fallback: Opening file URL:", fileUrl);
-        window.open(fileUrl, "_blank");
+        console.log("Fallback: Opening file URL:", directUrl);
+        window.open(directUrl, "_blank");
       }
     };
 
@@ -2293,8 +2294,8 @@ export default function AcademicsPage() {
                                 : "No file available"
                             }
                             disabled={
-                              !resource.file_url ||
-                              resource.file_url.trim() === ""
+                              !(resource.file_url || resource.file) ||
+                              ((resource.file_url || resource.file)?.trim() === "")
                             }
                           >
                             <svg
