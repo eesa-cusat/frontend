@@ -33,3 +33,21 @@ export interface NavItem {
   icon?: React.ComponentType<{ className?: string }>;
   roles?: ('student' | 'teacher' | 'alumni' | 'tech_head')[];
 }
+
+
+export interface Scheme {
+  id: number;
+  name: string;
+  year: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+
+export interface SubjectListItem {
+  id: number;
+  name: string;
+  code: string;
+  semester: number;
+  scheme_name: string;
+}
