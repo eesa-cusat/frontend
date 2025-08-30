@@ -2,27 +2,31 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { 
-  Camera, 
-  Image as ImageIcon, 
-  Calendar, 
-  Users, 
+import {
+  Camera,
+  Image as ImageIcon,
+  Calendar,
+  Users,
   Filter,
   Search,
   Grid3X3,
   List,
   ChevronDown,
-  MapPin,
   User,
   Tag,
   Eye,
-  Heart,
   Download,
   Share2,
   X,
-  Loader2
+  Loader2,
+  Clock,
 } from "lucide-react";
-import { galleryService, GalleryImage, GalleryCategory, GalleryAlbum } from "@/services/galleryService";
+import {
+  galleryService,
+  GalleryImage,
+  GalleryCategory,
+  GalleryAlbum,
+} from "@/services/galleryService";
 import toast from "react-hot-toast";
 
 interface GalleryFilters {
@@ -30,6 +34,7 @@ interface GalleryFilters {
   category_type?: string;
   search?: string;
   is_featured?: boolean;
+  year?: string;
 }
 
 const GalleryPage = () => {
@@ -39,10 +44,11 @@ const GalleryPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<GalleryFilters>({});
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(false);
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
   const [imageLoading, setImageLoading] = useState<Set<number>>(new Set());
+  const [availableYears, setAvailableYears] = useState<string[]>([]);
 
   useEffect(() => {
     fetchGalleryData();
@@ -57,12 +63,28 @@ const GalleryPage = () => {
       const [categoriesData, albumsData, imagesData] = await Promise.all([
         galleryService.getCategories(),
         galleryService.getAlbums(),
-        galleryService.getImages(filters)
+        galleryService.getImages(filters),
       ]);
 
       setCategories(categoriesData);
       setAlbums(albumsData);
       setImages(imagesData);
+
+      // Extract available years from albums and images
+      const years = new Set<string>();
+      albumsData.forEach((album) => {
+        if (album.event_date) {
+          const year = new Date(album.event_date).getFullYear().toString();
+          years.add(year);
+        }
+      });
+      imagesData.forEach((image) => {
+        const year = new Date(image.created_at).getFullYear().toString();
+        years.add(year);
+      });
+      setAvailableYears(
+        Array.from(years).sort((a, b) => parseInt(b) - parseInt(a))
+      );
     } catch (err) {
       console.error("Error fetching gallery data:", err);
       setError("Failed to load gallery data. Please try again later.");
@@ -73,7 +95,7 @@ const GalleryPage = () => {
   };
 
   const handleImageLoad = (imageId: number) => {
-    setImageLoading(prev => {
+    setImageLoading((prev) => {
       const newSet = new Set(prev);
       newSet.delete(imageId);
       return newSet;
@@ -81,7 +103,7 @@ const GalleryPage = () => {
   };
 
   const handleImageError = (imageId: number) => {
-    setImageLoading(prev => {
+    setImageLoading((prev) => {
       const newSet = new Set(prev);
       newSet.delete(imageId);
       return newSet;
@@ -89,14 +111,65 @@ const GalleryPage = () => {
   };
 
   const handleFilterChange = (key: keyof GalleryFilters, value: any) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
-      [key]: value
+      [key]: value,
     }));
   };
 
   const clearFilters = () => {
     setFilters({});
+  };
+
+  // Helper function to format date
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
+  // Helper function to get batch number (based on year and month)
+  const getBatchNumber = (dateString: string) => {
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1; // 0-indexed, so add 1
+    return `Batch ${year}-${month.toString().padStart(2, "0")}`;
+  };
+
+  // Group images by year
+  const groupImagesByYear = (images: GalleryImage[]) => {
+    let filteredImages = images;
+
+    // Apply year filter if selected
+    if (filters.year) {
+      filteredImages = images.filter((image) => {
+        const imageYear = new Date(image.created_at).getFullYear().toString();
+        return imageYear === filters.year;
+      });
+    }
+
+    const grouped: { [year: string]: GalleryImage[] } = {};
+
+    filteredImages.forEach((image) => {
+      const year = new Date(image.created_at).getFullYear().toString();
+      if (!grouped[year]) {
+        grouped[year] = [];
+      }
+      grouped[year].push(image);
+    });
+
+    return Object.entries(grouped)
+      .sort(([a], [b]) => parseInt(b) - parseInt(a))
+      .map(([year, yearImages]) => ({
+        year,
+        images: yearImages.sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        ),
+      }));
   };
 
   const openImageModal = (image: GalleryImage) => {
@@ -109,19 +182,56 @@ const GalleryPage = () => {
 
   const downloadImage = async (image: GalleryImage) => {
     try {
-      const response = await fetch(galleryService.getImageUrl(image.image));
+      // Show loading toast
+      const loadingToast = toast.loading("Preparing download...");
+
+      const imageUrl = galleryService.getImageUrl(image.image);
+      const response = await fetch(imageUrl);
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch image");
+      }
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+
+      // Get file extension from the original image path or blob type
+      const getFileExtension = () => {
+        if (image.image.includes(".")) {
+          return image.image.split(".").pop()?.toLowerCase() || "jpg";
+        }
+        // Fallback to blob type
+        const mimeType = blob.type;
+        if (mimeType.includes("png")) return "png";
+        if (mimeType.includes("gif")) return "gif";
+        if (mimeType.includes("webp")) return "webp";
+        return "jpg";
+      };
+
+      const extension = getFileExtension();
+      const fileName = `${
+        image.title?.replace(/[^a-z0-9]/gi, "_") || "gallery-image"
+      }_${getBatchNumber(image.created_at).replace(/\s+/g, "_")}.${extension}`;
+
+      const a = document.createElement("a");
       a.href = url;
-      a.download = `${image.title || 'gallery-image'}.jpg`;
+      a.download = fileName;
       document.body.appendChild(a);
       a.click();
+
+      // Cleanup
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      toast.success('Image downloaded successfully');
+
+      // Dismiss loading toast and show success
+      toast.dismiss(loadingToast);
+      toast.success(`Downloaded: ${fileName}`, {
+        duration: 3000,
+        icon: "📥",
+      });
     } catch (error) {
-      toast.error('Failed to download image');
+      console.error("Download error:", error);
+      toast.error("Failed to download image. Please try again.");
     }
   };
 
@@ -131,7 +241,7 @@ const GalleryPage = () => {
         await navigator.share({
           title: image.title,
           text: image.description,
-          url: window.location.href
+          url: window.location.href,
         });
       } catch (error) {
         // Share cancelled or failed
@@ -139,7 +249,7 @@ const GalleryPage = () => {
     } else {
       // Fallback: copy to clipboard
       navigator.clipboard.writeText(window.location.href);
-      toast.success('Link copied to clipboard');
+      toast.success("Link copied to clipboard");
     }
   };
 
@@ -150,8 +260,12 @@ const GalleryPage = () => {
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center">
               <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-gray-700">Loading Gallery...</h2>
-              <p className="text-gray-500 mt-2">Please wait while we load your memories</p>
+              <h2 className="text-xl font-semibold text-gray-700">
+                Loading Gallery...
+              </h2>
+              <p className="text-gray-500 mt-2">
+                Please wait while we load your memories
+              </p>
             </div>
           </div>
         </div>
@@ -166,11 +280,13 @@ const GalleryPage = () => {
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center">
               <ImageIcon className="w-16 h-16 text-red-500 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-gray-700 mb-2">Oops! Something went wrong</h2>
+              <h2 className="text-xl font-semibold text-gray-700 mb-2">
+                Oops! Something went wrong
+              </h2>
               <p className="text-gray-500 mb-4">{error}</p>
               <button
                 onClick={fetchGalleryData}
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800 transition-colors"
               >
                 Try Again
               </button>
@@ -189,7 +305,9 @@ const GalleryPage = () => {
           <div className="text-center">
             <div className="flex items-center justify-center mb-6">
               <Camera className="w-12 h-12 mr-4 text-black" />
-              <h1 className="text-4xl md:text-6xl font-bold text-black">Photo Gallery</h1>
+              <h1 className="text-4xl md:text-6xl font-bold text-black">
+                Photo Gallery
+              </h1>
             </div>
             <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto text-gray-600">
               Capturing moments, preserving memories of our academic journey
@@ -222,9 +340,9 @@ const GalleryPage = () => {
               <input
                 type="text"
                 placeholder="Search photos..."
-                value={filters.search || ''}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={filters.search || ""}
+                onChange={(e) => handleFilterChange("search", e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
               />
             </div>
 
@@ -235,20 +353,32 @@ const GalleryPage = () => {
             >
               <Filter className="w-4 h-4 mr-2" />
               Filters
-              <ChevronDown className={`w-4 h-4 ml-2 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+              <ChevronDown
+                className={`w-4 h-4 ml-2 transition-transform ${
+                  showFilters ? "rotate-180" : ""
+                }`}
+              />
             </button>
 
             {/* View Mode Toggle */}
             <div className="flex border border-gray-300 rounded-lg overflow-hidden">
               <button
-                onClick={() => setViewMode('grid')}
-                className={`px-3 py-2 ${viewMode === 'grid' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                onClick={() => setViewMode("grid")}
+                className={`px-3 py-2 ${
+                  viewMode === "grid"
+                    ? "bg-black text-white"
+                    : "bg-white text-gray-600 hover:bg-gray-50"
+                }`}
               >
                 <Grid3X3 className="w-4 h-4" />
               </button>
               <button
-                onClick={() => setViewMode('list')}
-                className={`px-3 py-2 ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                onClick={() => setViewMode("list")}
+                className={`px-3 py-2 ${
+                  viewMode === "list"
+                    ? "bg-black text-white"
+                    : "bg-white text-gray-600 hover:bg-gray-50"
+                }`}
               >
                 <List className="w-4 h-4" />
               </button>
@@ -258,14 +388,21 @@ const GalleryPage = () => {
           {/* Expanded Filters */}
           {showFilters && (
             <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {/* Category Filter */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Category
+                  </label>
                   <select
-                    value={filters.category || ''}
-                    onChange={(e) => handleFilterChange('category', e.target.value ? Number(e.target.value) : undefined)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    value={filters.category || ""}
+                    onChange={(e) =>
+                      handleFilterChange(
+                        "category",
+                        e.target.value ? Number(e.target.value) : undefined
+                      )
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
                   >
                     <option value="">All Categories</option>
                     {categories.map((category) => (
@@ -276,13 +413,45 @@ const GalleryPage = () => {
                   </select>
                 </div>
 
+                {/* Year Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Year
+                  </label>
+                  <select
+                    value={filters.year || ""}
+                    onChange={(e) =>
+                      handleFilterChange("year", e.target.value || undefined)
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                  >
+                    <option value="">All Years</option>
+                    {availableYears.map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 {/* Featured Filter */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Featured</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Featured
+                  </label>
                   <select
-                    value={filters.is_featured?.toString() || ''}
-                    onChange={(e) => handleFilterChange('is_featured', e.target.value === 'true' ? true : e.target.value === 'false' ? false : undefined)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    value={filters.is_featured?.toString() || ""}
+                    onChange={(e) =>
+                      handleFilterChange(
+                        "is_featured",
+                        e.target.value === "true"
+                          ? true
+                          : e.target.value === "false"
+                          ? false
+                          : undefined
+                      )
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
                   >
                     <option value="">All Photos</option>
                     <option value="true">Featured Only</option>
@@ -311,136 +480,222 @@ const GalleryPage = () => {
           {images.length === 0 ? (
             <div className="text-center py-20">
               <ImageIcon className="w-24 h-24 text-gray-300 mx-auto mb-6" />
-              <h3 className="text-2xl font-semibold text-gray-700 mb-2">No Photos Found</h3>
-              <p className="text-gray-500 mb-6">Try adjusting your filters or search terms</p>
+              <h3 className="text-2xl font-semibold text-gray-700 mb-2">
+                No Photos Found
+              </h3>
+              <p className="text-gray-500 mb-6">
+                Try adjusting your filters or search terms
+              </p>
               <button
                 onClick={clearFilters}
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800 transition-colors"
               >
                 Clear All Filters
               </button>
             </div>
           ) : (
-            <div className={viewMode === 'grid' 
-              ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-              : "space-y-4"
-            }>
-              {images.map((image) => {
-                const imageUrl = galleryService.getImageUrl(image.image);
-                const isLoading = imageLoading.has(image.id);
-
-                return (
-                  <div
-                    key={image.id}
-                    className={`bg-white rounded-xl shadow-lg overflow-hidden group hover:shadow-xl transition-all duration-300 ${
-                      viewMode === 'list' ? 'flex' : ''
-                    }`}
-                  >
-                    <div className={`relative ${viewMode === 'list' ? 'w-48 h-32' : 'w-full h-48'}`}>
-                      {isLoading && (
-                        <div className="absolute inset-0 bg-gray-200 animate-pulse flex items-center justify-center">
-                          <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
-                        </div>
-                      )}
-                      <Image
-                        src={imageUrl}
-                        alt={image.title || "Gallery image"}
-                        fill
-                        style={{ objectFit: "cover" }}
-                        className="transition-transform duration-300 group-hover:scale-105"
-                        unoptimized={true}
-                        onLoad={() => handleImageLoad(image.id)}
-                        onError={() => handleImageError(image.id)}
-                      />
-                      
-                      {/* Overlay Actions */}
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => openImageModal(image)}
-                            className="p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
-                            title="View"
-                          >
-                            <Eye className="w-4 h-4 text-gray-700" />
-                          </button>
-                          <button
-                            onClick={() => downloadImage(image)}
-                            className="p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
-                            title="Download"
-                          >
-                            <Download className="w-4 h-4 text-gray-700" />
-                          </button>
-                          <button
-                            onClick={() => shareImage(image)}
-                            className="p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
-                            title="Share"
-                          >
-                            <Share2 className="w-4 h-4 text-gray-700" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Featured Badge */}
-                      {image.is_featured && (
-                        <div className="absolute top-2 left-2">
-                          <span className="bg-yellow-500 text-white text-xs px-2 py-1 rounded-full font-medium">
-                            Featured
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className={`p-4 ${viewMode === 'list' ? 'flex-1' : ''}`}>
-                      <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
-                        {image.title}
-                      </h3>
-                      {image.description && (
-                        <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                          {image.description}
-                        </p>
-                      )}
-                      
-                      <div className="space-y-1 text-xs text-gray-500">
-                        {image.album_name && (
-                          <p className="flex items-center">
-                            <Calendar className="w-3 h-3 mr-1" />
-                            {image.album_name}
-                          </p>
-                        )}
-                        {image.category_name && (
-                          <p className="flex items-center">
-                            <Tag className="w-3 h-3 mr-1" />
-                            {image.category_name}
-                          </p>
-                        )}
-                        {image.photographer && (
-                          <p className="flex items-center">
-                            <User className="w-3 h-3 mr-1" />
-                            {image.photographer}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Tags */}
-                      {image.tag_list && image.tag_list.length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-1">
-                          {image.tag_list.slice(0, 3).map((tag, index) => (
-                            <span
-                              key={index}
-                              className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                          {image.tag_list.length > 3 && (
-                            <span className="text-gray-400 text-xs">+{image.tag_list.length - 3} more</span>
-                          )}
-                        </div>
-                      )}
-                    </div>
+            <div className="space-y-16">
+              {groupImagesByYear(images).map(({ year, images: yearImages }) => (
+                <div key={year} className="space-y-8">
+                  {/* Year Header */}
+                  <div className="text-center">
+                    <h2
+                      className="text-4xl md:text-5xl font-bold text-black mb-2"
+                      style={{ fontFamily: "Georgia, serif" }}
+                    >
+                      {year}
+                    </h2>
+                    <div className="w-24 h-1 bg-black mx-auto"></div>
+                    <p className="text-gray-600 mt-4 text-lg">
+                      {yearImages.length}{" "}
+                      {yearImages.length === 1 ? "Photo" : "Photos"}
+                    </p>
                   </div>
-                );
-              })}
+
+                  {/* Images Grid */}
+                  <div
+                    className={
+                      viewMode === "grid"
+                        ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                        : "space-y-4"
+                    }
+                  >
+                    {yearImages.map((image) => {
+                      const imageUrl = galleryService.getImageUrl(image.image);
+                      const isLoading = imageLoading.has(image.id);
+
+                      return (
+                        <div
+                          key={image.id}
+                          className={`bg-white rounded-xl shadow-lg overflow-hidden group hover:shadow-xl transition-all duration-300 ${
+                            viewMode === "list" ? "flex" : ""
+                          }`}
+                        >
+                          <div
+                            className={`relative ${
+                              viewMode === "list" ? "w-48 h-32" : "w-full h-48"
+                            }`}
+                          >
+                            {isLoading && (
+                              <div className="absolute inset-0 bg-gray-200 animate-pulse flex items-center justify-center">
+                                <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
+                              </div>
+                            )}
+                            <Image
+                              src={imageUrl}
+                              alt={image.title || "Gallery image"}
+                              fill
+                              style={{ objectFit: "cover" }}
+                              className="transition-transform duration-300 group-hover:scale-105"
+                              unoptimized={true}
+                              onLoad={() => handleImageLoad(image.id)}
+                              onError={() => handleImageError(image.id)}
+                            />
+
+                            {/* Quick Download Button - Top Right */}
+                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  downloadImage(image);
+                                }}
+                                className="flex items-center space-x-2 bg-black/80 hover:bg-black text-white px-3 py-2 rounded-lg backdrop-blur-sm transition-all duration-200 hover:scale-105 shadow-lg"
+                                title="Download Image"
+                              >
+                                <Download className="w-4 h-4" />
+                                <span className="text-sm font-medium">
+                                  Download
+                                </span>
+                              </button>
+                            </div>
+
+                            {/* Overlay Actions */}
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                              <div className="flex space-x-3">
+                                <button
+                                  onClick={() => openImageModal(image)}
+                                  className="flex items-center space-x-2 p-3 bg-white/95 rounded-lg hover:bg-white transition-all duration-200 hover:scale-105 shadow-lg"
+                                  title="View Full Size"
+                                >
+                                  <Eye className="w-5 h-5 text-gray-700" />
+                                  <span className="text-sm font-medium text-gray-700">
+                                    View
+                                  </span>
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    shareImage(image);
+                                  }}
+                                  className="flex items-center space-x-2 p-3 bg-white/95 rounded-lg hover:bg-white transition-all duration-200 hover:scale-105 shadow-lg"
+                                  title="Share Image"
+                                >
+                                  <Share2 className="w-5 h-5 text-gray-700" />
+                                  <span className="text-sm font-medium text-gray-700">
+                                    Share
+                                  </span>
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Featured Badge */}
+                            {image.is_featured && (
+                              <div className="absolute top-2 left-2">
+                                <span className="bg-black text-white text-xs px-2 py-1 rounded-full font-medium">
+                                  Featured
+                                </span>
+                              </div>
+                            )}
+
+                            {/* File Size Indicator - Bottom Left */}
+                            {image.file_size_mb && (
+                              <div className="absolute bottom-2 left-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                                <span className="bg-black/80 text-white text-xs px-2 py-1 rounded backdrop-blur-sm">
+                                  {image.file_size_mb}MB
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div
+                            className={`p-4 ${
+                              viewMode === "list" ? "flex-1" : ""
+                            }`}
+                          >
+                            <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
+                              {image.title}
+                            </h3>
+                            {image.description && (
+                              <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                                {image.description}
+                              </p>
+                            )}
+
+                            {/* Date and Batch Information */}
+                            <div className="mb-3 p-2 bg-gray-50 rounded-lg">
+                              <div
+                                className="flex items-center text-black text-sm font-medium mb-1"
+                                style={{ fontFamily: "Georgia, serif" }}
+                              >
+                                <Clock className="w-4 h-4 mr-2" />
+                                {formatDate(image.created_at)}
+                              </div>
+                              <div
+                                className="text-black text-xs font-semibold"
+                                style={{ fontFamily: "Georgia, serif" }}
+                              >
+                                {getBatchNumber(image.created_at)}
+                              </div>
+                            </div>
+
+                            <div className="space-y-1 text-xs text-gray-500">
+                              {image.album_name && (
+                                <p className="flex items-center">
+                                  <Calendar className="w-3 h-3 mr-1" />
+                                  {image.album_name}
+                                </p>
+                              )}
+                              {image.category_name && (
+                                <p className="flex items-center">
+                                  <Tag className="w-3 h-3 mr-1" />
+                                  {image.category_name}
+                                </p>
+                              )}
+                              {image.photographer && (
+                                <p className="flex items-center">
+                                  <User className="w-3 h-3 mr-1" />
+                                  {image.photographer}
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Tags */}
+                            {image.tag_list && image.tag_list.length > 0 && (
+                              <div className="mt-3 flex flex-wrap gap-1">
+                                {image.tag_list
+                                  .slice(0, 3)
+                                  .map((tag, index) => (
+                                    <span
+                                      key={index}
+                                      className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full"
+                                    >
+                                      {tag}
+                                    </span>
+                                  ))}
+                                {image.tag_list.length > 3 && (
+                                  <span className="text-gray-400 text-xs">
+                                    +{image.tag_list.length - 3} more
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -456,7 +711,7 @@ const GalleryPage = () => {
             >
               <X className="w-5 h-5" />
             </button>
-            
+
             <div className="relative h-96 md:h-[70vh]">
               <Image
                 src={galleryService.getImageUrl(selectedImage.image)}
@@ -466,42 +721,48 @@ const GalleryPage = () => {
                 unoptimized={true}
               />
             </div>
-            
+
             <div className="p-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">
                 {selectedImage.title}
               </h2>
               {selectedImage.description && (
-                <p className="text-gray-600 mb-4">{selectedImage.description}</p>
+                <p className="text-gray-600 mb-4">
+                  {selectedImage.description}
+                </p>
               )}
-              
+
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-500">
                 {selectedImage.album_name && (
                   <div>
-                    <span className="font-medium">Album:</span> {selectedImage.album_name}
+                    <span className="font-medium">Album:</span>{" "}
+                    {selectedImage.album_name}
                   </div>
                 )}
                 {selectedImage.category_name && (
                   <div>
-                    <span className="font-medium">Category:</span> {selectedImage.category_name}
+                    <span className="font-medium">Category:</span>{" "}
+                    {selectedImage.category_name}
                   </div>
                 )}
                 {selectedImage.photographer && (
                   <div>
-                    <span className="font-medium">Photographer:</span> {selectedImage.photographer}
+                    <span className="font-medium">Photographer:</span>{" "}
+                    {selectedImage.photographer}
                   </div>
                 )}
                 {selectedImage.file_size_mb && (
                   <div>
-                    <span className="font-medium">Size:</span> {selectedImage.file_size_mb}MB
+                    <span className="font-medium">Size:</span>{" "}
+                    {selectedImage.file_size_mb}MB
                   </div>
                 )}
               </div>
-              
+
               <div className="flex space-x-3 mt-6">
                 <button
                   onClick={() => downloadImage(selectedImage)}
-                  className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="flex items-center px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Download
