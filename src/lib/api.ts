@@ -115,11 +115,11 @@ export const api = {
 
   // Academic Resources
   academics: {
-    schemes: () => apiClient.get('/academics/schemes/'),
+    schemes: (params?: any) => apiClient.get('/academics/schemes/', { params }),
     subjects: (params?: any) => apiClient.get('/academics/subjects/', { params }),
-    categories: () => apiClient.get('/academics/categories/'),
+    categories: (params?: any) => apiClient.get('/academics/categories/', { params }),
     resources: (params?: any) => apiClient.get('/academics/resources/', { params }),
-    departments: () => apiClient.get('/academics/departments/'),
+    departments: (params?: any) => apiClient.get('/academics/departments/', { params }),
   },
 
   // Projects
@@ -131,27 +131,27 @@ export const api = {
 
   // Placements
   placements: {
-    companies: () => apiClient.get('/placements/companies/'),
-    drives: () => apiClient.get('/placements/drives/'),
+    companies: (params?: any) => apiClient.get('/placements/companies/', { params }),
+    drives: (params?: any) => apiClient.get('/placements/drives/', { params }),
     statistics: () => apiClient.get('/placements/statistics/'),
     placedStudents: () => apiClient.get('/placements/placed-students/'),
   },
 
   // Careers
   careers: {
-    list: () => apiClient.get('/careers/'),
+    list: (params?: any) => apiClient.get('/careers/', { params }),
     get: (id: string) => apiClient.get(`/careers/${id}/`),
   },
 
   // Gallery
   gallery: {
-    list: () => apiClient.get('/gallery/'),
+    list: (params?: any) => apiClient.get('/gallery/', { params }),
     get: (id: string) => apiClient.get(`/gallery/${id}/`),
   },
 
   // Alumni
   alumni: {
-    list: () => apiClient.get('/alumni/'),
+    list: (params?: any) => apiClient.get('/alumni/', { params }),
     get: (id: string) => apiClient.get(`/alumni/${id}/`),
   },
 };

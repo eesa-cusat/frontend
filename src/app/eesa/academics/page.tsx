@@ -125,7 +125,7 @@ export default function AcademicsPage() {
   const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
 
-  // Legacy getters for backward compatibility
+  // Direct data access - no backward compatibility
   const schemes = filteredData?.schemes || allData.schemes;
   const subjects = filteredData?.subjects || allData.subjects;
   const resources = filteredData?.resources || allData.resources;
@@ -175,26 +175,38 @@ export default function AcademicsPage() {
         }
       }
 
-      // Single batch API call for all data
-      const response = await fetch(`${API_BASE_URL}/academics/batch-data/`, {
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      // Single batch API call for all data (using existing endpoints)
+      const [schemesResponse, subjectsResponse, resourcesResponse] = await Promise.all([
+        fetch(`${API_BASE_URL}/academics/schemes/`, {
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+        }),
+        fetch(`${API_BASE_URL}/academics/subjects/`, {
+          credentials: "include", 
+          headers: { "Content-Type": "application/json" },
+        }),
+        fetch(`${API_BASE_URL}/academics/resources/`, {
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+        })
+      ]);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!schemesResponse.ok || !subjectsResponse.ok || !resourcesResponse.ok) {
+        throw new Error(`HTTP error! One or more requests failed`);
       }
 
-      const batchData = await response.json();
+      const [schemesData, subjectsData, resourcesData] = await Promise.all([
+        schemesResponse.json(),
+        subjectsResponse.json(), 
+        resourcesResponse.json()
+      ]);
       
-      // Process and structure the data
+      // Process and structure the data from multiple endpoints
       const processedData = {
-        schemes: batchData.schemes || [],
-        subjects: batchData.subjects || [],
-        resources: batchData.resources?.results || batchData.resources || [],
-        categories: batchData.categories || [
+        schemes: schemesData.results || schemesData || [],
+        subjects: subjectsData.results || subjectsData || [],
+        resources: resourcesData.results || resourcesData || [],
+        categories: [
           { value: "notes", label: "Notes" },
           { value: "textbook", label: "Textbooks" },
           { value: "pyq", label: "Previous Year Questions" },
@@ -203,7 +215,7 @@ export default function AcademicsPage() {
           { value: "syllabus", label: "Syllabus" },
           { value: "other", label: "Other" }
         ],
-        departments: batchData.departments || [
+        departments: [
           { value: "EEE", label: "Electrical & Electronics Engineering" },
           { value: "ECE", label: "Electronics & Communication Engineering" },
           { value: "CSE", label: "Computer Science & Engineering" }
@@ -1733,7 +1745,7 @@ export default function AcademicsPage() {
               <SchemesTab schemes={schemes} onUpdate={loadData} />
             )}
             {activeTab === "subjects" && (
-              <SubjectsTab schemes={schemes} onUpdate={loadData} />
+              <SubjectsTab schemes={schemes} subjects={subjects} onUpdate={loadData} />
             )}
             {activeTab === "resources" && (
               <ResourcesTab

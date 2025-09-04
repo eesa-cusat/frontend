@@ -30,15 +30,15 @@ interface Subject {
 
 export default function SubjectsTab({
   schemes,
+  subjects,
   onUpdate,
 }: {
   schemes: Scheme[];
+  subjects: Subject[];
   onUpdate: () => void;
 }) {
   const [selectedScheme, setSelectedScheme] = useState<number | null>(null);
   const [selectedSemester, setSelectedSemester] = useState<number>(1);
-  const [filteredSubjects, setFilteredSubjects] = useState<Subject[]>([]);
-  const [isLoadingSubjects, setIsLoadingSubjects] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
   const [newSubject, setNewSubject] = useState({
@@ -53,85 +53,19 @@ export default function SubjectsTab({
   const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
 
-  const loadSubjects = async (scheme: number, semester: number) => {
-    setIsLoadingSubjects(true);
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/academics/subjects/?scheme=${scheme}&semester=${semester}`,
-        {
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (response.ok) {
-        const listData = await response.json();
-        const subjectsList = (listData.results ||
-          listData) as SubjectListItem[];
-
-        // Fetch detailed info for each subject to get the full scheme object
-        const detailedSubjects = await Promise.all(
-          subjectsList.map(async (subject: SubjectListItem) => {
-            try {
-              const detailResponse = await fetch(
-                `${API_BASE_URL}/academics/subjects/${subject.id}/`,
-                {
-                  credentials: "include",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                }
-              );
-              if (detailResponse.ok) {
-                return (await detailResponse.json()) as Subject;
-              }
-              // Fallback: create a subject with minimal scheme info
-              return {
-                ...subject,
-                scheme: { id: scheme, name: subject.scheme_name, year: 0 },
-                department: "Unknown",
-                credits: 4,
-                is_active: true,
-              } as Subject;
-            } catch {
-              return {
-                ...subject,
-                scheme: { id: scheme, name: subject.scheme_name, year: 0 },
-                department: "Unknown",
-                credits: 4,
-                is_active: true,
-              } as Subject;
-            }
-          })
-        );
-
-        setFilteredSubjects(detailedSubjects);
-      } else {
-        console.error("Failed to load subjects");
-        setFilteredSubjects([]);
-      }
-    } catch (error) {
-      console.error("Error loading subjects:", error);
-      setFilteredSubjects([]);
-    } finally {
-      setIsLoadingSubjects(false);
-    }
-  };
+  // Filter subjects based on selected scheme and semester - client-side filtering
+  const filteredSubjects = subjects.filter(subject => {
+    if (selectedScheme && subject.scheme.id !== selectedScheme) return false;
+    if (subject.semester !== selectedSemester) return false;
+    return true;
+  });
 
   const handleSchemeChange = (schemeId: number) => {
     setSelectedScheme(schemeId);
-    if (schemeId && selectedSemester) {
-      loadSubjects(schemeId, selectedSemester);
-    }
   };
 
   const handleSemesterChange = (semester: number) => {
     setSelectedSemester(semester);
-    if (selectedScheme && semester) {
-      loadSubjects(selectedScheme, semester);
-    }
   };
 
   const handleCreateSubject = async () => {
@@ -200,7 +134,7 @@ export default function SubjectsTab({
         selectedScheme === newSubject.scheme &&
         selectedSemester === newSubject.semester
       ) {
-        loadSubjects(selectedScheme, selectedSemester);
+        // Data will be refreshed by parent onUpdate
       }
       onUpdate();
     } catch (error) {
@@ -271,10 +205,7 @@ export default function SubjectsTab({
       toast.success(data.message || "Subject updated successfully");
       setEditingSubject(null);
 
-      // Reload subjects
-      if (selectedScheme && selectedSemester) {
-        loadSubjects(selectedScheme, selectedSemester);
-      }
+      // Reload subjects from parent
       onUpdate();
     } catch (error) {
       console.error("Error updating subject:", error);
@@ -328,10 +259,7 @@ export default function SubjectsTab({
 
       toast.success("Subject deleted successfully");
 
-      // Reload subjects
-      if (selectedScheme && selectedSemester) {
-        loadSubjects(selectedScheme, selectedSemester);
-      }
+      // Reload subjects from parent
       onUpdate();
     } catch (error) {
       console.error("Error deleting subject:", error);
@@ -635,7 +563,7 @@ export default function SubjectsTab({
       </Card>
 
       {/* Subjects List */}
-      {isLoadingSubjects ? (
+      {filteredSubjects.length === 0 ? (
         <Card>
           <CardContent className="text-center py-8">
             <div className="text-lg">Loading subjects...</div>
