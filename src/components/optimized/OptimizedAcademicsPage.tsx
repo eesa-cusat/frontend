@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { FileText, Calendar } from "lucide-react";
 import LikeButton from "@/components/ui/LikeButton";
+import DownloadButton from "@/components/ui/DownloadButton";
 import { api } from "@/lib/api";
 
 interface AcademicResource {
@@ -34,6 +35,7 @@ interface AcademicResource {
   download_count: number;
   view_count: number;
   likes_count: number;
+  is_liked: boolean;
   is_featured: boolean;
   created_at: string;
   exam_type?: string;
@@ -616,23 +618,7 @@ const OptimizedAcademicsPage = () => {
                 key={resource.id}
                 className="bg-white border-2 border-black rounded-xl p-6 hover:shadow-lg transition-shadow relative overflow-hidden"
               >
-                <div className="absolute top-4 right-4 z-10">
-                  <LikeButton
-                    resourceId={resource.id}
-                    initialCount={resource.likes_count || 0}
-                    onLikeChange={(newCount) => {
-                      setResources((prev) =>
-                        prev.map((res) =>
-                          res.id === resource.id
-                            ? { ...res, likes_count: newCount }
-                            : res
-                        )
-                      );
-                    }}
-                  />
-                </div>
-
-                <div className="flex flex-col sm:flex-row sm:items-start gap-4 pr-16 relative z-10">
+                <div className="flex flex-col sm:flex-row sm:items-start gap-4 relative z-10">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-3">
                       <div className="p-2 bg-lime-400 rounded-lg">
@@ -661,67 +647,26 @@ const OptimizedAcademicsPage = () => {
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                    <button
-                      className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium bg-blue-500 hover:bg-blue-600 text-white transition-colors w-full sm:w-auto"
-                      onClick={async () => {
-                        try {
-                          const downloadUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/academics/resources/${resource.id}/download/`;
-                          
-                          const response = await fetch(downloadUrl, {
-                            method: 'GET',
-                            headers: {
-                              'Accept': 'application/octet-stream, */*',
-                            },
-                          });
-                          
-                          if (response.ok) {
-                            setResources((prev) =>
-                              prev.map((res) =>
-                                res.id === resource.id
-                                  ? { ...res, download_count: (res.download_count || 0) + 1 }
-                                  : res
-                              )
-                            );
-                            
-                            const contentDisposition = response.headers.get('Content-Disposition');
-                            let filename = resource.title || 'download';
-                            
-                            if (contentDisposition) {
-                              const filenameMat = contentDisposition.match(/filename="?([^"]*)"?/);
-                              if (filenameMat && filenameMat[1]) {
-                                filename = filenameMat[1];
-                              }
-                            }
-                            
-                            const blob = await response.blob();
-                            const url = window.URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = filename;
-                            a.style.display = 'none';
-                            document.body.appendChild(a);
-                            a.click();
-                            window.URL.revokeObjectURL(url);
-                            document.body.removeChild(a);
-                          } else {
-                            throw new Error(`Download failed with status: ${response.status}`);
-                          }
-                        } catch (error) {
-                          console.error('Failed to download file:', error);
-                          if (resource.file) {
-                            let fileUrl = resource.file;
-                            if (!resource.file.startsWith('http')) {
-                              const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/api\/?$/, '') || 'http://localhost:8000';
-                              fileUrl = `${baseUrl}${resource.file.startsWith('/') ? '' : '/'}${resource.file}`;
-                            }
-                            window.open(fileUrl, "_blank");
-                          }
-                        }
+                    <DownloadButton
+                      resourceId={resource.id}
+                      resourceTitle={resource.title}
+                      resourceFile={resource.file}
+                      initialCount={resource.download_count}
+                      onDownloadChange={(newCount) => {
+                        setResources((prev) =>
+                          prev.map((res) =>
+                            res.id === resource.id
+                              ? { ...res, download_count: newCount }
+                              : res
+                          )
+                        );
                       }}
-                    >
-                      <FileText className="w-4 h-4" />
-                      Download ({resource.download_count || 0})
-                    </button>
+                    />
+                    
+                    <LikeButton
+                      resourceId={resource.id}
+                      initialCount={resource.likes_count}
+                    />
                   </div>
                 </div>
               </div>
