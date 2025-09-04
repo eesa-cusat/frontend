@@ -73,18 +73,62 @@ interface Resource {
   file_url: string | null;
 }
 
+// Types for filters
+interface Filters {
+  scheme?: string;
+  semester?: string;
+  department?: string;
+  category?: string;
+  subject?: string;
+  search?: string;
+  viewMode?: string;
+}
+
 export default function AcademicsPage() {
   const { user, isLoading: authLoading } = useAuth();
-  const [schemes, setSchemes] = useState<Scheme[]>([]);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [resources, setResources] = useState<Resource[]>([]);
+  
+  // Optimized state management - single data source
+  const [allData, setAllData] = useState<{
+    schemes: Scheme[];
+    subjects: Subject[];
+    resources: Resource[];
+    categories: { value: string; label: string }[];
+    departments: { value: string; label: string }[];
+    semesters: { value: number; label: string }[];
+  }>({
+    schemes: [],
+    subjects: [],
+    resources: [],
+    categories: [],
+    departments: [],
+    semesters: [
+      { value: 1, label: "Semester 1" },
+      { value: 2, label: "Semester 2" },
+      { value: 3, label: "Semester 3" },
+      { value: 4, label: "Semester 4" },
+      { value: 5, label: "Semester 5" },
+      { value: 6, label: "Semester 6" },
+      { value: 7, label: "Semester 7" },
+      { value: 8, label: "Semester 8" }
+    ]
+  });
+  
+  const [filteredData, setFilteredData] = useState<typeof allData | null>(null);
+  const [filters, setFilters] = useState<Filters>({});
+  
   const [activeTab, setActiveTab] = useState<
     "overview" | "schemes" | "subjects" | "resources" | "upload"
   >("overview");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
+
+  // Legacy getters for backward compatibility
+  const schemes = filteredData?.schemes || allData.schemes;
+  const subjects = filteredData?.subjects || allData.subjects;
+  const resources = filteredData?.resources || allData.resources;
 
   // Load saved tab from localStorage on mount
   useEffect(() => {
@@ -104,146 +148,194 @@ export default function AcademicsPage() {
     localStorage.setItem("eesa-academics-tab", activeTab);
   }, [activeTab]);
 
+  // Optimized data loading - single API call
   const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
+      setError(null);
 
-      // Load schemes using the proper API endpoint
-      const schemesResponse = await fetch(
-        `${API_BASE_URL}/academics/schemes/`,
-        {
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      let schemesData: { results?: Scheme[] } | Scheme[] = [];
-      if (schemesResponse.ok) {
-        schemesData = await schemesResponse.json();
-        const schemesArray = Array.isArray(schemesData)
-          ? schemesData
-          : schemesData.results || [];
-        setSchemes(schemesArray);
-      }
-
-      // Load all subjects for proper count and resource filtering
-      const allSubjects: Subject[] = [];
-      try {
-        // First, get all schemes to load subjects from each
-        const schemes = Array.isArray(schemesData)
-          ? schemesData
-          : schemesData.results || [];
-        for (const scheme of schemes) {
-          for (let semester = 1; semester <= 8; semester++) {
-            try {
-              const subjectsResponse = await fetch(
-                `${API_BASE_URL}/academics/subjects/?scheme=${scheme.id}&semester=${semester}`,
-                {
-                  credentials: "include",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                }
-              );
-              if (subjectsResponse.ok) {
-                const subjectsData = await subjectsResponse.json();
-                const subjectsList = (subjectsData.results ||
-                  subjectsData) as SubjectListItem[];
-
-                // Convert to full Subject objects
-                for (const subject of subjectsList) {
-                  try {
-                    const detailResponse = await fetch(
-                      `${API_BASE_URL}/academics/subjects/${subject.id}/`,
-                      {
-                        credentials: "include",
-                        headers: {
-                          "Content-Type": "application/json",
-                        },
-                      }
-                    );
-                    if (detailResponse.ok) {
-                      const detailedSubject =
-                        (await detailResponse.json()) as Subject;
-                      allSubjects.push(detailedSubject);
-                    }
-                  } catch {
-                    // Skip if individual fetch fails
-                  }
-                }
-              }
-            } catch {
-              // Skip if semester fetch fails
-            }
+      // Check for cached data first (optional performance boost)
+      const cacheKey = 'academics_batch_data';
+      const cachedData = localStorage.getItem(cacheKey);
+      
+      if (cachedData) {
+        try {
+          const { data, timestamp } = JSON.parse(cachedData);
+          const fiveMinutes = 5 * 60 * 1000; // Cache for 5 minutes
+          
+          if (Date.now() - timestamp < fiveMinutes) {
+            setAllData(data);
+            setFilteredData(data);
+            setIsLoading(false);
+            return;
           }
+        } catch (e) {
+          // Invalid cache, continue with API call
+          localStorage.removeItem(cacheKey);
         }
-
-        // Remove duplicates based on ID
-        const uniqueSubjects = Array.from(
-          new Map(allSubjects.map((subject) => [subject.id, subject])).values()
-        );
-
-        setSubjects(uniqueSubjects);
-      } catch (error) {
-        console.error("Error loading all subjects:", error);
-        setSubjects([]);
       }
 
-      // Load resources with detailed information including approval status
-      const resourcesResponse = await fetch(
-        `${API_BASE_URL}/academics/resources/`,
-        {
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      if (resourcesResponse.ok) {
-        const resourcesData = await resourcesResponse.json();
-        const resourcesList = resourcesData.results || resourcesData;
+      // Single batch API call for all data
+      const response = await fetch(`${API_BASE_URL}/academics/batch-data/`, {
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
-        // Fetch detailed info for each resource to get approval status
-        // Note: This is needed because the list endpoint doesn't include is_approved field
-        const detailedResources = await Promise.all(
-          resourcesList.map(async (resource: Omit<Resource, "is_approved">) => {
-            try {
-              const detailResponse = await fetch(
-                `${API_BASE_URL}/academics/resources/${resource.id}/`,
-                {
-                  credentials: "include",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                }
-              );
-              if (detailResponse.ok) {
-                return await detailResponse.json();
-              }
-              // Default to approved if we can't fetch details (fallback for public view)
-              return { ...resource, is_approved: true };
-            } catch {
-              return { ...resource, is_approved: true };
-            }
-          })
-        );
-
-        setResources(detailedResources);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const batchData = await response.json();
+      
+      // Process and structure the data
+      const processedData = {
+        schemes: batchData.schemes || [],
+        subjects: batchData.subjects || [],
+        resources: batchData.resources?.results || batchData.resources || [],
+        categories: batchData.categories || [
+          { value: "notes", label: "Notes" },
+          { value: "textbook", label: "Textbooks" },
+          { value: "pyq", label: "Previous Year Questions" },
+          { value: "lab", label: "Lab Manual" },
+          { value: "regulations", label: "Regulations" },
+          { value: "syllabus", label: "Syllabus" },
+          { value: "other", label: "Other" }
+        ],
+        departments: batchData.departments || [
+          { value: "EEE", label: "Electrical & Electronics Engineering" },
+          { value: "ECE", label: "Electronics & Communication Engineering" },
+          { value: "CSE", label: "Computer Science & Engineering" }
+        ],
+        semesters: [
+          { value: 1, label: "Semester 1" },
+          { value: 2, label: "Semester 2" },
+          { value: 3, label: "Semester 3" },
+          { value: 4, label: "Semester 4" },
+          { value: 5, label: "Semester 5" },
+          { value: 6, label: "Semester 6" },
+          { value: 7, label: "Semester 7" },
+          { value: 8, label: "Semester 8" }
+        ]
+      };
+
+      setAllData(processedData);
+      setFilteredData(processedData);
+
+      // Cache the fresh data
+      localStorage.setItem(cacheKey, JSON.stringify({
+        data: processedData,
+        timestamp: Date.now()
+      }));
+
     } catch (error) {
-      console.error("Error loading data:", error);
-      toast.error(
-        "Failed to load data. Please check your connection and try again."
-      );
+      console.error('Error loading academics data:', error);
+      setError('Failed to load academics data. Please refresh the page.');
+      
+      // Fallback to cached data if API fails
+      const cacheKey = 'academics_batch_data';
+      const cachedData = localStorage.getItem(cacheKey);
+      if (cachedData) {
+        try {
+          const { data } = JSON.parse(cachedData);
+          setAllData(data);
+          setFilteredData(data);
+          setError('Using cached data. Some information may be outdated.');
+        } catch (e) {
+          // Cache is corrupted
+          localStorage.removeItem(cacheKey);
+        }
+      }
     } finally {
       setIsLoading(false);
     }
   }, [API_BASE_URL]);
 
+  // Client-side filtering for instant response
+  const applyFilters = useCallback((newFilters: Filters) => {
+    let filteredSubjects = [...allData.subjects];
+    let filteredResources = [...allData.resources];
+
+    // Filter by scheme
+    if (newFilters.scheme) {
+      const schemeId = parseInt(newFilters.scheme);
+      filteredSubjects = filteredSubjects.filter(s => s.scheme?.id === schemeId);
+      filteredResources = filteredResources.filter(r => r.subject?.scheme?.id === schemeId);
+    }
+
+    // Filter by semester
+    if (newFilters.semester) {
+      const semester = parseInt(newFilters.semester);
+      filteredSubjects = filteredSubjects.filter(s => s.semester === semester);
+      filteredResources = filteredResources.filter(r => r.subject?.semester === semester);
+    }
+
+    // Filter by department
+    if (newFilters.department) {
+      filteredSubjects = filteredSubjects.filter(s => s.department === newFilters.department);
+      filteredResources = filteredResources.filter(r => r.subject?.department === newFilters.department);
+    }
+
+    // Filter by category
+    if (newFilters.category) {
+      filteredResources = filteredResources.filter(r => r.category === newFilters.category);
+    }
+
+    // Filter by subject
+    if (newFilters.subject) {
+      const subjectId = parseInt(newFilters.subject);
+      filteredResources = filteredResources.filter(r => r.subject?.id === subjectId);
+    }
+
+    // Filter by search
+    if (newFilters.search) {
+      const searchLower = newFilters.search.toLowerCase();
+      filteredResources = filteredResources.filter(r => 
+        r.title?.toLowerCase().includes(searchLower) ||
+        r.description?.toLowerCase().includes(searchLower) ||
+        r.subject?.name?.toLowerCase().includes(searchLower) ||
+        r.subject?.code?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Filter by approval status
+    if (newFilters.viewMode === "approved") {
+      filteredResources = filteredResources.filter(r => r.is_approved === true);
+    } else if (newFilters.viewMode === "unapproved") {
+      filteredResources = filteredResources.filter(r => r.is_approved !== true);
+    }
+
+    setFilteredData({
+      ...allData,
+      subjects: filteredSubjects,
+      resources: filteredResources
+    });
+  }, [allData]);
+
+  // Handle filter changes with instant response
+  const handleFilterChange = useCallback((filterName: keyof Filters, value: string) => {
+    const newFilters = { ...filters, [filterName]: value };
+    setFilters(newFilters);
+    applyFilters(newFilters);
+  }, [filters, applyFilters]);
+
+  // Clear all filters
+  const handleClearFilters = useCallback(() => {
+    setFilters({});
+    setFilteredData(allData);
+  }, [allData]);
+
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Apply filters when allData changes
+  useEffect(() => {
+    if (allData.resources.length > 0) {
+      applyFilters(filters);
+    }
+  }, [allData, filters, applyFilters]);
 
   // Show loading state during auth initialization
   if (authLoading) {
@@ -338,29 +430,6 @@ export default function AcademicsPage() {
     resources: Resource[];
     onUpdate: () => void;
   }) {
-    const [filteredResources, setFilteredResources] = useState<Resource[]>([]);
-
-    // Initialize states with localStorage values
-    const [selectedCategory, setSelectedCategory] = useState<string>(() => {
-      return localStorage.getItem("eesa-filter-category") || "all";
-    });
-    const [selectedApprovalStatus, setSelectedApprovalStatus] =
-      useState<string>(() => {
-        return localStorage.getItem("eesa-filter-approval") || "all";
-      });
-    const [selectedSubject, setSelectedSubject] = useState<string>(() => {
-      return localStorage.getItem("eesa-filter-subject") || "all";
-    });
-    const [selectedScheme, setSelectedScheme] = useState<string>(() => {
-      return localStorage.getItem("eesa-filter-scheme") || "all";
-    });
-    const [selectedSemester, setSelectedSemester] = useState<string>(() => {
-      return localStorage.getItem("eesa-filter-semester") || "all";
-    });
-    const [viewMode, setViewMode] = useState<string>(() => {
-      return localStorage.getItem("eesa-filter-viewMode") || "all";
-    });
-
     const [editingResource, setEditingResource] = useState<Resource | null>(
       null
     );
@@ -369,95 +438,6 @@ export default function AcademicsPage() {
 
     const API_BASE_URL =
       process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
-
-    // Save filter states to localStorage when they change
-    useEffect(() => {
-      localStorage.setItem("eesa-filter-category", selectedCategory);
-    }, [selectedCategory]);
-
-    useEffect(() => {
-      localStorage.setItem("eesa-filter-approval", selectedApprovalStatus);
-    }, [selectedApprovalStatus]);
-
-    useEffect(() => {
-      localStorage.setItem("eesa-filter-subject", selectedSubject);
-    }, [selectedSubject]);
-
-    useEffect(() => {
-      localStorage.setItem("eesa-filter-scheme", selectedScheme);
-    }, [selectedScheme]);
-
-    useEffect(() => {
-      localStorage.setItem("eesa-filter-semester", selectedSemester);
-    }, [selectedSemester]);
-
-    useEffect(() => {
-      localStorage.setItem("eesa-filter-viewMode", viewMode);
-    }, [viewMode]);
-
-    // Get unique values for filters
-    // Get unique values for filters - use all subjects, not just those with resources
-    const uniqueSubjects = subjects; // Use all subjects from the passed subjects array
-    const uniqueSchemes = schemes; // Use all schemes from the passed schemes array
-
-    const filterResources = useCallback(() => {
-      let filtered = [...resources];
-
-      if (selectedCategory !== "all") {
-        filtered = filtered.filter(
-          (resource) => resource.category === selectedCategory
-        );
-      }
-
-      if (selectedApprovalStatus !== "all") {
-        const isApproved = selectedApprovalStatus === "approved";
-        filtered = filtered.filter(
-          (resource) => (resource.is_approved ?? false) === isApproved
-        );
-      }
-
-      if (selectedSubject !== "all") {
-        const subjectId = parseInt(selectedSubject);
-        filtered = filtered.filter(
-          (resource) => resource.subject.id === subjectId
-        );
-      }
-
-      if (selectedScheme !== "all") {
-        const schemeId = parseInt(selectedScheme);
-        filtered = filtered.filter(
-          (resource) => resource.subject.scheme.id === schemeId
-        );
-      }
-
-      if (selectedSemester !== "all") {
-        const semester = parseInt(selectedSemester);
-        filtered = filtered.filter(
-          (resource) => resource.subject.semester === semester
-        );
-      }
-
-      // Apply view mode filter
-      if (viewMode === "approved") {
-        filtered = filtered.filter((resource) => resource.is_approved === true);
-      } else if (viewMode === "unapproved") {
-        filtered = filtered.filter((resource) => resource.is_approved !== true);
-      }
-
-      setFilteredResources(filtered);
-    }, [
-      resources,
-      selectedCategory,
-      selectedApprovalStatus,
-      selectedSubject,
-      selectedScheme,
-      selectedSemester,
-      viewMode,
-    ]);
-
-    useEffect(() => {
-      filterResources();
-    }, [filterResources]);
 
     const handleUpdateResource = async (resource: Resource) => {
       try {
@@ -863,11 +843,11 @@ export default function AcademicsPage() {
               </Label>
               <div className="flex gap-3 flex-wrap">
                 <Button
-                  variant={viewMode === "all" ? "default" : "outline"}
+                  variant={filters.viewMode === "all" || !filters.viewMode ? "default" : "outline"}
                   size="lg"
-                  onClick={() => setViewMode("all")}
+                  onClick={() => handleFilterChange("viewMode", "all")}
                   className={`font-medium transition-all duration-200 ${
-                    viewMode === "all"
+                    filters.viewMode === "all" || !filters.viewMode
                       ? "bg-blue-600 hover:bg-blue-700 shadow-md"
                       : "border-gray-200 hover:border-blue-300"
                   }`}
@@ -875,27 +855,27 @@ export default function AcademicsPage() {
                   All Resources ({resources.length})
                 </Button>
                 <Button
-                  variant={viewMode === "approved" ? "default" : "outline"}
+                  variant={filters.viewMode === "approved" ? "default" : "outline"}
                   size="lg"
                   className={`font-medium transition-all duration-200 ${
-                    viewMode === "approved"
+                    filters.viewMode === "approved"
                       ? "bg-green-600 hover:bg-green-700 shadow-md"
                       : "border-green-200 hover:border-green-400 text-green-700"
                   }`}
-                  onClick={() => setViewMode("approved")}
+                  onClick={() => handleFilterChange("viewMode", "approved")}
                 >
                   Approved (
                   {resources.filter((r) => r.is_approved === true).length})
                 </Button>
                 <Button
-                  variant={viewMode === "unapproved" ? "default" : "outline"}
+                  variant={filters.viewMode === "unapproved" ? "default" : "outline"}
                   size="lg"
                   className={`font-medium transition-all duration-200 ${
-                    viewMode === "unapproved"
+                    filters.viewMode === "unapproved"
                       ? "bg-orange-600 hover:bg-orange-700 shadow-md"
                       : "border-orange-200 hover:border-orange-400 text-orange-700"
                   }`}
-                  onClick={() => setViewMode("unapproved")}
+                  onClick={() => handleFilterChange("viewMode", "unapproved")}
                 >
                   Pending Review (
                   {resources.filter((r) => r.is_approved !== true).length})
@@ -905,9 +885,38 @@ export default function AcademicsPage() {
 
             {/* Advanced Filters */}
             <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-              <Label className="text-lg font-semibold text-gray-700 mb-4 block">
-                Advanced Filters
-              </Label>
+              <div className="flex justify-between items-center mb-4">
+                <Label className="text-lg font-semibold text-gray-700">
+                  Advanced Filters
+                </Label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClearFilters}
+                  className="text-gray-600 hover:text-gray-800"
+                >
+                  Clear All Filters
+                </Button>
+              </div>
+
+              {/* Search Input */}
+              <div className="mb-6">
+                <Label
+                  htmlFor="searchInput"
+                  className="text-sm font-medium text-gray-700 mb-2 block"
+                >
+                  Search Resources
+                </Label>
+                <input
+                  id="searchInput"
+                  type="text"
+                  placeholder="Search by title, description, subject name or code..."
+                  className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-700"
+                  value={filters.search || ""}
+                  onChange={(e) => handleFilterChange("search", e.target.value)}
+                />
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div className="space-y-2">
                   <Label
@@ -919,8 +928,8 @@ export default function AcademicsPage() {
                   <select
                     id="categoryFilter"
                     className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-700 font-medium"
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    value={filters.category || "all"}
+                    onChange={(e) => handleFilterChange("category", e.target.value === "all" ? "" : e.target.value)}
                   >
                     <option value="all">All Categories</option>
                     <option value="notes">Notes</option>
@@ -941,11 +950,11 @@ export default function AcademicsPage() {
                   <select
                     id="schemeFilter"
                     className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-700 font-medium"
-                    value={selectedScheme}
-                    onChange={(e) => setSelectedScheme(e.target.value)}
+                    value={filters.scheme || "all"}
+                    onChange={(e) => handleFilterChange("scheme", e.target.value === "all" ? "" : e.target.value)}
                   >
                     <option value="all">All Schemes</option>
-                    {uniqueSchemes.map((scheme) => (
+                    {schemes.map((scheme) => (
                       <option
                         key={`scheme-${scheme.id}`}
                         value={scheme.id.toString()}
@@ -966,8 +975,8 @@ export default function AcademicsPage() {
                   <select
                     id="semesterFilter"
                     className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-700 font-medium"
-                    value={selectedSemester}
-                    onChange={(e) => setSelectedSemester(e.target.value)}
+                    value={filters.semester || "all"}
+                    onChange={(e) => handleFilterChange("semester", e.target.value === "all" ? "" : e.target.value)}
                   >
                     <option value="all">All Semesters</option>
                     {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
@@ -988,11 +997,11 @@ export default function AcademicsPage() {
                   <select
                     id="subjectFilter"
                     className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-700 font-medium"
-                    value={selectedSubject}
-                    onChange={(e) => setSelectedSubject(e.target.value)}
+                    value={filters.subject || "all"}
+                    onChange={(e) => handleFilterChange("subject", e.target.value === "all" ? "" : e.target.value)}
                   >
                     <option value="all">All Subjects</option>
-                    {uniqueSubjects.map((subject) => (
+                    {subjects.map((subject) => (
                       <option
                         key={`subject-${subject.id}`}
                         value={subject.id.toString()}
@@ -1013,8 +1022,8 @@ export default function AcademicsPage() {
                   <select
                     id="approvalFilter"
                     className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-700 font-medium"
-                    value={selectedApprovalStatus}
-                    onChange={(e) => setSelectedApprovalStatus(e.target.value)}
+                    value={filters.viewMode || "all"}
+                    onChange={(e) => handleFilterChange("viewMode", e.target.value === "all" ? "" : e.target.value)}
                   >
                     <option value="all">All Status</option>
                     <option value="approved">Approved Only</option>
@@ -1032,7 +1041,7 @@ export default function AcademicsPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div className="text-center bg-white p-4 rounded-lg shadow-sm border">
                   <div className="font-bold text-2xl text-blue-600">
-                    {filteredResources.length}
+                    {resources.length}
                   </div>
                   <div className="text-sm text-gray-600 font-medium">
                     Filtered Results
@@ -1041,7 +1050,7 @@ export default function AcademicsPage() {
                 <div className="text-center bg-white p-4 rounded-lg shadow-sm border">
                   <div className="font-bold text-2xl text-green-600">
                     {
-                      filteredResources.filter((r) => r.is_approved === true)
+                      resources.filter((r) => r.is_approved === true)
                         .length
                     }
                   </div>
@@ -1052,7 +1061,7 @@ export default function AcademicsPage() {
                 <div className="text-center bg-white p-4 rounded-lg shadow-sm border">
                   <div className="font-bold text-2xl text-orange-600">
                     {
-                      filteredResources.filter((r) => r.is_approved !== true)
+                      resources.filter((r) => r.is_approved !== true)
                         .length
                     }
                   </div>
@@ -1062,7 +1071,7 @@ export default function AcademicsPage() {
                 </div>
                 <div className="text-center bg-white p-4 rounded-lg shadow-sm border">
                   <div className="font-bold text-2xl text-purple-600">
-                    {uniqueSubjects.length}
+                    {subjects.length}
                   </div>
                   <div className="text-sm text-gray-600 font-medium">
                     Total Subjects
@@ -1074,7 +1083,7 @@ export default function AcademicsPage() {
         </Card>
 
         {/* Resources List */}
-        {filteredResources.length === 0 ? (
+        {resources.length === 0 ? (
           <Card className="border-0 shadow-lg">
             <CardContent className="text-center py-16">
               <div className="mx-auto mb-6 w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center">
@@ -1086,7 +1095,7 @@ export default function AcademicsPage() {
               <p className="text-gray-600 mb-4">
                 No resources match your current filter selection.
               </p>
-              {viewMode !== "all" && (
+              {filters.viewMode && filters.viewMode !== "all" && (
                 <p className="text-sm text-blue-600 bg-blue-50 p-3 rounded-lg inline-block">
                   💡 Try switching to &ldquo;All Resources&rdquo; view or
                   adjusting your filters to see more results.
@@ -1096,7 +1105,7 @@ export default function AcademicsPage() {
           </Card>
         ) : (
           <div className="grid gap-6">
-            {filteredResources.map((resource) => {
+            {resources.map((resource) => {
               const subject =
                 subjects.find((s) => s.id === resource.subject.id) ||
                 resource.subject;
