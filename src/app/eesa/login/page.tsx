@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { authService } from "@/services/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -57,19 +56,10 @@ export default function AdminLoginPage() {
     setIsLoading(true);
     
     try {
-      const user = await login({ username, password });
+      await login({ username, password });
       
-      // Debug: Log user data to see what we're getting
-      console.log("Login successful, user data:", user);
-      console.log("User is_staff:", user.is_staff);
-      console.log("User is_superuser:", user.is_superuser);
-      console.log("User groups:", user.groups);
-      
-      // Check if user has admin access using the returned user data
-      const hasAccess = authService.canAccessAdmin(user);
-      console.log("canAccessAdmin result:", hasAccess);
-      
-      if (hasAccess) {
+      // Check if user has admin access using the canAccessAdmin method from context
+      if (canAccessAdmin()) {
         router.push("/eesa");
       } else {
         toast.error("You don't have permission to access the admin panel");

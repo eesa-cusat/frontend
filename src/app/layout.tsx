@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import LayoutWrapper from "@/components/layout/LayoutWrapper";
@@ -12,14 +12,18 @@ const spaceGrotesk = Space_Grotesk({
   display: "swap", // Optimize font loading
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#3b82f6",
+};
+
 export const metadata: Metadata = {
   title: "EESA - Electrical and Electronics Students Association",
   description:
     "Platform for EESA students, teachers, and alumni to share notes, projects, events, and career opportunities",
   keywords: "EESA, electrical engineering, electronics, students, association, notes, projects, careers",
   authors: [{ name: "EESA Team" }],
-  viewport: "width=device-width, initial-scale=1",
-  themeColor: "#3b82f6",
   robots: "index, follow",
   metadataBase: new URL("https://eesacusat.in"),
   openGraph: {

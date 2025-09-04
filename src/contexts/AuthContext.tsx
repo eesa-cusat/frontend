@@ -6,16 +6,17 @@ import React, {
   useReducer,
   useEffect,
   ReactNode,
+  useCallback,
 } from "react";
-import { User, AuthState, UserGroup } from "@/types/auth";
-import { authService } from "@/services/auth";
+import { User, AuthState, AuthTokens, LoginCredentials } from "@/types/auth";
+import { tokenStorage, getTokenPayload, sessionUserCache } from "@/utils/auth";
+import { authApi } from "@/lib/authApi";
 import toast from "react-hot-toast";
 
 interface AuthContextType extends AuthState {
-  login: (credentials: { username: string; password: string }) => Promise<void>;
-  logout: () => Promise<void>;
+  login: (credentials: LoginCredentials) => Promise<void>;
+  logout: () => void;
   refreshUser: () => Promise<void>;
-  hasGroupAccess: (groupName: string) => boolean;
   canAccessAdmin: () => boolean;
 }
 
@@ -24,6 +25,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 type AuthAction =
   | { type: "SET_LOADING"; payload: boolean }
   | { type: "SET_USER"; payload: User | null }
+  | { type: "SET_TOKENS"; payload: AuthTokens | null }
   | { type: "LOGOUT" };
 
 const authReducer = (state: AuthState, action: AuthAction): AuthState => {
@@ -34,10 +36,11 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
       return {
         ...state,
         user: action.payload,
-        tokens: null,
         isAuthenticated: !!action.payload,
         isLoading: false,
       };
+    case "SET_TOKENS":
+      return { ...state, tokens: action.payload };
     case "LOGOUT":
       return {
         user: null,
@@ -54,18 +57,22 @@ const initialState: AuthState = {
   user: null,
   tokens: null,
   isAuthenticated: false,
-  isLoading: false,
+  isLoading: false, // Start with false to not block public pages
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  const login = async (credentials: { username: string; password: string }) => {
+  const login = async (credentials: LoginCredentials) => {
     try {
       dispatch({ type: "SET_LOADING", payload: true });
 
-      const response = await authService.login(credentials);
-      dispatch({ type: "SET_USER", payload: response.user });
+      const response = await authApi.login(credentials);
+      const { user, tokens } = response;
+
+      tokenStorage.setTokens(tokens);
+      dispatch({ type: "SET_TOKENS", payload: tokens });
+      dispatch({ type: "SET_USER", payload: user });
 
       toast.success("Login successful!");
     } catch (error) {
@@ -74,60 +81,81 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = async () => {
-    try {
-      await authService.logout();
-    } catch (error) {
-      console.error("Logout error:", error);
-    } finally {
-      dispatch({ type: "LOGOUT" });
-      toast.success("Logged out successfully");
-    }
+  const logout = () => {
+    tokenStorage.clearTokens();
+    sessionUserCache.clear(); // Clear session cache
+    dispatch({ type: "LOGOUT" });
+    toast.success("Logged out successfully");
   };
 
   const refreshUser = async () => {
     try {
-      const user = await authService.getCurrentUser();
+      const user = await authApi.getCurrentUser();
       dispatch({ type: "SET_USER", payload: user });
     } catch (error) {
       console.error("Failed to refresh user:", error);
-      await logout();
+      logout();
     }
-  };
-
-  const hasGroupAccess = (groupName: string): boolean => {
-    if (!state.user) return false;
-    if (state.user.is_superuser) return true;
-    return state.user.groups.includes(groupName as UserGroup);
   };
 
   const canAccessAdmin = (): boolean => {
     if (!state.user) return false;
     if (state.user.is_superuser || state.user.is_staff) return true;
-    return state.user.groups.length > 0;
+    return state.user.groups && state.user.groups.length > 0;
   };
 
   // Initialize auth state on mount
   useEffect(() => {
     const initAuth = async () => {
       dispatch({ type: "SET_LOADING", payload: true });
+      
+      // Check session cache first
+      const cachedUser = sessionUserCache.get();
+      if (cachedUser) {
+        dispatch({ type: "SET_USER", payload: cachedUser });
+        dispatch({ type: "SET_LOADING", payload: false });
+        return;
+      }
+
+      const tokens = tokenStorage.getTokens();
+      if (!tokens) {
+        dispatch({ type: "SET_LOADING", payload: false });
+        return;
+      }
 
       try {
-        // Try to get current user to check if session is valid
-        const user = await authService.getCurrentUser();
+        // Validate token and get user data
+        const payload = getTokenPayload(tokens.access);
+        if (!payload) {
+          throw new Error("Invalid token");
+        }
+
+        // Check if token is expired
+        if (payload.exp * 1000 < Date.now()) {
+          throw new Error("Token expired");
+        }
+
+        dispatch({ type: "SET_TOKENS", payload: tokens });
+
+        // Only fetch user data if we don't have it in cache
+        const user = await authApi.getCurrentUser();
+        sessionUserCache.set(user); // Cache the user data
         dispatch({ type: "SET_USER", payload: user });
-      } catch {
-        // If we get a 403 or any auth error, it just means no valid session exists
-        // This is normal behavior when the user hasn't logged in yet
-        console.log("No valid session found, user needs to log in");
+      } catch (error) {
+        console.error("Auth initialization failed:", error);
+        tokenStorage.clearTokens();
+        sessionUserCache.clear();
         dispatch({ type: "LOGOUT" });
       } finally {
         dispatch({ type: "SET_LOADING", payload: false });
       }
     };
 
-    initAuth();
-  }, []);
+    // Only initialize once
+    if (!state.isAuthenticated && !state.isLoading) {
+      initAuth();
+    }
+  }, []); // Empty dependency array to run only once
 
   return (
     <AuthContext.Provider
@@ -136,7 +164,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         refreshUser,
-        hasGroupAccess,
         canAccessAdmin,
       }}
     >
