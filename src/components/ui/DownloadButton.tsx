@@ -27,8 +27,19 @@ const downloadResource = async (resourceId: number) => {
         'Accept': 'application/octet-stream, */*',
       },
       mode: 'cors',
-      credentials: 'include'
+      credentials: 'include',
+      redirect: 'manual'  // Handle redirects manually
     });
+    
+    // Check if it's a redirect (production Cloudinary)
+    if (response.status === 302 || response.status === 301) {
+      const redirectUrl = response.headers.get('Location');
+      if (redirectUrl) {
+        // Open the direct Cloudinary URL in a new tab
+        window.open(redirectUrl, '_blank');
+        return true;
+      }
+    }
     
     if (response.ok) {
       // Get the filename from the Content-Disposition header or use fallback

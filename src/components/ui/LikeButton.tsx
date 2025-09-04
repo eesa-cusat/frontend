@@ -33,7 +33,7 @@ const toggleLike = async (resourceId: number) => {
       'Accept': 'application/json',
     };
     
-    // Add CSRF token if available
+    // Add CSRF token if available (endpoint should be CSRF exempt in production)
     if (csrfToken) {
       headers['X-CSRFToken'] = csrfToken;
     }
@@ -42,7 +42,8 @@ const toggleLike = async (resourceId: number) => {
       method: 'POST',
       headers,
       mode: 'cors',
-      credentials: 'include'
+      credentials: 'include',
+      body: JSON.stringify({})  // Empty body for POST request
     });
     
     const data = await response.json();
