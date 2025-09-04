@@ -1,6 +1,15 @@
+/**
+ * @fileoverview Academic Resources Service
+ * @description Optimized service for managing academic schemes, subjects, and resources
+ * @author EESA Frontend Team
+ * @version 1.0.0
+ */
+
 import { api } from '@/lib/api';
 
-// Types for Academic entities
+// ===== TYPE DEFINITIONS =====
+
+/** Academic Scheme entity */
 export interface AcademicScheme {
   id: number;
   name: string;
@@ -10,6 +19,7 @@ export interface AcademicScheme {
   created_at: string;
 }
 
+/** Academic Subject entity */
 export interface AcademicSubject {
   id: number;
   name: string;
@@ -21,6 +31,7 @@ export interface AcademicSubject {
   is_active: boolean;
 }
 
+/** Academic Resource entity */
 export interface AcademicResource {
   id: number;
   title: string;
@@ -41,6 +52,7 @@ export interface AcademicResource {
   file_url: string | null;
 }
 
+/** Filter interface for academic queries */
 export interface AcademicFilters {
   search?: string;
   scheme_id?: number;
@@ -58,10 +70,18 @@ export interface AcademicFilters {
   ordering?: string;
 }
 
+/** Like response interface */
 export interface LikeResponse {
   liked: boolean;
   like_count: number;
 }
+
+// ===== MAIN SERVICE =====
+
+/**
+ * Academic Resources Service
+ * Provides optimized methods for managing academic data with database index utilization
+ */
 
 export const academicsService = {
   // Get academic schemes with optimized filters

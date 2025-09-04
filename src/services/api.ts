@@ -1,4 +1,11 @@
-import { axiosWithCredentials } from './auth';
+/**
+ * @fileoverview Admin API Service
+ * @description Production-ready API service for admin backend communications with authentication
+ * @author EESA Frontend Team
+ * @version 1.0.0
+ */
+
+import axios from 'axios';
 import type { 
   Subject, 
   Scheme, 
@@ -10,6 +17,15 @@ import type {
   CareerCreate,
   ProjectCreate
 } from '@/types/api';
+
+// Create axios instance with credentials for admin operations
+const axiosWithCredentials = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000',
+  withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
 // Academics API
 export const academicsAPI = {

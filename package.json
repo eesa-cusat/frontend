@@ -10,9 +10,7 @@
     "start:prod": "NODE_ENV=production next start",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
-    "clean": "rm -rf .next out node_modules/.cache",
-    "sitemap": "next-sitemap --config next-sitemap.config.js",
-    "postbuild": "npm run sitemap"
+    "clean": "rm -rf .next out node_modules/.cache"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",

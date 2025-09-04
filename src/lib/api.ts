@@ -1,6 +1,5 @@
 import axios, { AxiosResponse, AxiosError } from 'axios';
 import { ApiResponse, ApiError } from '@/types/common';
-import { deduplicatedFetch } from '@/utils/requestDeduplication';
 import toast from 'react-hot-toast';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';

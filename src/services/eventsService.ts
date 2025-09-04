@@ -1,7 +1,16 @@
+/**
+ * @fileoverview Events Management Service
+ * @description Production-ready service for managing events with optimized database queries
+ * @author EESA Frontend Team
+ * @version 1.0.0
+ */
+
 import { api } from '@/lib/api';
 import { Event } from '@/types/api';
-import { ApiResponse } from '@/types/common';
 
+// ===== TYPE DEFINITIONS =====
+
+/** Event registration data interface */
 export interface EventRegistrationData {
   guest_name: string;
   guest_email: string;
@@ -10,6 +19,7 @@ export interface EventRegistrationData {
   guest_department?: string;
 }
 
+/** Event filter interface for optimized database queries */
 export interface EventFilters {
   search?: string;
   event_type?: string;
@@ -26,35 +36,63 @@ export interface EventFilters {
   ordering?: string;
 }
 
+/** Event statistics interface */
+export interface EventStatistics {
+  total_events: number;
+  upcoming_events: number;
+  past_events: number;
+  featured_events: number;
+  events_by_type: Record<string, number>;
+  period: 'monthly' | 'yearly';
+  start_date: string;
+  end_date: string;
+}
+
+// ===== MAIN SERVICE =====
+
+/**
+ * Events Service
+ * Provides optimized methods for event management with database index utilization
+ */
 export const eventsService = {
-  // Get all events with optimized filters for database indexes
+  
+  // ===== CORE EVENT RETRIEVAL =====
+  
+  /**
+   * Retrieves events with comprehensive filtering
+   * @description Leverages database indexes: idx_events_event_search, idx_events_event_status_featured, idx_events_event_dates
+   * @param filters Optional filter parameters
+   * @returns Promise<Event[]> Filtered array of events
+   */
   async getEvents(filters?: EventFilters): Promise<Event[]> {
     try {
       const params = new URLSearchParams();
       
-      // Optimize search for full-text search index (idx_events_event_search)
-      if (filters?.search) {
-        params.append('search', filters.search);
-      }
+      // Full-text search optimization (idx_events_event_search)
+      if (filters?.search) params.append('search', filters.search);
       
+      // Status and feature filtering (idx_events_event_status_featured)
       if (filters?.event_type) params.append('event_type', filters.event_type);
       if (filters?.status) params.append('status', filters.status);
       if (filters?.is_upcoming !== undefined) params.append('is_upcoming', filters.is_upcoming.toString());
       if (filters?.is_past !== undefined) params.append('is_past', filters.is_past.toString());
       if (filters?.is_featured !== undefined) params.append('is_featured', filters.is_featured.toString());
+      
+      // Date range filtering (idx_events_event_dates)
       if (filters?.start_date) params.append('start_date', filters.start_date);
       if (filters?.end_date) params.append('end_date', filters.end_date);
+      
+      // Additional filters
       if (filters?.location) params.append('location', filters.location);
       if (filters?.registration_required !== undefined) params.append('registration_required', filters.registration_required.toString());
+      
+      // Pagination
       if (filters?.limit) params.append('limit', filters.limit.toString());
       if (filters?.offset) params.append('offset', filters.offset.toString());
       
-      // Leverage idx_events_event_status_featured and idx_events_event_dates indexes
-      if (filters?.ordering) {
-        params.append('ordering', filters.ordering);
-      } else {
-        params.append('ordering', '-start_date'); // Default: newest events first
-      }
+      // Optimized ordering (leverages date indexes)
+      const ordering = filters?.ordering || '-start_date';
+      params.append('ordering', ordering);
 
       const response = await api.events.list(Object.fromEntries(params));
       return response.data.results || response.data;
@@ -64,14 +102,17 @@ export const eventsService = {
     }
   },
 
-  // Get upcoming events (leverages idx_events_event_dates)
+  /**
+   * Retrieves upcoming events
+   * @description Leverages idx_events_event_dates for optimal date filtering
+   * @param limit Optional limit for number of events
+   * @returns Promise<Event[]> Array of upcoming events
+   */
   async getUpcomingEvents(limit?: number): Promise<Event[]> {
     try {
-      // Use the specific upcoming endpoint
       const response = await api.events.upcoming();
       let events = response.data.results || response.data;
       
-      // Apply limit if specified
       if (limit && Array.isArray(events)) {
         events = events.slice(0, limit);
       }
@@ -79,19 +120,27 @@ export const eventsService = {
       return events;
     } catch (error) {
       console.error('Error fetching upcoming events:', error);
-      // Fallback to general list with filters
-      return this.getEvents({ is_upcoming: true, ordering: 'start_date', limit });
+      // Fallback with optimized filters
+      return this.getEvents({ 
+        is_upcoming: true, 
+        ordering: 'start_date', 
+        limit,
+        status: 'published'
+      });
     }
   },
 
-  // Get featured events (leverages idx_events_event_status_featured)
+  /**
+   * Retrieves featured events
+   * @description Leverages idx_events_event_status_featured for optimal filtering
+   * @param limit Optional limit for number of events
+   * @returns Promise<Event[]> Array of featured events
+   */
   async getFeaturedEvents(limit?: number): Promise<Event[]> {
     try {
-      // Use the specific featured endpoint
       const response = await api.events.featured();
       let events = response.data.results || response.data;
       
-      // Apply limit if specified
       if (limit && Array.isArray(events)) {
         events = events.slice(0, limit);
       }
@@ -99,12 +148,21 @@ export const eventsService = {
       return events;
     } catch (error) {
       console.error('Error fetching featured events:', error);
-      // Fallback to general list with filters
-      return this.getEvents({ is_featured: true, status: 'published', ordering: '-start_date', limit });
+      // Fallback with optimized filters
+      return this.getEvents({ 
+        is_featured: true, 
+        status: 'published', 
+        ordering: '-start_date', 
+        limit 
+      });
     }
   },
 
-  // Get events with registration (leverages idx_events_event_registration)
+  /**
+   * Retrieves events requiring registration
+   * @description Leverages idx_events_event_registration for optimal filtering
+   * @returns Promise<Event[]> Array of events with registration
+   */
   async getEventsWithRegistration(): Promise<Event[]> {
     try {
       const response = await api.events.list({
@@ -119,7 +177,15 @@ export const eventsService = {
     }
   },
 
-  // Get events by type (leverages idx_events_event_type_status)
+  // ===== SPECIALIZED QUERIES =====
+
+  /**
+   * Retrieves events by type
+   * @description Leverages idx_events_event_type_status for optimal filtering
+   * @param eventType Type of events to retrieve
+   * @param limit Optional limit for number of events
+   * @returns Promise<Event[]> Array of events by type
+   */
   async getEventsByType(eventType: string, limit?: number): Promise<Event[]> {
     try {
       const params: any = { 
@@ -137,7 +203,13 @@ export const eventsService = {
     }
   },
 
-  // Get events for date range (leverages idx_events_event_dates)
+  /**
+   * Retrieves events within a date range
+   * @description Leverages idx_events_event_dates for optimal date filtering
+   * @param startDate Start date (YYYY-MM-DD format)
+   * @param endDate End date (YYYY-MM-DD format)
+   * @returns Promise<Event[]> Array of events in date range
+   */
   async getEventsInDateRange(startDate: string, endDate: string): Promise<Event[]> {
     try {
       const response = await api.events.list({
@@ -152,7 +224,13 @@ export const eventsService = {
     }
   },
 
-  // Search events with full-text search (leverages idx_events_event_search)
+  /**
+   * Searches events with full-text search
+   * @description Leverages idx_events_event_search for optimal text search
+   * @param searchTerm Search term for events
+   * @param filters Additional filter parameters
+   * @returns Promise<Event[]> Array of matching events
+   */
   async searchEvents(searchTerm: string, filters?: Partial<EventFilters>): Promise<Event[]> {
     try {
       const searchFilters: EventFilters = {
@@ -169,55 +247,14 @@ export const eventsService = {
     }
   },
 
-  // Get event statistics (leverages analytics indexes)
-  async getEventStatistics(): Promise<any> {
-    try {
-      const response = await api.events.stats();
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching event statistics:', error);
-      throw error;
-    }
-  },
+  // ===== SINGLE EVENT OPERATIONS =====
 
-  // Get event analytics for dashboard (leverages monthly/yearly analytics indexes)
-  async getEventAnalytics(period: 'monthly' | 'yearly' = 'monthly'): Promise<any> {
-    try {
-      const currentDate = new Date();
-      let startDate: string;
-      
-      if (period === 'monthly') {
-        startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).toISOString().split('T')[0];
-      } else {
-        startDate = new Date(currentDate.getFullYear(), 0, 1).toISOString().split('T')[0];
-      }
-      
-      const endDate = currentDate.toISOString().split('T')[0];
-      
-      // Get events for analytics period
-      const events = await this.getEventsInDateRange(startDate, endDate);
-      
-      // Calculate analytics
-      return {
-        total_events: events.length,
-        upcoming_events: events.filter(e => new Date(e.start_date) > new Date()).length,
-        past_events: events.filter(e => new Date(e.start_date) <= new Date()).length,
-        featured_events: events.filter(e => e.is_featured).length,
-        events_by_type: events.reduce((acc: any, event) => {
-          acc[event.event_type] = (acc[event.event_type] || 0) + 1;
-          return acc;
-        }, {}),
-        period,
-        start_date: startDate,
-        end_date: endDate
-      };
-    } catch (error) {
-      console.error('Error fetching event analytics:', error);
-      throw error;
-    }
-  },
-
-  // Get a single event by ID
+  /**
+   * Retrieves a single event by ID
+   * @description Uses primary key index for optimal performance
+   * @param id Event identifier
+   * @returns Promise<Event> Event details
+   */
   async getEvent(id: string): Promise<Event> {
     try {
       const response = await api.events.get(id);
@@ -228,7 +265,13 @@ export const eventsService = {
     }
   },
 
-  // Register for an event (guest registration)
+  /**
+   * Registers a guest for an event
+   * @description Creates event registration with atomic operations
+   * @param eventId Event identifier
+   * @param registrationData Guest registration information
+   * @returns Promise<any> Registration confirmation
+   */
   async registerForEvent(eventId: number, registrationData: EventRegistrationData): Promise<any> {
     try {
       const response = await api.events.register({
@@ -242,14 +285,77 @@ export const eventsService = {
     }
   },
 
-  // Get event statistics
-  async getEventStats(): Promise<any> {
+  // ===== ANALYTICS & STATISTICS =====
+
+  /**
+   * Retrieves comprehensive event statistics
+   * @description Leverages analytics indexes for aggregated data
+   * @returns Promise<any> Event statistics summary
+   */
+  async getEventStatistics(): Promise<any> {
     try {
       const response = await api.events.stats();
       return response.data;
     } catch (error) {
-      console.error('Error fetching event stats:', error);
+      console.error('Error fetching event statistics:', error);
       throw error;
     }
   },
+
+  /**
+   * Retrieves event analytics for specified period
+   * @description Calculates analytics using optimized date range queries
+   * @param period Analysis period - 'monthly' or 'yearly'
+   * @returns Promise<EventStatistics> Analytics data
+   */
+  async getEventAnalytics(period: 'monthly' | 'yearly' = 'monthly'): Promise<EventStatistics> {
+    try {
+      const currentDate = new Date();
+      let startDate: string;
+      
+      // Calculate date range based on period
+      if (period === 'monthly') {
+        startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).toISOString().split('T')[0];
+      } else {
+        startDate = new Date(currentDate.getFullYear(), 0, 1).toISOString().split('T')[0];
+      }
+      
+      const endDate = currentDate.toISOString().split('T')[0];
+      
+      // Fetch events for analytics period
+      const events = await this.getEventsInDateRange(startDate, endDate);
+      
+      // Calculate comprehensive analytics
+      return {
+        total_events: events.length,
+        upcoming_events: events.filter(e => new Date(e.start_date) > new Date()).length,
+        past_events: events.filter(e => new Date(e.start_date) <= new Date()).length,
+        featured_events: events.filter(e => e.is_featured).length,
+        events_by_type: events.reduce((acc: Record<string, number>, event) => {
+          acc[event.event_type] = (acc[event.event_type] || 0) + 1;
+          return acc;
+        }, {}),
+        period,
+        start_date: startDate,
+        end_date: endDate
+      };
+    } catch (error) {
+      console.error('Error fetching event analytics:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Legacy method for backward compatibility
+   * @deprecated Use getEventStatistics() instead
+   */
+  async getEventStats(): Promise<any> {
+    console.warn('getEventStats() is deprecated. Use getEventStatistics() instead.');
+    return this.getEventStatistics();
+  }
 };
+
+// ===== EXPORT =====
+
+/** Default export for backward compatibility */
+export default eventsService;
