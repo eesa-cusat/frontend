@@ -93,7 +93,7 @@ export default function EventsPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'upcoming': return 'bg-blue-100 text-blue-800';
-      case 'completed': return 'bg-green-100 text-green-800';
+      case 'completed': return 'bg-[#191A23]/10 text-[#191A23]';
       case 'ongoing': return 'bg-yellow-100 text-yellow-800';
       default: return 'bg-gray-100 text-gray-800';
     }
@@ -105,7 +105,7 @@ export default function EventsPage() {
       case 'workshop': return 'bg-orange-100 text-orange-800';
       case 'seminar': return 'bg-blue-100 text-blue-800';
       case 'festival': return 'bg-pink-100 text-pink-800';
-      case 'industry connect': return 'bg-green-100 text-green-800';
+      case 'industry connect': return 'bg-[#191A23]/10 text-[#191A23]';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -116,7 +116,7 @@ export default function EventsPage() {
       case 'workshop': return 'from-orange-500 to-red-600';
       case 'seminar': return 'from-blue-500 to-cyan-600';
       case 'festival': return 'from-pink-500 to-rose-600';
-      case 'industry connect': return 'from-green-500 to-emerald-600';
+      case 'industry connect': return 'from-[#191A23] to-gray-700';
       default: return 'from-gray-500 to-slate-600';
     }
   };
@@ -309,32 +309,53 @@ export default function EventsPage() {
       {/* Toast Container */}
       <ToastContainer />
 
-      <div className="min-h-screen bg-gray-50 font-sans">
-        {/* Hero Section */}
-        <section className="bg-[#B9FF66] text-[#191A23] py-16 md:py-24">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-[#F3F3F3] font-sans">
+        {/* Hero Section - Quarter Height */}
+        <section className="h-[25vh] min-h-[300px] bg-gradient-to-b from-[#F3F3F3] to-white flex items-center">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
             <div className="text-center">
               <div className="flex items-center justify-center mb-6">
-                <Calendar className="w-16 h-16 mr-4 text-[#191A23]" />
-                <h1 className="text-4xl md:text-6xl font-bold text-[#191A23]">
+                <div className="w-16 h-16 bg-[#191A23] rounded-2xl flex items-center justify-center mr-4 shadow-lg transform rotate-3">
+                  <Calendar className="w-8 h-8 text-[#B9FF66]" />
+                </div>
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#191A23]">
                   Events
                 </h1>
               </div>
-              <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto text-[#191A23]">
-                Discover workshops, seminars, and technical events that shape your engineering journey
+              <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed mb-6">
+                Discover cutting-edge workshops, inspiring seminars, and transformative technical events
               </p>
-              <div className="flex flex-wrap items-center justify-center gap-6 text-lg text-[#191A23]">
-                <div className="flex items-center bg-white/20 px-4 py-2 rounded-full">
-                  <Ticket className="w-5 h-5 mr-2" />
-                  <span>{events.length} Events</span>
+              
+              {/* Compact Stats */}
+              <div className="flex flex-wrap items-center justify-center gap-6 mb-6">
+                <div className="flex items-center bg-white rounded-xl shadow-md px-4 py-2 border border-gray-100">
+                  <div className="w-8 h-8 bg-[#191A23] rounded-lg flex items-center justify-center mr-3">
+                    <Ticket className="w-4 h-4 text-[#B9FF66]" />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-xl font-bold text-[#191A23]">{events.length}</div>
+                    <div className="text-sm text-gray-600">Events</div>
+                  </div>
                 </div>
-                <div className="flex items-center bg-white/20 px-4 py-2 rounded-full">
-                  <Camera className="w-5 h-5 mr-2" />
-                  <span>{events.filter(e => e.gallery_album_id).length} Photo Albums</span>
+                
+                <div className="flex items-center bg-white rounded-xl shadow-md px-4 py-2 border border-gray-100">
+                  <div className="w-8 h-8 bg-[#191A23] rounded-lg flex items-center justify-center mr-3">
+                    <Camera className="w-4 h-4 text-[#B9FF66]" />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-xl font-bold text-[#191A23]">{events.filter(e => e.gallery_album_id).length}</div>
+                    <div className="text-sm text-gray-600">Albums</div>
+                  </div>
                 </div>
-                <div className="flex items-center bg-white/20 px-4 py-2 rounded-full">
-                  <Users className="w-5 h-5 mr-2" />
-                  <span>1000+ Participants</span>
+                
+                <div className="flex items-center bg-white rounded-xl shadow-md px-4 py-2 border border-gray-100">
+                  <div className="w-8 h-8 bg-[#191A23] rounded-lg flex items-center justify-center mr-3">
+                    <Users className="w-4 h-4 text-[#B9FF66]" />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-xl font-bold text-[#191A23]">1000+</div>
+                    <div className="text-sm text-gray-600">Participants</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -343,99 +364,101 @@ export default function EventsPage() {
 
         {/* Search and Filters */}
         <section className="bg-white shadow-lg border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Search events by title or description..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#B9FF66] focus:border-[#B9FF66] transition-colors text-[#191A23]"
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowFilters(!showFilters)}
-                  className="flex items-center gap-2 px-6 py-3 bg-[#B9FF66] hover:bg-[#a8e25d] text-[#191A23] rounded-lg transition-colors shadow-md"
-                >
-                  <Filter className="w-4 h-4" />
-                  Filters
-                  <ChevronDown className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
-                </button>
-
-                <div className="flex bg-white border-2 border-gray-300 rounded-lg overflow-hidden">
-                  <button
-                    onClick={() => setShowPastEvents(false)}
-                    className={`px-6 py-3 font-medium transition-all duration-300 ${
-                      !showPastEvents
-                        ? "bg-[#191A23] text-[#B9FF66]"
-                        : "text-[#191A23] hover:bg-[#191A23]/10"
-                    }`}
-                  >
-                    Upcoming
-                  </button>
-                  <button
-                    onClick={() => setShowPastEvents(true)}
-                    className={`px-6 py-3 font-medium transition-all duration-300 ${
-                      showPastEvents
-                        ? "bg-[#191A23] text-[#B9FF66]"
-                        : "text-[#191A23] hover:bg-[#191A23]/10"
-                    }`}
-                  >
-                    Past Events
-                  </button>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+              <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    placeholder="Search events by title or description..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl bg-gray-50 text-[#191A23] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent focus:bg-white transition-all duration-300"
+                  />
                 </div>
-              </div>
-            </div>
 
-            {showFilters && (
-              <div className="mt-6 p-6 bg-[#B9FF66]/10 rounded-lg border border-gray-300">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-[#191A23] mb-2">Event Type</label>
-                    <select
-                      value={filterType}
-                      onChange={(e) => setFilterType(e.target.value)}
-                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#B9FF66] focus:border-[#B9FF66] bg-white text-[#191A23]"
-                    >
-                      <option value="all">All Types</option>
-                      <option value="technical">Technical</option>
-                      <option value="workshop">Workshop</option>
-                      <option value="seminar">Seminar</option>
-                      <option value="festival">Festival</option>
-                      <option value="industry connect">Industry Connect</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-[#191A23] mb-2">Status</label>
-                    <select
-                      value={filterStatus}
-                      onChange={(e) => setFilterStatus(e.target.value)}
-                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#B9FF66] focus:border-[#B9FF66] bg-white text-[#191A23]"
-                    >
-                      <option value="all">All Events</option>
-                      <option value="upcoming">Upcoming</option>
-                      <option value="completed">Completed</option>
-                    </select>
-                  </div>
-                  <div className="flex items-end">
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="flex items-center gap-2 px-6 py-4 bg-[#191A23] hover:bg-[#2A2B35] text-[#B9FF66] rounded-xl transition-all duration-300 shadow-lg font-medium"
+                  >
+                    <Filter className="w-4 h-4" />
+                    Filters
+                    <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${showFilters ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  <div className="flex bg-gray-100 border border-gray-200 rounded-xl overflow-hidden shadow-md">
                     <button
-                      onClick={() => {
-                        setFilterType("all");
-                        setFilterStatus("all");
-                        setSearchQuery("");
-                      }}
-                      className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors shadow-md"
+                      onClick={() => setShowPastEvents(false)}
+                      className={`px-6 py-4 font-semibold transition-all duration-300 ${
+                        !showPastEvents
+                          ? "bg-[#191A23] text-[#B9FF66] shadow-lg"
+                          : "text-gray-600 hover:bg-gray-200"
+                      }`}
                     >
-                      Clear Filters
+                      Upcoming
+                    </button>
+                    <button
+                      onClick={() => setShowPastEvents(true)}
+                      className={`px-6 py-4 font-semibold transition-all duration-300 ${
+                        showPastEvents
+                          ? "bg-[#191A23] text-[#B9FF66] shadow-lg"
+                          : "text-gray-600 hover:bg-gray-200"
+                      }`}
+                    >
+                      Past Events
                     </button>
                   </div>
                 </div>
               </div>
-            )}
+
+              {showFilters && (
+                <div className="mt-8 p-8 bg-[#F3F3F3] rounded-xl border border-gray-200">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                      <label className="block text-sm font-bold text-[#191A23] mb-3">Event Type</label>
+                      <select
+                        value={filterType}
+                        onChange={(e) => setFilterType(e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-white text-[#191A23] focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all duration-300"
+                      >
+                        <option value="all">All Types</option>
+                        <option value="technical">Technical</option>
+                        <option value="workshop">Workshop</option>
+                        <option value="seminar">Seminar</option>
+                        <option value="festival">Festival</option>
+                        <option value="industry connect">Industry Connect</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-[#191A23] mb-3">Status</label>
+                      <select
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-white text-[#191A23] focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all duration-300"
+                      >
+                        <option value="all">All Events</option>
+                        <option value="upcoming">Upcoming</option>
+                        <option value="completed">Completed</option>
+                      </select>
+                    </div>
+                    <div className="flex items-end">
+                      <button
+                        onClick={() => {
+                          setFilterType("all");
+                          setFilterStatus("all");
+                          setSearchQuery("");
+                        }}
+                        className="w-full px-6 py-3 bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-all duration-300 shadow-lg font-semibold"
+                      >
+                        Clear Filters
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </section>
 
@@ -581,10 +604,10 @@ export default function EventsPage() {
                               }
                               className={`transition-all duration-300 ${
                                 registeredEvents.has(event.id)
-                                  ? "bg-green-500 text-white cursor-default"
+                                  ? "bg-[#191A23] text-[#B9FF66] cursor-default"
                                   : registeringEvents.has(event.id)
                                   ? "bg-gray-400 text-white cursor-not-allowed"
-                                  : "bg-blue-600 hover:bg-blue-700 text-white"
+                                  : "bg-[#191A23] hover:bg-[#2A2B35] text-[#B9FF66]"
                               }`}
                             >
                               {registeredEvents.has(event.id) ? (
@@ -759,7 +782,7 @@ export default function EventsPage() {
                     )}
 
                     {selectedEvent.registration_required && selectedEvent.max_participants && (
-                      <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                      <div className="bg-[#F3F3F3] p-4 rounded-lg border border-gray-200">
                         <h3 className="font-bold text-[#191A23] mb-3">Registration</h3>
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
@@ -772,7 +795,7 @@ export default function EventsPage() {
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
                             <div 
-                              className="bg-green-600 h-2 rounded-full" 
+                              className="bg-[#191A23] h-2 rounded-full" 
                               style={{width: `${((selectedEvent.registration_count || 0) / selectedEvent.max_participants) * 100}%`}}
                             ></div>
                           </div>

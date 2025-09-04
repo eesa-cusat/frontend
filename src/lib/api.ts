@@ -148,6 +148,10 @@ export const api = {
   gallery: {
     list: (params?: any) => apiClient.get('/gallery/', { params }),
     get: (id: string) => apiClient.get(`/gallery/${id}/`),
+    categories: (params?: any) => apiClient.get('/gallery/categories/', { params }),
+    albums: (params?: any) => apiClient.get('/gallery/albums/', { params }),
+    images: (params?: any) => apiClient.get('/gallery/images/', { params }),
+    batchData: (params?: any) => apiClient.get('/gallery/batch-data/', { params }),
   },
 
   // Alumni
