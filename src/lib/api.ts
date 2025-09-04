@@ -115,6 +115,8 @@ export const api = {
 
   // Academic Resources
   academics: {
+    // New optimized endpoint that fetches all data in one call
+    data: () => apiClient.get('/academics/data/'),
     schemes: (params?: any) => apiClient.get('/academics/schemes/', { params }),
     subjects: (params?: any) => apiClient.get('/academics/subjects/', { params }),
     categories: (params?: any) => apiClient.get('/academics/categories/', { params }),
