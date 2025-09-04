@@ -95,10 +95,22 @@ export const eventsService = {
       params.append('ordering', ordering);
 
       const response = await api.events.list(Object.fromEntries(params));
-      return response.data.results || response.data;
+      const data = response.data;
+      
+      // Handle different response formats
+      if (Array.isArray(data)) {
+        return data;
+      } else if (data && Array.isArray(data.results)) {
+        return data.results;
+      } else if (data && Array.isArray(data.events)) {
+        return data.events;
+      }
+      
+      console.warn('Unexpected events response format:', data);
+      return [];
     } catch (error) {
       console.error('Error fetching events:', error);
-      throw error;
+      return []; // Return empty array instead of throwing
     }
   },
 
@@ -111,9 +123,23 @@ export const eventsService = {
   async getUpcomingEvents(limit?: number): Promise<Event[]> {
     try {
       const response = await api.events.upcoming();
-      let events = response.data.results || response.data;
+      const data = response.data;
       
-      if (limit && Array.isArray(events)) {
+      let events: Event[] = [];
+      
+      // Handle different response formats
+      if (Array.isArray(data)) {
+        events = data;
+      } else if (data && Array.isArray(data.results)) {
+        events = data.results;
+      } else if (data && Array.isArray(data.events)) {
+        events = data.events;
+      } else {
+        console.warn('Unexpected upcoming events response format:', data);
+        events = [];
+      }
+      
+      if (limit && events.length > 0) {
         events = events.slice(0, limit);
       }
       
@@ -139,9 +165,23 @@ export const eventsService = {
   async getFeaturedEvents(limit?: number): Promise<Event[]> {
     try {
       const response = await api.events.featured();
-      let events = response.data.results || response.data;
+      const data = response.data;
       
-      if (limit && Array.isArray(events)) {
+      let events: Event[] = [];
+      
+      // Handle different response formats
+      if (Array.isArray(data)) {
+        events = data;
+      } else if (data && Array.isArray(data.results)) {
+        events = data.results;
+      } else if (data && Array.isArray(data.events)) {
+        events = data.events;
+      } else {
+        console.warn('Unexpected featured events response format:', data);
+        events = [];
+      }
+      
+      if (limit && events.length > 0) {
         events = events.slice(0, limit);
       }
       

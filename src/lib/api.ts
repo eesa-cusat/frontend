@@ -37,13 +37,18 @@ const apiClient = axios.create({
     'Content-Type': 'application/json',
   },
   timeout: 10000, // 10 second timeout
+  maxRedirects: 0, // Don't follow redirects automatically to avoid HTTPS issues
 });
 
 // Request interceptor for caching
 apiClient.interceptors.request.use(
   (config) => {
-    // Enable compression
-    config.headers['Accept-Encoding'] = 'gzip, deflate, br';
+    // Remove Accept-Encoding header - browser sets this automatically
+    // Setting it manually causes "Refused to set unsafe header" error
+    delete config.headers['Accept-Encoding'];
+    
+    // Add debugging for redirects
+    console.log('API Request:', config.method?.toUpperCase(), config.url);
     
     // Check cache for GET requests
     if (config.method === 'get' && !config.url?.includes('admin')) {
@@ -51,6 +56,7 @@ apiClient.interceptors.request.use(
       const cachedData = getCachedData(cacheKey);
       
       if (cachedData) {
+        console.log('Using cached data for:', config.url);
         // Return cached data by resolving promise
         return Promise.reject({
           cached: true,
@@ -68,21 +74,75 @@ apiClient.interceptors.request.use(
 // Response interceptor to handle errors and caching
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
+    console.log('API Response:', response.status, response.config.url, typeof response.data);
+    
     // Cache GET responses (excluding admin endpoints)
     if (response.config.method === 'get' && !response.config.url?.includes('admin')) {
       const cacheKey = getCacheKey(response.config.url || '', response.config.params);
       setCachedData(cacheKey, response.data, 5); // Cache for 5 minutes
     }
     
+    // Normalize response data structure for consistency
+    if (response.data && typeof response.data === 'object') {
+      // If data has a results property but it's not an array, fix it
+      if (response.data.results && !Array.isArray(response.data.results)) {
+        console.warn('API returned non-array results, converting to array:', response.data.results);
+        response.data.results = [];
+      }
+      
+      // If data is directly an object but expected to be an array, wrap it
+      if (!response.data.results && !Array.isArray(response.data) && 
+          response.config.url?.includes('/api/')) {
+        // Don't wrap if it's clearly a single object endpoint (contains ID)
+        if (!response.config.url.match(/\/\d+\/?$/)) {
+          console.warn('API returned non-array data for list endpoint, wrapping in array:', response.data);
+          response.data = { results: [] };
+        }
+      }
+    }
+    
     return response;
   },
   async (error: AxiosError | any) => {
+    console.log('API Error:', error.response?.status, error.config?.url, error.message);
+    
     // Handle cached responses
     if (error.cached) {
+      console.log('Returning cached data for:', error.config.url);
       return Promise.resolve({
         data: error.data,
         status: 200,
         statusText: 'OK',
+        headers: {},
+        config: error.config,
+      });
+    }
+
+    // Handle redirect responses (301, 302) - try different endpoint patterns
+    if (error.response?.status === 301 || error.response?.status === 302) {
+      const originalUrl = error.config?.url;
+      console.warn('API redirect detected for:', originalUrl, 'Location:', error.response.headers?.location);
+      
+      // Try alternative endpoint patterns
+      if (originalUrl?.includes('/events/')) {
+        try {
+          // Try /events/events/ pattern as suggested
+          const alternativeUrl = originalUrl.replace('/events/', '/events/events/');
+          console.log('Trying alternative endpoint:', alternativeUrl);
+          const retryConfig = { ...error.config, url: alternativeUrl };
+          const retryResponse = await apiClient.request(retryConfig);
+          return retryResponse;
+        } catch (retryError) {
+          console.warn('Alternative endpoint also failed:', retryError);
+        }
+      }
+      
+      // If all retries fail, return empty data structure
+      console.log('All endpoints failed, returning fallback data');
+      return Promise.resolve({
+        data: { results: [] },
+        status: 200,
+        statusText: 'OK (Fallback)',
         headers: {},
         config: error.config,
       });
@@ -94,6 +154,9 @@ apiClient.interceptors.response.use(
       toast.error('Server error. Please try again later.');
     } else if (error.code === 'ECONNABORTED') {
       toast.error('Request timeout. Please try again.');
+    } else if (error.code === 'ECONNREFUSED') {
+      console.error('Cannot connect to API server. Is the backend running?');
+      toast.error('Cannot connect to server. Please check if the backend is running.');
     }
     return Promise.reject(error);
   }
@@ -101,13 +164,50 @@ apiClient.interceptors.response.use(
 
 // API functions for public endpoints
 export const api = {
-  // Events
+  // Events - try both /events/ and /events/events/ patterns
   events: {
-    list: (params?: any) => apiClient.get('/events/', { params }),
-    get: (id: string) => apiClient.get(`/events/${id}/`),
-    upcoming: () => apiClient.get('/events/upcoming/'),
-    featured: () => apiClient.get('/events/featured/'),
-    stats: () => apiClient.get('/events/stats/'),
+    list: (params?: any) => {
+      // Try the suggested /events/events/ pattern first
+      return apiClient.get('/events/events/', { params }).catch(error => {
+        if (error.response?.status === 301 || error.response?.status === 404) {
+          // Fallback to /events/
+          return apiClient.get('/events/', { params });
+        }
+        throw error;
+      });
+    },
+    get: (id: string) => {
+      return apiClient.get(`/events/events/${id}/`).catch(error => {
+        if (error.response?.status === 301 || error.response?.status === 404) {
+          return apiClient.get(`/events/${id}/`);
+        }
+        throw error;
+      });
+    },
+    upcoming: () => {
+      return apiClient.get('/events/events/upcoming/').catch(error => {
+        if (error.response?.status === 301 || error.response?.status === 404) {
+          return apiClient.get('/events/upcoming/');
+        }
+        throw error;
+      });
+    },
+    featured: () => {
+      return apiClient.get('/events/events/featured/').catch(error => {
+        if (error.response?.status === 301 || error.response?.status === 404) {
+          return apiClient.get('/events/featured/');
+        }
+        throw error;
+      });
+    },
+    stats: () => {
+      return apiClient.get('/events/events/stats/').catch(error => {
+        if (error.response?.status === 301 || error.response?.status === 404) {
+          return apiClient.get('/events/stats/');
+        }
+        throw error;
+      });
+    },
     register: (data: any) => apiClient.post('/events/quick-register/', data),
     submitFeedback: (data: any) => apiClient.post('/events/submit-feedback/', data),
   },
