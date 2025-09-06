@@ -1,216 +1,319 @@
-import { api } from '@/lib/api';
+// Gallery Service - New implementation according to API guide
 
-export interface GalleryImage {
-  id: number;
-  title: string;
-  description?: string;
-  image: string;
-  thumbnail?: string;
-  category: number;
-  album?: number;
-  is_featured: boolean;
-  created_at: string;
-  photographer?: string;
-  camera_details?: string;
-  location?: string;
-  tags?: string[];
-  view_count: number;
-  download_count: number;
-}
-
-export interface GalleryCategory {
+// Album Interface - Three types: EESA Programs, General Programs, Alumni Batches
+export interface Album {
   id: number;
   name: string;
-  category_type: string;
-  description?: string;
-  display_order: number;
-  is_active: boolean;
-  album_count?: number;
+  type: 'eesa' | 'general' | 'alumni';
+  description: string;
+  cover_image?: string;
+  event?: {
+    id: number;
+    title: string;
+    description?: string;
+    start_date: string;
+    end_date?: string;
+    location?: string;
+  };
+  batch_year?: number;
+  photo_count: number;
+  photos?: Photo[];
+  created_at: string;
+  created_by: {
+    id: number;
+    username: string;
+    first_name: string;
+    last_name: string;
+  };
 }
 
-export interface GalleryAlbum {
+// Photo Interface
+export interface Photo {
   id: number;
-  title: string;
-  description?: string;
-  category: number;
-  cover_image?: string;
-  event_date?: string;
-  location?: string;
-  photographer?: string;
-  is_public: boolean;
-  is_featured: boolean;
-  created_at: string;
-  image_count?: number;
+  album: number;
+  image: string;
+  caption?: string;
+  uploaded_at: string;
+  uploaded_by: {
+    id: number;
+    username: string;
+    first_name: string;
+    last_name: string;
+  };
+}
+
+// API Response interfaces
+export interface ApiResponse<T> {
+  count: number;
+  next?: string;
+  previous?: string;
+  results: T[];
 }
 
 class GalleryService {
-  /**
-   * Get gallery categories
-   */
-  async getCategories(): Promise<GalleryCategory[]> {
+  private baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
+
+  // Helper method for API calls with proxy
+  private async apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
     try {
-      const response = await api.gallery.categories();
-      const data = response.data;
-      
-      // Handle different response formats
-      if (Array.isArray(data)) {
-        return data;
-      } else if (data && Array.isArray(data.results)) {
-        return data.results;
-      } else if (data && Array.isArray(data.categories)) {
-        return data.categories;
+      const response = await fetch(`/api/proxy?endpoint=gallery/${endpoint}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...options?.headers,
+        },
+        ...options,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
-      console.warn('Unexpected gallery categories response format:', data);
-      return [];
+
+      return await response.json();
     } catch (error) {
-      console.error('Error fetching gallery categories:', error);
+      console.error(`API call failed for ${endpoint}:`, error);
+      throw error;
+    }
+  }
+
+  // Get all albums with optional filters
+  async getAlbums(filters?: {
+    type?: 'eesa' | 'general' | 'alumni';
+    search?: string;
+    created_after?: string;
+    created_before?: string;
+  }): Promise<Album[]> {
+    try {
+      const params = new URLSearchParams();
+      
+      if (filters?.type) params.append('type', filters.type);
+      if (filters?.search) params.append('search', filters.search);
+      if (filters?.created_after) params.append('created_after', filters.created_after);
+      if (filters?.created_before) params.append('created_before', filters.created_before);
+
+      const endpoint = `albums/${params.toString() ? `?${params.toString()}` : ''}`;
+      const response = await this.apiCall<ApiResponse<Album>>(endpoint);
+      
+      return response.results || [];
+    } catch (error) {
+      console.error('Error fetching albums:', error);
       return [];
     }
   }
 
-  /**
-   * Get gallery albums
-   */
-  async getAlbums(categoryId?: number): Promise<GalleryAlbum[]> {
+  // Get single album with photos
+  async getAlbum(id: number): Promise<Album | null> {
     try {
-      const params = categoryId ? { category: categoryId } : {};
-      const response = await api.gallery.albums(params);
-      const data = response.data;
-      
-      // Handle different response formats
-      if (Array.isArray(data)) {
-        return data;
-      } else if (data && Array.isArray(data.results)) {
-        return data.results;
-      } else if (data && Array.isArray(data.albums)) {
-        return data.albums;
-      }
-      
-      console.warn('Unexpected gallery albums response format:', data);
-      return [];
+      const album = await this.apiCall<Album>(`albums/${id}/`);
+      return album;
     } catch (error) {
-      console.error('Error fetching gallery albums:', error);
+      console.error(`Error fetching album ${id}:`, error);
+      return null;
+    }
+  }
+
+  // Get photos for a specific album
+  async getAlbumPhotos(albumId: number, search?: string): Promise<Photo[]> {
+    try {
+      const params = search ? `?search=${encodeURIComponent(search)}` : '';
+      const endpoint = `albums/${albumId}/photos/${params}`;
+      const response = await this.apiCall<ApiResponse<Photo>>(endpoint);
+      
+      return response.results || [];
+    } catch (error) {
+      console.error(`Error fetching photos for album ${albumId}:`, error);
       return [];
     }
   }
 
-  /**
-   * Get gallery images
-   */
-  async getImages(filters?: any): Promise<GalleryImage[]> {
+  // Get all photos across albums
+  async getAllPhotos(search?: string): Promise<Photo[]> {
     try {
-      const response = await api.gallery.images(filters);
-      const data = response.data;
+      const params = search ? `?search=${encodeURIComponent(search)}` : '';
+      const endpoint = `photos/${params}`;
+      const response = await this.apiCall<ApiResponse<Photo>>(endpoint);
       
-      // Handle different response formats
-      if (Array.isArray(data)) {
-        return data;
-      } else if (data && Array.isArray(data.results)) {
-        return data.results;
-      } else if (data && Array.isArray(data.images)) {
-        return data.images;
-      }
-      
-      console.warn('Unexpected gallery images response format:', data);
-      return [];
+      return response.results || [];
     } catch (error) {
-      console.error('Error fetching gallery images:', error);
+      console.error('Error fetching all photos:', error);
       return [];
     }
   }
 
-  /**
-   * Get image URL with proper base URL handling
-   */
-  getImageUrl(imagePath: string): string {
-    if (!imagePath) return '';
+  // Get single photo
+  async getPhoto(id: number): Promise<Photo | null> {
+    try {
+      const photo = await this.apiCall<Photo>(`photos/${id}/`);
+      return photo;
+    } catch (error) {
+      console.error(`Error fetching photo ${id}:`, error);
+      return null;
+    }
+  }
+
+  // Create new album
+  async createAlbum(albumData: {
+    name: string;
+    type: 'eesa' | 'general' | 'alumni';
+    description: string;
+    cover_image?: string;
+    event_id?: number;
+    batch_year?: number;
+  }): Promise<Album | null> {
+    try {
+      const album = await this.apiCall<Album>('albums/', {
+        method: 'POST',
+        body: JSON.stringify(albumData),
+      });
+      return album;
+    } catch (error) {
+      console.error('Error creating album:', error);
+      return null;
+    }
+  }
+
+  // Upload photo to album
+  async uploadPhoto(albumId: number, photoData: FormData): Promise<Photo | null> {
+    try {
+      const response = await fetch(`/api/proxy?endpoint=gallery/albums/${albumId}/photos/`, {
+        method: 'POST',
+        body: photoData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error(`Error uploading photo to album ${albumId}:`, error);
+      return null;
+    }
+  }
+
+  // Update album
+  async updateAlbum(id: number, albumData: Partial<Album>): Promise<Album | null> {
+    try {
+      const album = await this.apiCall<Album>(`albums/${id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(albumData),
+      });
+      return album;
+    } catch (error) {
+      console.error(`Error updating album ${id}:`, error);
+      return null;
+    }
+  }
+
+  // Update photo
+  async updatePhoto(id: number, photoData: { caption?: string }): Promise<Photo | null> {
+    try {
+      const photo = await this.apiCall<Photo>(`photos/${id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(photoData),
+      });
+      return photo;
+    } catch (error) {
+      console.error(`Error updating photo ${id}:`, error);
+      return null;
+    }
+  }
+
+  // Delete album
+  async deleteAlbum(id: number): Promise<boolean> {
+    try {
+      await this.apiCall(`albums/${id}/`, {
+        method: 'DELETE',
+      });
+      return true;
+    } catch (error) {
+      console.error(`Error deleting album ${id}:`, error);
+      return false;
+    }
+  }
+
+  // Delete photo
+  async deletePhoto(id: number): Promise<boolean> {
+    try {
+      await this.apiCall(`photos/${id}/`, {
+        method: 'DELETE',
+      });
+      return true;
+    } catch (error) {
+      console.error(`Error deleting photo ${id}:`, error);
+      return false;
+    }
+  }
+
+  // Get image URL (for Cloudinary or other CDN)
+  getImageUrl(imagePath?: string): string {
+    if (!imagePath) return '/placeholder-image.jpg';
     
-    // If it's already a full URL, return as-is
-    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    // If it's already a full URL, return as is
+    if (imagePath.startsWith('http')) {
       return imagePath;
     }
     
-    // Build the full URL
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api', '') || 'http://localhost:8000';
-    const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
-    return `${baseUrl}${cleanPath}`;
+    // Handle Cloudinary URLs
+    if (imagePath.includes('cloudinary')) {
+      return imagePath;
+    }
+    
+    // For local development or relative paths
+    return `${this.baseUrl}/media/${imagePath}`;
   }
 
-  /**
-   * Get batch data safely with better error handling
-   */
-  async getBatchData(filters?: any): Promise<{
-    categories: GalleryCategory[];
-    albums: GalleryAlbum[];
-    images: GalleryImage[];
+  // Get album type color
+  getAlbumTypeColor(type: string): string {
+    switch (type) {
+      case 'eesa':
+        return 'bg-purple-100 text-purple-800';
+      case 'general':
+        return 'bg-blue-100 text-blue-800';
+      case 'alumni':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  }
+
+  // Get album type gradient
+  getAlbumTypeGradient(type: string): string {
+    switch (type) {
+      case 'eesa':
+        return 'from-purple-500 to-indigo-600';
+      case 'general':
+        return 'from-blue-500 to-cyan-600';
+      case 'alumni':
+        return 'from-green-500 to-emerald-600';
+      default:
+        return 'from-gray-500 to-slate-600';
+    }
+  }
+
+  // Format date helper
+  formatDate(dateString: string): string {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  }
+
+  // Search across albums and photos
+  async search(query: string): Promise<{
+    albums: Album[];
+    photos: Photo[];
   }> {
     try {
-      // Use the API client instead of direct fetch to leverage error handling
-      const response = await api.gallery.batchData(filters);
-      const data = response.data;
-      
-      return {
-        categories: Array.isArray(data.categories) ? data.categories : [],
-        albums: Array.isArray(data.albums) ? data.albums : [],
-        images: Array.isArray(data.images) ? data.images : [],
-      };
-    } catch (error) {
-      console.error('Error fetching gallery batch data:', error);
-      
-      // Fallback: try to fetch each separately
-      try {
-        const [categories, albums, images] = await Promise.allSettled([
-          this.getCategories(),
-          this.getAlbums(),
-          this.getImages(filters)
-        ]);
-        
-        return {
-          categories: categories.status === 'fulfilled' ? categories.value : [],
-          albums: albums.status === 'fulfilled' ? albums.value : [],
-          images: images.status === 'fulfilled' ? images.value : [],
-        };
-      } catch (fallbackError) {
-        console.error('Fallback gallery data fetch failed:', fallbackError);
-        return {
-          categories: [],
-          albums: [],
-          images: [],
-        };
-      }
-    }
-  }
+      const [albums, photos] = await Promise.all([
+        this.getAlbums({ search: query }),
+        this.getAllPhotos(query),
+      ]);
 
-  async getImage(id: number): Promise<GalleryImage | null> {
-    try {
-      const response = await api.gallery.get(id.toString());
-      return response.data;
+      return { albums, photos };
     } catch (error) {
-      console.error('Error fetching gallery image:', error);
-      return null;
-    }
-  }
-
-  async getAlbum(id: number): Promise<GalleryAlbum | null> {
-    try {
-      // Use the API client instead of direct fetch
-      const response = await api.gallery.get(`albums/${id}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching gallery album:', error);
-      return null;
-    }
-  }
-
-  async getCategory(id: number): Promise<GalleryCategory | null> {
-    try {
-      // Use the API client instead of direct fetch
-      const response = await api.gallery.get(`categories/${id}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching gallery category:', error);
-      return null;
+      console.error('Error searching:', error);
+      return { albums: [], photos: [] };
     }
   }
 }

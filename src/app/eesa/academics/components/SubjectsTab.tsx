@@ -54,7 +54,7 @@ export default function SubjectsTab({
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
 
   // Filter subjects based on selected scheme and semester - client-side filtering
-  const filteredSubjects = subjects.filter(subject => {
+  const filteredSubjects = subjects.filter((subject) => {
     if (selectedScheme && subject.scheme.id !== selectedScheme) return false;
     if (subject.semester !== selectedSemester) return false;
     return true;

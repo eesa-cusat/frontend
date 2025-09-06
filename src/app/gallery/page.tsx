@@ -1,784 +1,556 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import Image from "next/image";
-import {
-  Camera,
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { galleryService, Album, Photo } from '@/services/galleryService';
+import { 
+  Search, 
+  Filter, 
+  Eye, 
+  Download, 
+  Heart, 
+  Calendar, 
+  Camera, 
+  Users, 
   Image as ImageIcon,
-  Calendar,
-  Users,
-  Filter,
-  Search,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  ZoomIn,
+  Share2,
+  Loader2,
   Grid3X3,
   List,
-  ChevronDown,
-  User,
   Tag,
-  Eye,
-  Download,
-  Share2,
-  X,
-  Loader2,
-  Clock,
-} from "lucide-react";
-import {
-  galleryService,
-  GalleryImage,
-  GalleryCategory,
-  GalleryAlbum,
-} from "@/services/galleryService";
-import toast from "react-hot-toast";
+  User
+} from 'lucide-react';
+import Image from 'next/image';
 
-interface GalleryFilters {
-  category?: number;
-  category_type?: string;
-  search?: string;
-  is_featured?: boolean;
-  year?: string;
-}
+interface GalleryPageProps {}
 
-const GalleryPage = () => {
-  const [images, setImages] = useState<GalleryImage[]>([]);
-  const [categories, setCategories] = useState<GalleryCategory[]>([]);
-  const [albums, setAlbums] = useState<GalleryAlbum[]>([]);
+const GalleryPage: React.FC<GalleryPageProps> = () => {
+  // State management
+  const [albums, setAlbums] = useState<Album[]>([]);
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<GalleryFilters>({});
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [showFilters, setShowFilters] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
-  const [imageLoading, setImageLoading] = useState<Set<number>>(new Set());
-  const [availableYears, setAvailableYears] = useState<string[]>([]);
+  const [photosLoading, setPhotosLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [albumTypeFilter, setAlbumTypeFilter] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'albums' | 'photos'>('albums');
+  const [photoViewMode, setPhotoViewMode] = useState<'grid' | 'list'>('grid');
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+
+  // Load data on component mount
+  useEffect(() => {
+    loadAlbums();
+  }, [albumTypeFilter, searchTerm]);
 
   useEffect(() => {
-    fetchGalleryData();
-  }, [filters]);
+    if (selectedAlbum) {
+      loadPhotos(selectedAlbum.id);
+    }
+  }, [selectedAlbum]);
 
-  const fetchGalleryData = async () => {
+  const loadAlbums = async () => {
     try {
       setLoading(true);
-      setError(null);
+      const filters: any = {};
 
-      // Fetch categories, albums, and images in parallel
-      const [categoriesData, albumsData, imagesData] = await Promise.all([
-        galleryService.getCategories(),
-        galleryService.getAlbums(),
-        galleryService.getImages(filters),
-      ]);
+      if (albumTypeFilter !== 'all') {
+        filters.album_type = albumTypeFilter;
+      }
 
-      setCategories(categoriesData);
+      if (searchTerm) {
+        filters.search = searchTerm;
+      }
+
+      const albumsData = await galleryService.getAlbums(filters);
       setAlbums(albumsData);
-      setImages(imagesData);
-
-      // Extract available years from albums and images
-      const years = new Set<string>();
-      albumsData.forEach((album) => {
-        if (album.event_date) {
-          const year = new Date(album.event_date).getFullYear().toString();
-          years.add(year);
-        }
-      });
-      imagesData.forEach((image) => {
-        const year = new Date(image.created_at).getFullYear().toString();
-        years.add(year);
-      });
-      setAvailableYears(
-        Array.from(years).sort((a, b) => parseInt(b) - parseInt(a))
-      );
-    } catch (err) {
-      console.error("Error fetching gallery data:", err);
-      setError("Failed to load gallery data. Please try again later.");
-      toast.error("Failed to load gallery data");
+    } catch (error) {
+      console.error('Error loading albums:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleImageLoad = (imageId: number) => {
-    setImageLoading((prev) => {
-      const newSet = new Set(prev);
-      newSet.delete(imageId);
-      return newSet;
-    });
-  };
-
-  const handleImageError = (imageId: number) => {
-    setImageLoading((prev) => {
-      const newSet = new Set(prev);
-      newSet.delete(imageId);
-      return newSet;
-    });
-  };
-
-  const handleFilterChange = (key: keyof GalleryFilters, value: any) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-  };
-
-  const clearFilters = () => {
-    setFilters({});
-  };
-
-  // Helper function to format date
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
-  // Helper function to get batch number (based on year and month)
-  const getBatchNumber = (dateString: string) => {
-    const date = new Date(dateString);
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1; // 0-indexed, so add 1
-    return `Batch ${year}-${month.toString().padStart(2, "0")}`;
-  };
-
-  // Group images by year
-  const groupImagesByYear = (images: GalleryImage[]) => {
-    let filteredImages = images;
-
-    // Apply year filter if selected
-    if (filters.year) {
-      filteredImages = images.filter((image) => {
-        const imageYear = new Date(image.created_at).getFullYear().toString();
-        return imageYear === filters.year;
-      });
-    }
-
-    const grouped: { [year: string]: GalleryImage[] } = {};
-
-    filteredImages.forEach((image) => {
-      const year = new Date(image.created_at).getFullYear().toString();
-      if (!grouped[year]) {
-        grouped[year] = [];
-      }
-      grouped[year].push(image);
-    });
-
-    return Object.entries(grouped)
-      .sort(([a], [b]) => parseInt(b) - parseInt(a))
-      .map(([year, yearImages]) => ({
-        year,
-        images: yearImages.sort(
-          (a, b) =>
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        ),
-      }));
-  };
-
-  const openImageModal = (image: GalleryImage) => {
-    setSelectedImage(image);
-  };
-
-  const closeImageModal = () => {
-    setSelectedImage(null);
-  };
-
-  const downloadImage = async (image: GalleryImage) => {
+  const loadPhotos = async (albumId: number) => {
     try {
-      // Show loading toast
-      const loadingToast = toast.loading("Preparing download...");
-
-      const imageUrl = galleryService.getImageUrl(image.image);
-      const response = await fetch(imageUrl);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch image");
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-
-      // Get file extension from the original image path or blob type
-      const getFileExtension = () => {
-        if (image.image.includes(".")) {
-          return image.image.split(".").pop()?.toLowerCase() || "jpg";
-        }
-        // Fallback to blob type
-        const mimeType = blob.type;
-        if (mimeType.includes("png")) return "png";
-        if (mimeType.includes("gif")) return "gif";
-        if (mimeType.includes("webp")) return "webp";
-        return "jpg";
-      };
-
-      const extension = getFileExtension();
-      const fileName = `${
-        image.title?.replace(/[^a-z0-9]/gi, "_") || "gallery-image"
-      }_${getBatchNumber(image.created_at).replace(/\s+/g, "_")}.${extension}`;
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-
-      // Cleanup
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      // Dismiss loading toast and show success
-      toast.dismiss(loadingToast);
-      toast.success(`Downloaded: ${fileName}`, {
-        duration: 3000,
-        icon: "📥",
-      });
+      setPhotosLoading(true);
+      const album = await galleryService.getAlbum(albumId);
+      setPhotos(album?.photos || []);
     } catch (error) {
-      console.error("Download error:", error);
-      toast.error("Failed to download image. Please try again.");
+      console.error('Error loading photos:', error);
+    } finally {
+      setPhotosLoading(false);
     }
   };
 
-  const shareImage = async (image: GalleryImage) => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: image.title,
-          text: image.description,
-          url: window.location.href,
-        });
-      } catch (error) {
-        // Share cancelled or failed
-      }
-    } else {
-      // Fallback: copy to clipboard
-      navigator.clipboard.writeText(window.location.href);
-      toast.success("Link copied to clipboard");
+  const handleSearch = () => {
+    loadAlbums();
+  };
+
+  const handleAlbumClick = (album: Album) => {
+    setSelectedAlbum(album);
+    setViewMode('photos');
+  };
+
+  const handlePhotoClick = (photo: Photo, index: number) => {
+    setSelectedPhoto(photo);
+    setCurrentPhotoIndex(index);
+    setShowPhotoModal(true);
+  };
+
+  const handleLikePhoto = async (photoId: number) => {
+    try {
+      // Like functionality would need to be implemented in the service
+      console.log('Like photo:', photoId);
+    } catch (error) {
+      console.error('Error liking photo:', error);
     }
   };
 
-  if (loading) {
+  const handleDownloadPhoto = async (photo: Photo) => {
+    try {
+      // Trigger download
+      const link = document.createElement('a');
+      link.href = photo.image;
+      link.download = `photo-${photo.id}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error downloading photo:', error);
+    }
+  };
+
+  const navigatePhoto = (direction: 'prev' | 'next') => {
+    if (direction === 'prev' && currentPhotoIndex > 0) {
+      const newIndex = currentPhotoIndex - 1;
+      setCurrentPhotoIndex(newIndex);
+      setSelectedPhoto(photos[newIndex]);
+    } else if (direction === 'next' && currentPhotoIndex < photos.length - 1) {
+      const newIndex = currentPhotoIndex + 1;
+      setCurrentPhotoIndex(newIndex);
+      setSelectedPhoto(photos[newIndex]);
+    }
+  };
+
+  const getAlbumTypeColor = (type: string) => {
+    switch (type) {
+      case 'eesa':
+        return 'bg-blue-100 text-blue-800';
+      case 'general':
+        return 'bg-green-100 text-green-800';
+      case 'alumni':
+        return 'bg-purple-100 text-purple-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getAlbumTypeBadge = (type: string) => {
+    switch (type) {
+      case 'eesa':
+        return 'EESA Programs';
+      case 'general':
+        return 'General Programs';
+      case 'alumni':
+        return 'Alumni Batches';
+      default:
+        return type;
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return galleryService.formatDate(dateString);
+  };
+
+  // Photo Modal Component
+  const PhotoModal = () => {
+    if (!showPhotoModal || !selectedPhoto) return null;
+
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pt-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center">
-              <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-gray-700">
-                Loading Gallery...
-              </h2>
-              <p className="text-gray-500 mt-2">
-                Please wait while we load your memories
-              </p>
+      <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
+        <div className="relative w-full h-full flex items-center justify-center p-4">
+          {/* Close button */}
+          <button
+            onClick={() => setShowPhotoModal(false)}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 z-10"
+          >
+            <X size={32} />
+          </button>
+
+          {/* Navigation buttons */}
+          {currentPhotoIndex > 0 && (
+            <button
+              onClick={() => navigatePhoto('prev')}
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 z-10"
+            >
+              <ChevronLeft size={48} />
+            </button>
+          )}
+          
+          {currentPhotoIndex < photos.length - 1 && (
+            <button
+              onClick={() => navigatePhoto('next')}
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 z-10"
+            >
+              <ChevronRight size={48} />
+            </button>
+          )}
+
+          {/* Main image */}
+          <div className="relative max-w-4xl max-h-full">
+            <Image
+              src={selectedPhoto.image}
+              alt={selectedPhoto.caption || 'Photo'}
+              width={1200}
+              height={800}
+              className="max-w-full max-h-full object-contain"
+            />
+          </div>
+
+          {/* Photo info overlay */}
+          <div className="absolute bottom-4 left-4 right-4 bg-black bg-opacity-50 text-white p-4 rounded-lg">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-lg font-semibold">{selectedPhoto.caption || `Photo ${selectedPhoto.id}`}</h3>
+                <div className="flex items-center gap-4 mt-2 text-sm text-gray-400">
+                  <span className="flex items-center gap-1">
+                    <Calendar size={14} />
+                    {formatDate(selectedPhoto.uploaded_at)}
+                  </span>
+                  <span className="text-gray-400">
+                    By {selectedPhoto.uploaded_by.first_name} {selectedPhoto.uploaded_by.last_name}
+                  </span>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleLikePhoto(selectedPhoto.id)}
+                  className="text-white border-white hover:bg-white hover:text-black"
+                >
+                  <Heart size={16} className="mr-2" />
+                  Like
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleDownloadPhoto(selectedPhoto)}
+                  className="text-white border-white hover:bg-white hover:text-black"
+                >
+                  <Download size={16} className="mr-2" />
+                  Download
+                </Button>
+              </div>
             </div>
           </div>
         </div>
       </div>
     );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pt-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center">
-              <ImageIcon className="w-16 h-16 text-red-500 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-gray-700 mb-2">
-                Oops! Something went wrong
-              </h2>
-              <p className="text-gray-500 mb-4">{error}</p>
-              <button
-                onClick={fetchGalleryData}
-                className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800 transition-colors"
-              >
-                Try Again
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  };
 
   return (
-    <div className="min-h-screen bg-white font-sans">
-      {/* Hero Section */}
-      <section className="bg-white py-12 md:py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <div className="flex items-center justify-center mb-6">
-              <Camera className="w-12 h-12 mr-4 text-black" />
-              <h1 className="text-4xl md:text-6xl font-bold text-black">
-                Photo Gallery
-              </h1>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-col space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">
+                  {viewMode === 'albums' ? 'Photo Gallery' : selectedAlbum?.name}
+                </h1>
+                <p className="text-gray-600 mt-2">
+                  {viewMode === 'albums' 
+                    ? 'Explore our photo collections from events, programs, and activities'
+                    : selectedAlbum?.description || 'Browse photos from this album'
+                  }
+                </p>
+              </div>
+              {viewMode === 'photos' && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setViewMode('albums');
+                    setSelectedAlbum(null);
+                    setPhotos([]);
+                  }}
+                >
+                  Back to Albums
+                </Button>
+              )}
             </div>
-            <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto text-gray-600">
-              Capturing moments, preserving memories of our academic journey
-            </p>
-            <div className="flex items-center justify-center space-x-6 text-lg text-gray-600">
-              <div className="flex items-center">
-                <Users className="w-5 h-5 mr-2" />
-                <span>{images.length} Photos</span>
+
+            {/* Search and Filters */}
+            <div className="flex flex-col lg:flex-row gap-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                <Input
+                  placeholder={viewMode === 'albums' ? "Search albums..." : "Search photos..."}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                  className="pl-10"
+                />
               </div>
-              <div className="flex items-center">
-                <Calendar className="w-5 h-5 mr-2" />
-                <span>{albums.length} Albums</span>
-              </div>
-              <div className="flex items-center">
-                <Tag className="w-5 h-5 mr-2" />
-                <span>{categories.length} Categories</span>
-              </div>
+              {viewMode === 'albums' && (
+                <div className="flex flex-wrap gap-2">
+                  <select
+                    value={albumTypeFilter}
+                    onChange={(e) => setAlbumTypeFilter(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">All Types</option>
+                    <option value="EESA_PROGRAMS">EESA Programs</option>
+                    <option value="GENERAL_PROGRAMS">General Programs</option>
+                    <option value="ALUMNI_BATCHES">Alumni Batches</option>
+                  </select>
+                  <Button onClick={handleSearch} size="sm">
+                    <Filter size={16} className="mr-2" />
+                    Filter
+                  </Button>
+                </div>
+              )}
+              {viewMode === 'photos' && (
+                <div className="flex gap-2">
+                  <Button
+                    variant={photoViewMode === 'grid' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setPhotoViewMode('grid')}
+                  >
+                    <Grid3X3 size={16} />
+                  </Button>
+                  <Button
+                    variant={photoViewMode === 'list' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setPhotoViewMode('list')}
+                  >
+                    <List size={16} />
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* Filters and Controls */}
-      <section className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            {/* Search */}
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Search photos..."
-                value={filters.search || ""}
-                onChange={(e) => handleFilterChange("search", e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-              />
-            </div>
-
-            {/* Filter Toggle */}
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <Filter className="w-4 h-4 mr-2" />
-              Filters
-              <ChevronDown
-                className={`w-4 h-4 ml-2 transition-transform ${
-                  showFilters ? "rotate-180" : ""
-                }`}
-              />
-            </button>
-
-            {/* View Mode Toggle */}
-            <div className="flex border border-gray-300 rounded-lg overflow-hidden">
-              <button
-                onClick={() => setViewMode("grid")}
-                className={`px-3 py-2 ${
-                  viewMode === "grid"
-                    ? "bg-black text-white"
-                    : "bg-white text-gray-600 hover:bg-gray-50"
-                }`}
-              >
-                <Grid3X3 className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={`px-3 py-2 ${
-                  viewMode === "list"
-                    ? "bg-black text-white"
-                    : "bg-white text-gray-600 hover:bg-gray-50"
-                }`}
-              >
-                <List className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Expanded Filters */}
-          {showFilters && (
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {/* Category Filter */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Category
-                  </label>
-                  <select
-                    value={filters.category || ""}
-                    onChange={(e) =>
-                      handleFilterChange(
-                        "category",
-                        e.target.value ? Number(e.target.value) : undefined
-                      )
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                  >
-                    <option value="">All Categories</option>
-                    {categories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Year Filter */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Year
-                  </label>
-                  <select
-                    value={filters.year || ""}
-                    onChange={(e) =>
-                      handleFilterChange("year", e.target.value || undefined)
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                  >
-                    <option value="">All Years</option>
-                    {availableYears.map((year) => (
-                      <option key={year} value={year}>
-                        {year}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Featured Filter */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Featured
-                  </label>
-                  <select
-                    value={filters.is_featured?.toString() || ""}
-                    onChange={(e) =>
-                      handleFilterChange(
-                        "is_featured",
-                        e.target.value === "true"
-                          ? true
-                          : e.target.value === "false"
-                          ? false
-                          : undefined
-                      )
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                  >
-                    <option value="">All Photos</option>
-                    <option value="true">Featured Only</option>
-                    <option value="false">Not Featured</option>
-                  </select>
-                </div>
-
-                {/* Clear Filters */}
-                <div className="flex items-end">
-                  <button
-                    onClick={clearFilters}
-                    className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                  >
-                    Clear Filters
-                  </button>
-                </div>
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {viewMode === 'albums' ? (
+          // Albums View
+          <>
+            {loading ? (
+              <div className="flex justify-center items-center py-12">
+                <Loader2 className="animate-spin" size={32} />
               </div>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Gallery Content */}
-      <section className="py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {images.length === 0 ? (
-            <div className="text-center py-20">
-              <ImageIcon className="w-24 h-24 text-gray-300 mx-auto mb-6" />
-              <h3 className="text-2xl font-semibold text-gray-700 mb-2">
-                No Photos Found
-              </h3>
-              <p className="text-gray-500 mb-6">
-                Try adjusting your filters or search terms
-              </p>
-              <button
-                onClick={clearFilters}
-                className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800 transition-colors"
-              >
-                Clear All Filters
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-16">
-              {groupImagesByYear(images).map(({ year, images: yearImages }) => (
-                <div key={year} className="space-y-8">
-                  {/* Year Header */}
-                  <div className="text-center">
-                    <h2
-                      className="text-4xl md:text-5xl font-bold text-black mb-2"
-                      style={{ fontFamily: "Georgia, serif" }}
-                    >
-                      {year}
-                    </h2>
-                    <div className="w-24 h-1 bg-black mx-auto"></div>
-                    <p className="text-gray-600 mt-4 text-lg">
-                      {yearImages.length}{" "}
-                      {yearImages.length === 1 ? "Photo" : "Photos"}
-                    </p>
-                  </div>
-
-                  {/* Images Grid */}
-                  <div
-                    className={
-                      viewMode === "grid"
-                        ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                        : "space-y-4"
-                    }
+            ) : albums.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-gray-500">No albums found</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {albums.map((album) => (
+                  <Card
+                    key={album.id}
+                    className="cursor-pointer hover:shadow-lg transition-shadow duration-200 overflow-hidden"
+                    onClick={() => handleAlbumClick(album)}
                   >
-                    {yearImages.map((image) => {
-                      const imageUrl = galleryService.getImageUrl(image.image);
-                      const isLoading = imageLoading.has(image.id);
+                    <div className="relative h-48 w-full">
+                      {album.cover_image ? (
+                        <Image
+                          src={album.cover_image}
+                          alt={album.name}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                          <ImageIcon size={48} className="text-gray-400" />
+                        </div>
+                      )}
+                      <div className="absolute top-3 left-3">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getAlbumTypeColor(album.type)}`}>
+                          {getAlbumTypeBadge(album.type)}
+                        </span>
+                      </div>
+                    </div>
 
-                      return (
-                        <div
-                          key={image.id}
-                          className={`bg-white rounded-xl shadow-lg overflow-hidden group hover:shadow-xl transition-all duration-300 ${
-                            viewMode === "list" ? "flex" : ""
-                          }`}
-                        >
-                          <div
-                            className={`relative ${
-                              viewMode === "list" ? "w-48 h-32" : "w-full h-48"
-                            }`}
-                          >
-                            {isLoading && (
-                              <div className="absolute inset-0 bg-gray-200 animate-pulse flex items-center justify-center">
-                                <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
-                              </div>
-                            )}
-                            <Image
-                              src={imageUrl}
-                              alt={image.title || "Gallery image"}
-                              fill
-                              style={{ objectFit: "cover" }}
-                              className="transition-transform duration-300 group-hover:scale-105"
-                              unoptimized={true}
-                              onLoad={() => handleImageLoad(image.id)}
-                              onError={() => handleImageError(image.id)}
-                            />
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg line-clamp-1">{album.name}</CardTitle>
+                    </CardHeader>
 
-                            {/* Quick Download Button - Top Right */}
-                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  downloadImage(image);
-                                }}
-                                className="flex items-center space-x-2 bg-black/80 hover:bg-black text-white px-3 py-2 rounded-lg backdrop-blur-sm transition-all duration-200 hover:scale-105 shadow-lg"
-                                title="Download Image"
-                              >
-                                <Download className="w-4 h-4" />
-                                <span className="text-sm font-medium">
-                                  Download
-                                </span>
-                              </button>
-                            </div>
+                    <CardContent>
+                      {album.description && (
+                        <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                          {album.description}
+                        </p>
+                      )}
 
-                            {/* Overlay Actions */}
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                              <div className="flex space-x-3">
-                                <button
-                                  onClick={() => openImageModal(image)}
-                                  className="flex items-center space-x-2 p-3 bg-white/95 rounded-lg hover:bg-white transition-all duration-200 hover:scale-105 shadow-lg"
-                                  title="View Full Size"
-                                >
-                                  <Eye className="w-5 h-5 text-gray-700" />
-                                  <span className="text-sm font-medium text-gray-700">
-                                    View
-                                  </span>
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    shareImage(image);
-                                  }}
-                                  className="flex items-center space-x-2 p-3 bg-white/95 rounded-lg hover:bg-white transition-all duration-200 hover:scale-105 shadow-lg"
-                                  title="Share Image"
-                                >
-                                  <Share2 className="w-5 h-5 text-gray-700" />
-                                  <span className="text-sm font-medium text-gray-700">
-                                    Share
-                                  </span>
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Featured Badge */}
-                            {image.is_featured && (
-                              <div className="absolute top-2 left-2">
-                                <span className="bg-black text-white text-xs px-2 py-1 rounded-full font-medium">
-                                  Featured
-                                </span>
-                              </div>
-                            )}
-
-                            {/* File Size Indicator - Bottom Left */}
-                            {image.file_size_mb && (
-                              <div className="absolute bottom-2 left-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-                                <span className="bg-black/80 text-white text-xs px-2 py-1 rounded backdrop-blur-sm">
-                                  {image.file_size_mb}MB
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          <div
-                            className={`p-4 ${
-                              viewMode === "list" ? "flex-1" : ""
-                            }`}
-                          >
-                            <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
-                              {image.title}
-                            </h3>
-                            {image.description && (
-                              <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                                {image.description}
-                              </p>
-                            )}
-
-                            {/* Date and Batch Information */}
-                            <div className="mb-3 p-2 bg-gray-50 rounded-lg">
-                              <div
-                                className="flex items-center text-black text-sm font-medium mb-1"
-                                style={{ fontFamily: "Georgia, serif" }}
-                              >
-                                <Clock className="w-4 h-4 mr-2" />
-                                {formatDate(image.created_at)}
-                              </div>
-                              <div
-                                className="text-black text-xs font-semibold"
-                                style={{ fontFamily: "Georgia, serif" }}
-                              >
-                                {getBatchNumber(image.created_at)}
-                              </div>
-                            </div>
-
-                            <div className="space-y-1 text-xs text-gray-500">
-                              {image.album_name && (
-                                <p className="flex items-center">
-                                  <Calendar className="w-3 h-3 mr-1" />
-                                  {image.album_name}
-                                </p>
-                              )}
-                              {image.category_name && (
-                                <p className="flex items-center">
-                                  <Tag className="w-3 h-3 mr-1" />
-                                  {image.category_name}
-                                </p>
-                              )}
-                              {image.photographer && (
-                                <p className="flex items-center">
-                                  <User className="w-3 h-3 mr-1" />
-                                  {image.photographer}
-                                </p>
-                              )}
-                            </div>
-
-                            {/* Tags */}
-                            {image.tag_list && image.tag_list.length > 0 && (
-                              <div className="mt-3 flex flex-wrap gap-1">
-                                {image.tag_list
-                                  .slice(0, 3)
-                                  .map((tag, index) => (
-                                    <span
-                                      key={index}
-                                      className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full"
-                                    >
-                                      {tag}
-                                    </span>
-                                  ))}
-                                {image.tag_list.length > 3 && (
-                                  <span className="text-gray-400 text-xs">
-                                    +{image.tag_list.length - 3} more
-                                  </span>
-                                )}
-                              </div>
-                            )}
+                      <div className="space-y-2 text-sm text-gray-500 mb-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1">
+                            <Camera size={14} />
+                            <span>{album.photo_count} photos</span>
                           </div>
                         </div>
-                      );
-                    })}
+                        <div className="flex items-center gap-2">
+                          <Calendar size={14} />
+                          <span>{formatDate(album.created_at)}</span>
+                        </div>
+                        {album.event && (
+                          <div className="text-xs text-blue-600">
+                            Event: {album.event.title}
+                          </div>
+                        )}
+                        {album.batch_year && (
+                          <div className="text-xs text-purple-600">
+                            Batch: {album.batch_year}
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          // Photos View
+          <>
+            {photosLoading ? (
+              <div className="flex justify-center items-center py-12">
+                <Loader2 className="animate-spin" size={32} />
+              </div>
+            ) : photos.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-gray-500">No photos found in this album</p>
+              </div>
+            ) : (
+              <>
+                {/* Album info */}
+                {selectedAlbum && (
+                  <div className="mb-6 p-4 bg-white rounded-lg shadow-sm">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getAlbumTypeColor(selectedAlbum.type)}`}>
+                            {getAlbumTypeBadge(selectedAlbum.type)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-6 text-sm text-gray-500">
+                          <span className="flex items-center gap-1">
+                            <Camera size={14} />
+                            {selectedAlbum.photo_count} photos
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Calendar size={14} />
+                            {formatDate(selectedAlbum.created_at)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
+                )}
+
+                <div className={photoViewMode === 'grid' 
+                  ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" 
+                  : "space-y-4"
+                }>
+                  {photos.map((photo, index) => (
+                    <div
+                      key={photo.id}
+                      className={photoViewMode === 'grid' 
+                        ? "cursor-pointer group" 
+                        : "cursor-pointer"
+                      }
+                      onClick={() => handlePhotoClick(photo, index)}
+                    >
+                      {photoViewMode === 'grid' ? (
+                        <div className="relative aspect-square overflow-hidden rounded-lg">
+                          <Image
+                            src={photo.image}
+                            alt={photo.caption || 'Photo'}
+                            fill
+                            className="object-cover group-hover:scale-105 transition-transform duration-200"
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center">
+                            <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" size={24} />
+                          </div>
+                        </div>
+                      ) : (
+                        <Card className="hover:shadow-lg transition-shadow duration-200">
+                          <CardContent className="p-4">
+                            <div className="flex items-start space-x-4">
+                              <div className="flex-shrink-0">
+                                <div className="relative w-24 h-24 rounded-lg overflow-hidden">
+                                  <Image
+                                    src={photo.image}
+                                    alt={photo.caption || 'Photo'}
+                                    fill
+                                    className="object-cover"
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h3 className="text-lg font-semibold text-gray-900 truncate">
+                                  {photo.caption || 'Untitled Photo'}
+                                </h3>
+                                <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                                  <span className="flex items-center gap-1">
+                                    <Calendar size={14} />
+                                    {formatDate(photo.uploaded_at)}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <User size={14} />
+                                    {photo.uploaded_by.first_name} {photo.uploaded_by.last_name}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex flex-col gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedPhoto(photo);
+                                  }}
+                                >
+                                  <ZoomIn size={16} />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDownloadPhoto(photo);
+                                  }}
+                                >
+                                  <Download size={16} />
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
+              </>
+            )}
+          </>
+        )}
+      </div>
 
-      {/* Image Modal */}
-      {selectedImage && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="relative max-w-4xl max-h-[90vh] bg-white rounded-xl overflow-hidden">
-            <button
-              onClick={closeImageModal}
-              className="absolute top-4 right-4 z-10 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="relative h-96 md:h-[70vh]">
-              <Image
-                src={galleryService.getImageUrl(selectedImage.image)}
-                alt={selectedImage.title || "Gallery image"}
-                fill
-                style={{ objectFit: "contain" }}
-                unoptimized={true}
-              />
-            </div>
-
-            <div className="p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                {selectedImage.title}
-              </h2>
-              {selectedImage.description && (
-                <p className="text-gray-600 mb-4">
-                  {selectedImage.description}
-                </p>
-              )}
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-500">
-                {selectedImage.album_name && (
-                  <div>
-                    <span className="font-medium">Album:</span>{" "}
-                    {selectedImage.album_name}
-                  </div>
-                )}
-                {selectedImage.category_name && (
-                  <div>
-                    <span className="font-medium">Category:</span>{" "}
-                    {selectedImage.category_name}
-                  </div>
-                )}
-                {selectedImage.photographer && (
-                  <div>
-                    <span className="font-medium">Photographer:</span>{" "}
-                    {selectedImage.photographer}
-                  </div>
-                )}
-                {selectedImage.file_size_mb && (
-                  <div>
-                    <span className="font-medium">Size:</span>{" "}
-                    {selectedImage.file_size_mb}MB
-                  </div>
-                )}
-              </div>
-
-              <div className="flex space-x-3 mt-6">
-                <button
-                  onClick={() => downloadImage(selectedImage)}
-                  className="flex items-center px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download
-                </button>
-                <button
-                  onClick={() => shareImage(selectedImage)}
-                  className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                >
-                  <Share2 className="w-4 h-4 mr-2" />
-                  Share
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Photo Modal */}
+      <PhotoModal />
     </div>
   );
 };

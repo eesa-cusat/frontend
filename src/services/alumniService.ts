@@ -1,436 +1,377 @@
-/**
- * @fileoverview Alumni Management Service
- * @description Production-ready service for managing alumni data with optimized database queries
- * @author EESA Frontend Team
- * @version 1.0.0
- */
+// Alumni Service - Implementation according to API guide
 
-import { api } from '@/lib/api';
-
-// ===== TYPE DEFINITIONS =====
-
-/** Alumni profile interface */
-export interface AlumniProfile {
+// Alumni Interface
+export interface Alumni {
   id: number;
-  name: string;
-  email?: string;
-  phone?: string;
-  graduation_year: number;
-  department: string;
-  current_position?: string;
+  full_name: string;
+  email: string;
+  phone_number?: string;
+  batch: {
+    id: number;
+    batch_group_photo?: string;
+  };
+  job_title?: string;
   current_company?: string;
-  linkedin_url?: string;
-  location?: string;
-  bio?: string;
-  is_featured: boolean;
+  current_location?: string;
+  linkedin_profile?: string;
+  employment_status: 'employed' | 'unemployed' | 'self_employed' | 'entrepreneur' | 'higher_studies';
+  achievements?: string;
+  feedback?: string;
+  willing_to_mentor: boolean;
+  allow_contact_from_juniors: boolean;
+  newsletter_subscription: boolean;
+  years_since_graduation: number;
+  batch_name: string;
   is_verified: boolean;
+  is_active: boolean;
   created_at: string;
-  updated_at: string;
-  avatar_url?: string;
 }
 
-/** Alumni filter interface for optimized queries */
-export interface AlumniFilters {
-  search?: string;
-  department?: string;
-  graduation_year?: number;
-  graduation_year_start?: number;
-  graduation_year_end?: number;
-  current_company?: string;
-  location?: string;
-  is_featured?: boolean;
-  is_verified?: boolean;
-  limit?: number;
-  offset?: number;
-  ordering?: string;
-}
-
-/** Alumni statistics interface */
-export interface AlumniStatistics {
+// Batch Interface
+export interface AlumniBatch {
+  id: number;
+  batch_year_range: string;
+  batch_name: string;
+  batch_description?: string;
   total_alumni: number;
-  featured_alumni: number;
   verified_alumni: number;
-  by_department: Record<string, number>;
-  by_graduation_year: Record<number, number>;
-  by_location: Record<string, number>;
-  recent_additions: number;
+  graduation_year: number;
+  joining_year: number;
+  batch_group_photo?: string;
+  employment_stats: {
+    total: number;
+    employment_rate: number;
+  };
+  alumni_members?: Alumni[];
+  top_companies?: Array<{
+    company: string;
+    count: number;
+  }>;
+  created_at: string;
 }
 
-// ===== MAIN SERVICE =====
+// Statistics Interface
+export interface BatchStatistics {
+  employment_distribution: Record<string, number>;
+  location_distribution: Record<string, number>;
+  company_distribution: Record<string, number>;
+  mentorship_availability: {
+    willing_to_mentor: number;
+    percentage: number;
+  };
+  avg_years_experience: number;
+  career_progression: Record<string, number>;
+}
 
-/**
- * Alumni Service
- * Provides optimized methods for alumni management with database index utilization
- */
-export const alumniService = {
-  
-  // ===== CORE ALUMNI RETRIEVAL =====
-  
-  /**
-   * Retrieves alumni with comprehensive filtering
-   * @description Leverages database indexes: idx_alumni_search, idx_alumni_dept_year, idx_alumni_featured
-   * @param filters Optional filter parameters
-   * @returns Promise<AlumniProfile[]> Filtered array of alumni
-   */
-  async getAlumni(filters?: AlumniFilters): Promise<AlumniProfile[]> {
+// API Response interface
+export interface ApiResponse<T> {
+  count: number;
+  next?: string;
+  previous?: string;
+  results: T[];
+}
+
+class AlumniService {
+  private baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
+
+  // Helper method for API calls with proxy
+  private async apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
     try {
-      const params = new URLSearchParams();
-      
-      // Full-text search optimization (idx_alumni_search)
-      if (filters?.search) params.append('search', filters.search);
-      
-      // Department and year filtering (idx_alumni_dept_year)
-      if (filters?.department) params.append('department', filters.department);
-      if (filters?.graduation_year) params.append('graduation_year', filters.graduation_year.toString());
-      if (filters?.graduation_year_start) params.append('graduation_year_start', filters.graduation_year_start.toString());
-      if (filters?.graduation_year_end) params.append('graduation_year_end', filters.graduation_year_end.toString());
-      
-      // Company and location filtering
-      if (filters?.current_company) params.append('current_company', filters.current_company);
-      if (filters?.location) params.append('location', filters.location);
-      
-      // Status filtering (idx_alumni_featured, idx_alumni_verified)
-      if (filters?.is_featured !== undefined) params.append('is_featured', filters.is_featured.toString());
-      if (filters?.is_verified !== undefined) params.append('is_verified', filters.is_verified.toString());
-      
-      // Pagination
-      if (filters?.limit) params.append('limit', filters.limit.toString());
-      if (filters?.offset) params.append('offset', filters.offset.toString());
-      
-      // Optimized ordering
-      const ordering = filters?.ordering || '-graduation_year';
-      params.append('ordering', ordering);
-
-      const response = await api.alumni.list(Object.fromEntries(params));
-      return response.data.results || response.data;
-    } catch (error) {
-      console.error('Error fetching alumni:', error);
-      throw error;
-    }
-  },
-
-  /**
-   * Retrieves featured alumni
-   * @description Filters alumni using is_featured flag
-   * @param limit Optional limit for number of alumni
-   * @returns Promise<AlumniProfile[]> Array of featured alumni
-   */
-  async getFeaturedAlumni(limit?: number): Promise<AlumniProfile[]> {
-    try {
-      return this.getAlumni({ 
-        is_featured: true, 
-        is_verified: true,
-        ordering: '-graduation_year', 
-        limit 
+      const response = await fetch(`/api/proxy?endpoint=alumni/${endpoint}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...options?.headers,
+        },
+        ...options,
       });
-    } catch (error) {
-      console.error('Error fetching featured alumni:', error);
-      throw error;
-    }
-  },
 
-  /**
-   * Retrieves verified alumni
-   * @description Leverages idx_alumni_verified for optimal filtering
-   * @param limit Optional limit for number of alumni
-   * @returns Promise<AlumniProfile[]> Array of verified alumni
-   */
-  async getVerifiedAlumni(limit?: number): Promise<AlumniProfile[]> {
-    try {
-      return this.getAlumni({ 
-        is_verified: true, 
-        ordering: '-graduation_year', 
-        limit 
-      });
-    } catch (error) {
-      console.error('Error fetching verified alumni:', error);
-      throw error;
-    }
-  },
-
-  // ===== SPECIALIZED QUERIES =====
-
-  /**
-   * Retrieves alumni by department
-   * @description Leverages idx_alumni_dept_year for optimal filtering
-   * @param department Department name
-   * @param limit Optional limit for number of alumni
-   * @returns Promise<AlumniProfile[]> Array of alumni by department
-   */
-  async getAlumniByDepartment(department: string, limit?: number): Promise<AlumniProfile[]> {
-    try {
-      return this.getAlumni({ 
-        department, 
-        is_verified: true,
-        ordering: '-graduation_year', 
-        limit 
-      });
-    } catch (error) {
-      console.error('Error fetching alumni by department:', error);
-      throw error;
-    }
-  },
-
-  /**
-   * Retrieves alumni by graduation year
-   * @description Leverages idx_alumni_dept_year for optimal year filtering
-   * @param year Graduation year
-   * @param limit Optional limit for number of alumni
-   * @returns Promise<AlumniProfile[]> Array of alumni by year
-   */
-  async getAlumniByYear(year: number, limit?: number): Promise<AlumniProfile[]> {
-    try {
-      return this.getAlumni({ 
-        graduation_year: year, 
-        is_verified: true,
-        ordering: 'name', 
-        limit 
-      });
-    } catch (error) {
-      console.error('Error fetching alumni by year:', error);
-      throw error;
-    }
-  },
-
-  /**
-   * Retrieves alumni by year range
-   * @description Leverages idx_alumni_dept_year for optimal year range filtering
-   * @param startYear Start year
-   * @param endYear End year
-   * @param limit Optional limit for number of alumni
-   * @returns Promise<AlumniProfile[]> Array of alumni in year range
-   */
-  async getAlumniByYearRange(startYear: number, endYear: number, limit?: number): Promise<AlumniProfile[]> {
-    try {
-      return this.getAlumni({ 
-        graduation_year_start: startYear,
-        graduation_year_end: endYear,
-        is_verified: true,
-        ordering: '-graduation_year', 
-        limit 
-      });
-    } catch (error) {
-      console.error('Error fetching alumni by year range:', error);
-      throw error;
-    }
-  },
-
-  /**
-   * Retrieves alumni by company
-   * @description Leverages idx_alumni_company for optimal company filtering
-   * @param company Company name
-   * @param limit Optional limit for number of alumni
-   * @returns Promise<AlumniProfile[]> Array of alumni by company
-   */
-  async getAlumniByCompany(company: string, limit?: number): Promise<AlumniProfile[]> {
-    try {
-      return this.getAlumni({ 
-        current_company: company, 
-        is_verified: true,
-        ordering: '-graduation_year', 
-        limit 
-      });
-    } catch (error) {
-      console.error('Error fetching alumni by company:', error);
-      throw error;
-    }
-  },
-
-  /**
-   * Searches alumni with full-text search
-   * @description Leverages idx_alumni_search for optimal text search
-   * @param searchTerm Search term for alumni
-   * @param filters Additional filter parameters
-   * @returns Promise<AlumniProfile[]> Array of matching alumni
-   */
-  async searchAlumni(searchTerm: string, filters?: Partial<AlumniFilters>): Promise<AlumniProfile[]> {
-    try {
-      const searchFilters: AlumniFilters = {
-        search: searchTerm,
-        is_verified: true,
-        ordering: '-graduation_year',
-        ...filters
-      };
-      
-      return this.getAlumni(searchFilters);
-    } catch (error) {
-      console.error('Error searching alumni:', error);
-      throw error;
-    }
-  },
-
-  // ===== SINGLE ALUMNI OPERATIONS =====
-
-  /**
-   * Retrieves a single alumni profile by ID
-   * @description Uses primary key index for optimal performance
-   * @param id Alumni identifier
-   * @returns Promise<AlumniProfile> Alumni profile details
-   */
-  async getAlumniById(id: number): Promise<AlumniProfile> {
-    try {
-      const response = await api.alumni.get(id.toString());
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching alumni by ID:', error);
-      throw error;
-    }
-  },
-
-  // ===== UTILITY METHODS =====
-
-  /**
-   * Retrieves available departments
-   * @description Extracts unique departments from alumni data
-   * @returns Promise<string[]> Array of department names
-   */
-  async getDepartments(): Promise<string[]> {
-    try {
-      const alumni = await this.getAlumni({ limit: 1000 });
-      const departments = [...new Set(alumni.map(a => a.department))];
-      return departments.sort();
-    } catch (error) {
-      console.error('Error fetching alumni departments:', error);
-      throw error;
-    }
-  },
-
-  /**
-   * Retrieves available graduation years
-   * @description Extracts unique graduation years from alumni data
-   * @returns Promise<number[]> Array of graduation years
-   */
-  async getGraduationYears(): Promise<number[]> {
-    try {
-      const alumni = await this.getAlumni({ limit: 1000 });
-      const years = [...new Set(alumni.map(a => a.graduation_year))];
-      return years.sort((a, b) => b - a); // Newest first
-    } catch (error) {
-      console.error('Error fetching graduation years:', error);
-      throw error;
-    }
-  },
-
-  /**
-   * Retrieves popular companies
-   * @description Analyzes companies with most alumni
-   * @returns Promise<Array<{company: string, count: number}>> Company statistics
-   */
-  async getPopularCompanies(): Promise<Array<{company: string, count: number}>> {
-    try {
-      const alumni = await this.getAlumni({ limit: 1000 });
-      const companyCount: Record<string, number> = {};
-      
-      alumni.forEach(alumnus => {
-        if (alumnus.current_company) {
-          companyCount[alumnus.current_company] = (companyCount[alumnus.current_company] || 0) + 1;
-        }
-      });
-      
-      return Object.entries(companyCount)
-        .map(([company, count]) => ({ company, count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 20); // Top 20 companies
-    } catch (error) {
-      console.error('Error fetching popular companies:', error);
-      throw error;
-    }
-  },
-
-  // ===== STATISTICS & ANALYTICS =====
-
-  /**
-   * Retrieves comprehensive alumni statistics
-   * @description Calculates statistics from alumni data
-   * @returns Promise<AlumniStatistics> Alumni statistics summary
-   */
-  async getAlumniStatistics(): Promise<AlumniStatistics> {
-    try {
-      const alumni = await this.getAlumni({ limit: 1000 });
-      
-      return {
-        total_alumni: alumni.length,
-        featured_alumni: alumni.filter(a => a.is_featured).length,
-        verified_alumni: alumni.filter(a => a.is_verified).length,
-        by_department: alumni.reduce((acc: Record<string, number>, alumnus) => {
-          acc[alumnus.department] = (acc[alumnus.department] || 0) + 1;
-          return acc;
-        }, {}),
-        by_graduation_year: alumni.reduce((acc: Record<number, number>, alumnus) => {
-          acc[alumnus.graduation_year] = (acc[alumnus.graduation_year] || 0) + 1;
-          return acc;
-        }, {}),
-        by_location: alumni.reduce((acc: Record<string, number>, alumnus) => {
-          if (alumnus.location) {
-            acc[alumnus.location] = (acc[alumnus.location] || 0) + 1;
-          }
-          return acc;
-        }, {}),
-        recent_additions: alumni.filter(a => {
-          const createdDate = new Date(a.created_at);
-          const thirtyDaysAgo = new Date();
-          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-          return createdDate >= thirtyDaysAgo;
-        }).length
-      };
-    } catch (error) {
-      console.error('Error fetching alumni statistics:', error);
-      throw error;
-    }
-  },
-
-  /**
-   * Retrieves alumni analytics for specified period
-   * @description Calculates analytics using optimized queries
-   * @param period Analysis period - 'monthly' or 'yearly'
-   * @returns Promise<object> Analytics data
-   */
-  async getAlumniAnalytics(period: 'monthly' | 'yearly' = 'yearly'): Promise<object> {
-    try {
-      const currentDate = new Date();
-      const currentYear = currentDate.getFullYear();
-      
-      let yearRange: { start: number; end: number };
-      
-      if (period === 'monthly') {
-        // Last 12 months of graduates
-        yearRange = { start: currentYear - 1, end: currentYear };
-      } else {
-        // Last 10 years of graduates
-        yearRange = { start: currentYear - 10, end: currentYear };
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
-      const alumni = await this.getAlumniByYearRange(yearRange.start, yearRange.end, 1000);
-      
-      return {
-        total_alumni: alumni.length,
-        period_range: `${yearRange.start}-${yearRange.end}`,
-        graduation_trends: alumni.reduce((acc: Record<number, number>, alumnus) => {
-          acc[alumnus.graduation_year] = (acc[alumnus.graduation_year] || 0) + 1;
-          return acc;
-        }, {}),
-        department_distribution: alumni.reduce((acc: Record<string, number>, alumnus) => {
-          acc[alumnus.department] = (acc[alumnus.department] || 0) + 1;
-          return acc;
-        }, {}),
-        career_progression: alumni
-          .filter(a => a.current_company && a.current_position)
-          .reduce((acc: Record<string, number>, alumnus) => {
-            const key = `${alumnus.current_company} - ${alumnus.current_position}`;
-            acc[key] = (acc[key] || 0) + 1;
-            return acc;
-          }, {}),
-        period,
-        generated_at: new Date().toISOString()
-      };
+
+      return await response.json();
     } catch (error) {
-      console.error('Error fetching alumni analytics:', error);
+      console.error(`API call failed for ${endpoint}:`, error);
       throw error;
     }
   }
-};
 
-// ===== EXPORT =====
+  // Get all alumni with optional filters
+  async getAlumni(filters?: {
+    batch?: number;
+    employment_status?: string;
+    current_company?: string;
+    current_location?: string;
+    willing_to_mentor?: boolean;
+    recent_graduates?: boolean;
+    search?: string;
+  }): Promise<Alumni[]> {
+    try {
+      const params = new URLSearchParams();
+      
+      if (filters?.batch) params.append('batch', filters.batch.toString());
+      if (filters?.employment_status) params.append('employment_status', filters.employment_status);
+      if (filters?.current_company) params.append('current_company', filters.current_company);
+      if (filters?.current_location) params.append('current_location', filters.current_location);
+      if (filters?.willing_to_mentor !== undefined) params.append('willing_to_mentor', filters.willing_to_mentor.toString());
+      if (filters?.recent_graduates) params.append('recent_graduates', 'true');
+      if (filters?.search) params.append('search', filters.search);
 
-/** Default export for backward compatibility */
-export default alumniService;
+      const endpoint = `alumni/${params.toString() ? `?${params.toString()}` : ''}`;
+      const response = await this.apiCall<ApiResponse<Alumni>>(endpoint);
+      
+      return response.results || [];
+    } catch (error) {
+      console.error('Error fetching alumni:', error);
+      return [];
+    }
+  }
+
+  // Get single alumni
+  async getAlumniById(id: number): Promise<Alumni | null> {
+    try {
+      const alumni = await this.apiCall<Alumni>(`alumni/${id}/`);
+      return alumni;
+    } catch (error) {
+      console.error(`Error fetching alumni ${id}:`, error);
+      return null;
+    }
+  }
+
+  // Get all batches
+  async getBatches(): Promise<AlumniBatch[]> {
+    try {
+      const response = await this.apiCall<ApiResponse<AlumniBatch>>('batches/');
+      return response.results || [];
+    } catch (error) {
+      console.error('Error fetching batches:', error);
+      return [];
+    }
+  }
+
+  // Get single batch with alumni
+  async getBatch(id: number): Promise<AlumniBatch | null> {
+    try {
+      const batch = await this.apiCall<AlumniBatch>(`batches/${id}/`);
+      return batch;
+    } catch (error) {
+      console.error(`Error fetching batch ${id}:`, error);
+      return null;
+    }
+  }
+
+  // Get batch statistics
+  async getBatchStatistics(id: number): Promise<BatchStatistics | null> {
+    try {
+      const stats = await this.apiCall<BatchStatistics>(`batches/${id}/statistics/`);
+      return stats;
+    } catch (error) {
+      console.error(`Error fetching batch statistics ${id}:`, error);
+      return null;
+    }
+  }
+
+  // Get mentors
+  async getMentors(): Promise<Alumni[]> {
+    try {
+      const response = await this.apiCall<ApiResponse<Alumni>>('mentors/');
+      return response.results || [];
+    } catch (error) {
+      console.error('Error fetching mentors:', error);
+      return [];
+    }
+  }
+
+  // Get alumni by company
+  async getAlumniByCompany(): Promise<Array<{ company: string; count: number; alumni: Alumni[] }>> {
+    try {
+      const response = await this.apiCall<{ companies: Array<{ company: string; count: number; alumni: Alumni[] }> }>('companies/');
+      return response.companies || [];
+    } catch (error) {
+      console.error('Error fetching alumni by company:', error);
+      return [];
+    }
+  }
+
+  // Get alumni by location
+  async getAlumniByLocation(): Promise<Array<{ location: string; count: number; alumni: Alumni[] }>> {
+    try {
+      const response = await this.apiCall<{ locations: Array<{ location: string; count: number; alumni: Alumni[] }> }>('locations/');
+      return response.locations || [];
+    } catch (error) {
+      console.error('Error fetching alumni by location:', error);
+      return [];
+    }
+  }
+
+  // Add new alumni (Admin only)
+  async addAlumni(alumniData: {
+    full_name: string;
+    email: string;
+    phone_number?: string;
+    batch: number;
+    job_title?: string;
+    current_company?: string;
+    current_location?: string;
+    linkedin_profile?: string;
+    employment_status: string;
+    willing_to_mentor?: boolean;
+  }): Promise<Alumni | null> {
+    try {
+      const alumni = await this.apiCall<Alumni>('alumni/', {
+        method: 'POST',
+        body: JSON.stringify(alumniData),
+      });
+      return alumni;
+    } catch (error) {
+      console.error('Error adding alumni:', error);
+      return null;
+    }
+  }
+
+  // Update alumni profile
+  async updateAlumni(id: number, alumniData: Partial<Alumni>): Promise<Alumni | null> {
+    try {
+      const alumni = await this.apiCall<Alumni>(`alumni/${id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(alumniData),
+      });
+      return alumni;
+    } catch (error) {
+      console.error(`Error updating alumni ${id}:`, error);
+      return null;
+    }
+  }
+
+  // Delete alumni
+  async deleteAlumni(id: number): Promise<boolean> {
+    try {
+      await this.apiCall(`alumni/${id}/`, {
+        method: 'DELETE',
+      });
+      return true;
+    } catch (error) {
+      console.error(`Error deleting alumni ${id}:`, error);
+      return false;
+    }
+  }
+
+  // Get employment status color
+  getEmploymentStatusColor(status: string): string {
+    switch (status) {
+      case 'employed':
+        return 'bg-green-100 text-green-800';
+      case 'self_employed':
+        return 'bg-blue-100 text-blue-800';
+      case 'entrepreneur':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'higher_studies':
+        return 'bg-purple-100 text-purple-800';
+      case 'unemployed':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  }
+
+  // Format employment status display
+  formatEmploymentStatus(status: string): string {
+    switch (status) {
+      case 'employed':
+        return 'Employed';
+      case 'self_employed':
+        return 'Self Employed';
+      case 'entrepreneur':
+        return 'Entrepreneur';
+      case 'higher_studies':
+        return 'Higher Studies';
+      case 'unemployed':
+        return 'Unemployed';
+      default:
+        return 'Unknown';
+    }
+  }
+
+  // Get alumni avatar initials
+  getAlumniInitials(fullName: string): string {
+    return fullName
+      .split(' ')
+      .map(name => name.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  }
+
+  // Format years since graduation
+  formatYearsSinceGraduation(years: number): string {
+    if (years === 0) return 'Recent Graduate';
+    if (years === 1) return '1 year';
+    return `${years} years`;
+  }
+
+  // Search alumni and batches
+  async search(query: string): Promise<{
+    alumni: Alumni[];
+    batches: AlumniBatch[];
+  }> {
+    try {
+      const [alumni, batches] = await Promise.all([
+        this.getAlumni({ search: query }),
+        this.getBatches(),
+      ]);
+
+      // Filter batches by query
+      const filteredBatches = batches.filter(batch => 
+        batch.batch_name.toLowerCase().includes(query.toLowerCase()) ||
+        batch.batch_description?.toLowerCase().includes(query.toLowerCase())
+      );
+
+      return { alumni, batches: filteredBatches };
+    } catch (error) {
+      console.error('Error searching alumni:', error);
+      return { alumni: [], batches: [] };
+    }
+  }
+
+  // Calculate employment rate
+  calculateEmploymentRate(alumni: Alumni[]): number {
+    if (alumni.length === 0) return 0;
+    const employed = alumni.filter(a => 
+      a.employment_status === 'employed' || 
+      a.employment_status === 'self_employed' || 
+      a.employment_status === 'entrepreneur'
+    ).length;
+    return Math.round((employed / alumni.length) * 100);
+  }
+
+  // Get top companies from alumni list
+  getTopCompanies(alumni: Alumni[], limit: number = 5): Array<{ company: string; count: number }> {
+    const companyCounts: Record<string, number> = {};
+    
+    alumni.forEach(alum => {
+      if (alum.current_company) {
+        companyCounts[alum.current_company] = (companyCounts[alum.current_company] || 0) + 1;
+      }
+    });
+
+    return Object.entries(companyCounts)
+      .map(([company, count]) => ({ company, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, limit);
+  }
+
+  // Get location distribution
+  getLocationDistribution(alumni: Alumni[]): Record<string, number> {
+    const locationCounts: Record<string, number> = {};
+    
+    alumni.forEach(alum => {
+      if (alum.current_location) {
+        locationCounts[alum.current_location] = (locationCounts[alum.current_location] || 0) + 1;
+      }
+    });
+
+    return locationCounts;
+  }
+}
+
+export const alumniService = new AlumniService();
