@@ -115,30 +115,8 @@ export interface ApiResponse<T> {
   results: T[];
 }
 
+import { api } from '@/lib/api';
 class EventsService {
-  private baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
-
-  // Helper method for API calls with proxy
-  private async apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
-    try {
-      const response = await fetch(`/api/proxy?endpoint=events/${endpoint}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...options?.headers,
-        },
-        ...options,
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error(`API call failed for ${endpoint}:`, error);
-      throw error;
-    }
-  }
 
   // Get all events with optional filters
   async getEvents(filters?: {
@@ -152,21 +130,17 @@ class EventsService {
     search?: string;
   }): Promise<Event[]> {
     try {
-      const params = new URLSearchParams();
-      
-      if (filters?.event_type) params.append('event_type', filters.event_type);
-      if (filters?.status) params.append('status', filters.status);
-      if (filters?.upcoming) params.append('upcoming', 'true');
-      if (filters?.featured) params.append('featured', 'true');
-      if (filters?.start_date_after) params.append('start_date_after', filters.start_date_after);
-      if (filters?.start_date_before) params.append('start_date_before', filters.start_date_before);
-      if (filters?.registration_open) params.append('registration_open', 'true');
-      if (filters?.search) params.append('search', filters.search);
-
-      const endpoint = `events/${params.toString() ? `?${params.toString()}` : ''}`;
-      const response = await this.apiCall<ApiResponse<Event>>(endpoint);
-      
-      return response.results || [];
+      const params: any = {};
+      if (filters?.event_type) params.event_type = filters.event_type;
+      if (filters?.status) params.status = filters.status;
+      if (filters?.upcoming) params.upcoming = filters.upcoming;
+      if (filters?.featured) params.featured = filters.featured;
+      if (filters?.start_date_after) params.start_date_after = filters.start_date_after;
+      if (filters?.start_date_before) params.start_date_before = filters.start_date_before;
+      if (filters?.registration_open) params.registration_open = filters.registration_open;
+      if (filters?.search) params.search = filters.search;
+      const response = await api.events.list(params);
+      return response.data.results || [];
     } catch (error) {
       console.error('Error fetching events:', error);
       return [];
@@ -176,211 +150,14 @@ class EventsService {
   // Get single event with full details
   async getEvent(id: number): Promise<Event | null> {
     try {
-      const event = await this.apiCall<Event>(`events/${id}/`);
-      return event;
+      const response = await api.events.get(String(id));
+      return response.data;
     } catch (error) {
       console.error(`Error fetching event ${id}:`, error);
       return null;
     }
   }
 
-  // Create new event (Admin only)
-  async createEvent(eventData: {
-    title: string;
-    description: string;
-    event_type: string;
-    start_date: string;
-    end_date: string;
-    location?: string;
-    venue?: string;
-    registration_required?: boolean;
-    max_participants?: number;
-    registration_fee?: string;
-    payment_required?: boolean;
-    contact_email?: string;
-  }): Promise<Event | null> {
-    try {
-      const event = await this.apiCall<Event>('events/', {
-        method: 'POST',
-        body: JSON.stringify(eventData),
-      });
-      return event;
-    } catch (error) {
-      console.error('Error creating event:', error);
-      return null;
-    }
-  }
-
-  // Update event
-  async updateEvent(id: number, eventData: Partial<Event>): Promise<Event | null> {
-    try {
-      const event = await this.apiCall<Event>(`events/${id}/`, {
-        method: 'PATCH',
-        body: JSON.stringify(eventData),
-      });
-      return event;
-    } catch (error) {
-      console.error(`Error updating event ${id}:`, error);
-      return null;
-    }
-  }
-
-  // Delete event
-  async deleteEvent(id: number): Promise<boolean> {
-    try {
-      await this.apiCall(`events/${id}/`, {
-        method: 'DELETE',
-      });
-      return true;
-    } catch (error) {
-      console.error(`Error deleting event ${id}:`, error);
-      return false;
-    }
-  }
-
-  // Register for event
-  async registerForEvent(eventId: number, registrationData: {
-    name: string;
-    email: string;
-    mobile_number?: string;
-    institution?: string;
-    department?: string;
-    year_of_study?: string;
-    dietary_requirements?: string;
-    special_needs?: string;
-  }): Promise<EventRegistration | null> {
-    try {
-      const registration = await this.apiCall<EventRegistration>(`events/${eventId}/register/`, {
-        method: 'POST',
-        body: JSON.stringify(registrationData),
-      });
-      return registration;
-    } catch (error) {
-      console.error(`Error registering for event ${eventId}:`, error);
-      return null;
-    }
-  }
-
-  // Get my registrations
-  async getMyRegistrations(): Promise<EventRegistration[]> {
-    try {
-      const response = await this.apiCall<ApiResponse<EventRegistration>>('my-registrations/');
-      return response.results || [];
-    } catch (error) {
-      console.error('Error fetching my registrations:', error);
-      return [];
-    }
-  }
-
-  // Get event registrations (Admin only)
-  async getEventRegistrations(eventId: number): Promise<EventRegistration[]> {
-    try {
-      const response = await this.apiCall<ApiResponse<EventRegistration>>(`events/${eventId}/registrations/`);
-      return response.results || [];
-    } catch (error) {
-      console.error(`Error fetching registrations for event ${eventId}:`, error);
-      return [];
-    }
-  }
-
-  // Update payment status (Admin only)
-  async updatePaymentStatus(registrationId: number, paymentData: {
-    payment_status: 'pending' | 'paid' | 'failed';
-    payment_reference?: string;
-    payment_date?: string;
-  }): Promise<EventRegistration | null> {
-    try {
-      const registration = await this.apiCall<EventRegistration>(`registrations/${registrationId}/`, {
-        method: 'PATCH',
-        body: JSON.stringify(paymentData),
-      });
-      return registration;
-    } catch (error) {
-      console.error(`Error updating payment status for registration ${registrationId}:`, error);
-      return null;
-    }
-  }
-
-  // Get event speakers
-  async getEventSpeakers(eventId: number): Promise<EventSpeaker[]> {
-    try {
-      const response = await this.apiCall<ApiResponse<EventSpeaker>>(`events/${eventId}/speakers/`);
-      return response.results || [];
-    } catch (error) {
-      console.error(`Error fetching speakers for event ${eventId}:`, error);
-      return [];
-    }
-  }
-
-  // Get all speakers
-  async getAllSpeakers(): Promise<EventSpeaker[]> {
-    try {
-      const response = await this.apiCall<ApiResponse<EventSpeaker>>('speakers/');
-      return response.results || [];
-    } catch (error) {
-      console.error('Error fetching all speakers:', error);
-      return [];
-    }
-  }
-
-  // Add speaker to event (Admin only)
-  async addSpeakerToEvent(eventId: number, speakerData: {
-    name: string;
-    title?: string;
-    organization?: string;
-    bio?: string;
-    talk_title?: string;
-    talk_duration?: number;
-    linkedin_url?: string;
-  }): Promise<EventSpeaker | null> {
-    try {
-      const speaker = await this.apiCall<EventSpeaker>(`events/${eventId}/speakers/`, {
-        method: 'POST',
-        body: JSON.stringify(speakerData),
-      });
-      return speaker;
-    } catch (error) {
-      console.error(`Error adding speaker to event ${eventId}:`, error);
-      return null;
-    }
-  }
-
-  // Get active notifications
-  async getNotifications(): Promise<EventNotification[]> {
-    try {
-      const response = await this.apiCall<ApiResponse<EventNotification>>('notifications/');
-      return response.results || [];
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-      return [];
-    }
-  }
-
-  // Increment notification views
-  async incrementNotificationViews(notificationId: number): Promise<boolean> {
-    try {
-      await this.apiCall(`notifications/${notificationId}/view/`, {
-        method: 'POST',
-      });
-      return true;
-    } catch (error) {
-      console.error(`Error incrementing views for notification ${notificationId}:`, error);
-      return false;
-    }
-  }
-
-  // Increment notification clicks
-  async incrementNotificationClicks(notificationId: number): Promise<boolean> {
-    try {
-      await this.apiCall(`notifications/${notificationId}/click/`, {
-        method: 'POST',
-      });
-      return true;
-    } catch (error) {
-      console.error(`Error incrementing clicks for notification ${notificationId}:`, error);
-      return false;
-    }
-  }
 
   // Utility methods
   formatDate(dateString: string): string {
@@ -467,6 +244,36 @@ class EventsService {
     return new Date() < new Date(event.start_date);
   }
 
+  // Register for an event
+  async registerForEvent(eventId: number, registrationData: any): Promise<EventRegistration | null> {
+    try {
+      const response = await fetch(`/api/events/${eventId}/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(registrationData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('Registration error details:', data);
+        throw new Error(data.error || `Registration failed with status ${response.status}`);
+      }
+
+      // Check if this is a configuration message
+      if (data.suggestion) {
+        throw new Error(data.error);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error registering for event:', error);
+      throw error;
+    }
+  }
+
   // Get event status (upcoming, ongoing, past)
   getEventStatus(event: Event): 'upcoming' | 'ongoing' | 'past' {
     const now = new Date();
@@ -486,30 +293,6 @@ class EventsService {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }
 
-  // Search events and speakers
-  async search(query: string): Promise<{
-    events: Event[];
-    speakers: EventSpeaker[];
-  }> {
-    try {
-      const [events, speakers] = await Promise.all([
-        this.getEvents({ search: query }),
-        this.getAllSpeakers(),
-      ]);
-
-      // Filter speakers by query
-      const filteredSpeakers = speakers.filter(speaker => 
-        speaker.name.toLowerCase().includes(query.toLowerCase()) ||
-        speaker.organization?.toLowerCase().includes(query.toLowerCase()) ||
-        speaker.talk_title?.toLowerCase().includes(query.toLowerCase())
-      );
-
-      return { events, speakers: filteredSpeakers };
-    } catch (error) {
-      console.error('Error searching events:', error);
-      return { events: [], speakers: [] };
-    }
-  }
 }
 
 export const eventsService = new EventsService();

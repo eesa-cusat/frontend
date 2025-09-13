@@ -25,9 +25,18 @@ export interface RegistrationFormData {
   name: string;
   email: string;
   mobile_number: string;
-  institution: string;
-  department: string;
-  year_of_study: string;
+  participant_type?: 'student' | 'professional';
+  // Student fields
+  institution?: string;
+  department?: string;
+  year_of_study?: string;
+  // Professional fields
+  organization?: string;
+  designation?: string;
+  // Optional fields
+  dietary_requirements?: string;
+  special_needs?: string;
+  payment_reference?: string;
 }
 
 export default function RegistrationModal({
@@ -41,12 +50,18 @@ export default function RegistrationModal({
     name: "",
     email: "",
     mobile_number: "",
+    participant_type: 'student',
     institution: "",
     department: "",
     year_of_study: "",
+    organization: "",
+    designation: "",
+    dietary_requirements: "",
+    special_needs: "",
+    payment_reference: "",
   });
 
-  const [errors, setErrors] = useState<Partial<RegistrationFormData>>({});
+  const [errors, setErrors] = useState<Partial<Record<keyof RegistrationFormData, string>>>({});
 
   const validateForm = (): boolean => {
     const newErrors: Partial<RegistrationFormData> = {};
@@ -67,16 +82,24 @@ export default function RegistrationModal({
       newErrors.mobile_number = "Please enter a valid mobile number";
     }
 
-    if (!formData.institution.trim()) {
-      newErrors.institution = "Institution/College name is required";
-    }
-
-    if (!formData.department.trim()) {
-      newErrors.department = "Department is required";
-    }
-
-    if (!formData.year_of_study.trim()) {
-      newErrors.year_of_study = "Year of study is required";
+    // Conditional validation based on participant type
+    if (formData.participant_type === 'student') {
+      if (!formData.institution?.trim()) {
+        newErrors.institution = "Institution/College name is required";
+      }
+      if (!formData.department?.trim()) {
+        newErrors.department = "Department is required";
+      }
+      if (!formData.year_of_study?.trim()) {
+        newErrors.year_of_study = "Year of study is required";
+      }
+    } else if (formData.participant_type === 'professional') {
+      if (!formData.organization?.trim()) {
+        newErrors.organization = "Organization name is required";
+      }
+      if (!formData.designation?.trim()) {
+        newErrors.designation = "Job designation is required";
+      }
     }
 
     setErrors(newErrors);
@@ -97,9 +120,15 @@ export default function RegistrationModal({
         name: "",
         email: "",
         mobile_number: "",
+        participant_type: 'student',
         institution: "",
         department: "",
         year_of_study: "",
+        organization: "",
+        designation: "",
+        dietary_requirements: "",
+        special_needs: "",
+        payment_reference: "",
       });
       setErrors({});
     } catch (error) {
@@ -180,6 +209,23 @@ export default function RegistrationModal({
               )}
             </div>
 
+            {/* Participant Type Field */}
+            <div>
+              <label className="block text-sm font-medium text-[#191A23] mb-2">
+                <UserPlus className="w-4 h-4 inline mr-2" />
+                Participant Type *
+              </label>
+              <select
+                value={formData.participant_type}
+                onChange={(e) => handleInputChange("participant_type", e.target.value)}
+                disabled={isRegistering}
+                className="w-full px-4 py-3 border rounded-lg bg-white text-[#191A23] focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all border-gray-300"
+              >
+                <option value="student">Student</option>
+                <option value="professional">Professional</option>
+              </select>
+            </div>
+
             {/* Email Field */}
             <div>
               <label className="block text-sm font-medium text-[#191A23] mb-2">
@@ -226,83 +272,187 @@ export default function RegistrationModal({
               )}
             </div>
 
-            {/* Institution Field */}
+            {/* Student Fields */}
+            {formData.participant_type === 'student' && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-[#191A23] mb-2">
+                    <Building className="w-4 h-4 inline mr-2" />
+                    Institution/College *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.institution || ''}
+                    onChange={(e) =>
+                      handleInputChange("institution", e.target.value)
+                    }
+                    disabled={isRegistering}
+                    className={`w-full px-4 py-3 border rounded-lg bg-white text-[#191A23] placeholder-[#191A23]/50 focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all ${
+                      errors.institution ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="Enter your institution/college name"
+                  />
+                  {errors.institution && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.institution}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#191A23] mb-2">
+                    <GraduationCap className="w-4 h-4 inline mr-2" />
+                    Department *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.department || ''}
+                    onChange={(e) =>
+                      handleInputChange("department", e.target.value)
+                    }
+                    disabled={isRegistering}
+                    className={`w-full px-4 py-3 border rounded-lg bg-white text-[#191A23] placeholder-[#191A23]/50 focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all ${
+                      errors.department ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="Enter your department"
+                  />
+                  {errors.department && (
+                    <p className="text-red-500 text-xs mt-1">{errors.department}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#191A23] mb-2">
+                    <Calendar className="w-4 h-4 inline mr-2" />
+                    Year of Study *
+                  </label>
+                  <select
+                    value={formData.year_of_study || ''}
+                    onChange={(e) =>
+                      handleInputChange("year_of_study", e.target.value)
+                    }
+                    disabled={isRegistering}
+                    className={`w-full px-4 py-3 border rounded-lg bg-white text-[#191A23] focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all ${
+                      errors.year_of_study ? "border-red-500" : "border-gray-300"
+                    }`}
+                  >
+                    <option value="">Select your year of study</option>
+                    <option value="First Year">First Year</option>
+                    <option value="Second Year">Second Year</option>
+                    <option value="Third Year">Third Year</option>
+                    <option value="Fourth Year">Fourth Year</option>
+                    <option value="Graduate">Graduate</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  {errors.year_of_study && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.year_of_study}
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Professional Fields */}
+            {formData.participant_type === 'professional' && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-[#191A23] mb-2">
+                    <Building className="w-4 h-4 inline mr-2" />
+                    Organization *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.organization || ''}
+                    onChange={(e) =>
+                      handleInputChange("organization", e.target.value)
+                    }
+                    disabled={isRegistering}
+                    className={`w-full px-4 py-3 border rounded-lg bg-white text-[#191A23] placeholder-[#191A23]/50 focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all ${
+                      errors.organization ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="Enter your organization name"
+                  />
+                  {errors.organization && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.organization}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#191A23] mb-2">
+                    <GraduationCap className="w-4 h-4 inline mr-2" />
+                    Job Designation *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.designation || ''}
+                    onChange={(e) =>
+                      handleInputChange("designation", e.target.value)
+                    }
+                    disabled={isRegistering}
+                    className={`w-full px-4 py-3 border rounded-lg bg-white text-[#191A23] placeholder-[#191A23]/50 focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all ${
+                      errors.designation ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="Enter your job designation"
+                  />
+                  {errors.designation && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.designation}
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Optional Fields */}
             <div>
               <label className="block text-sm font-medium text-[#191A23] mb-2">
-                <Building className="w-4 h-4 inline mr-2" />
-                Institution/College *
+                Dietary Requirements
               </label>
               <input
                 type="text"
-                value={formData.institution}
+                value={formData.dietary_requirements || ''}
                 onChange={(e) =>
-                  handleInputChange("institution", e.target.value)
+                  handleInputChange("dietary_requirements", e.target.value)
                 }
                 disabled={isRegistering}
-                className={`w-full px-4 py-3 border rounded-lg bg-white text-[#191A23] placeholder-[#191A23]/50 focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all ${
-                  errors.institution ? "border-red-500" : "border-gray-300"
-                }`}
-                placeholder="Enter your institution/college name"
+                className="w-full px-4 py-3 border rounded-lg bg-white text-[#191A23] placeholder-[#191A23]/50 focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all border-gray-300"
+                placeholder="Any dietary restrictions or special meals needed (optional)"
               />
-              {errors.institution && (
-                <p className="text-red-500 text-xs mt-1">
-                  {errors.institution}
-                </p>
-              )}
             </div>
 
-            {/* Department Field */}
             <div>
               <label className="block text-sm font-medium text-[#191A23] mb-2">
-                <GraduationCap className="w-4 h-4 inline mr-2" />
-                Department *
+                Special Needs
               </label>
               <input
                 type="text"
-                value={formData.department}
+                value={formData.special_needs || ''}
                 onChange={(e) =>
-                  handleInputChange("department", e.target.value)
+                  handleInputChange("special_needs", e.target.value)
                 }
                 disabled={isRegistering}
-                className={`w-full px-4 py-3 border rounded-lg bg-white text-[#191A23] placeholder-[#191A23]/50 focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all ${
-                  errors.department ? "border-red-500" : "border-gray-300"
-                }`}
-                placeholder="Enter your department"
+                className="w-full px-4 py-3 border rounded-lg bg-white text-[#191A23] placeholder-[#191A23]/50 focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all border-gray-300"
+                placeholder="Any accessibility requirements or special assistance needed (optional)"
               />
-              {errors.department && (
-                <p className="text-red-500 text-xs mt-1">{errors.department}</p>
-              )}
             </div>
 
-            {/* Year of Study Field */}
             <div>
               <label className="block text-sm font-medium text-[#191A23] mb-2">
-                <Calendar className="w-4 h-4 inline mr-2" />
-                Year of Study *
+                Payment Reference
               </label>
-              <select
-                value={formData.year_of_study}
+              <input
+                type="text"
+                value={formData.payment_reference || ''}
                 onChange={(e) =>
-                  handleInputChange("year_of_study", e.target.value)
+                  handleInputChange("payment_reference", e.target.value)
                 }
                 disabled={isRegistering}
-                className={`w-full px-4 py-3 border rounded-lg bg-white text-[#191A23] focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all ${
-                  errors.year_of_study ? "border-red-500" : "border-gray-300"
-                }`}
-              >
-                <option value="">Select your year of study</option>
-                <option value="First Year">First Year</option>
-                <option value="Second Year">Second Year</option>
-                <option value="Third Year">Third Year</option>
-                <option value="Fourth Year">Fourth Year</option>
-                <option value="Graduate">Graduate</option>
-                <option value="Other">Other</option>
-              </select>
-              {errors.year_of_study && (
-                <p className="text-red-500 text-xs mt-1">
-                  {errors.year_of_study}
-                </p>
-              )}
+                className="w-full px-4 py-3 border rounded-lg bg-white text-[#191A23] placeholder-[#191A23]/50 focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all border-gray-300"
+                placeholder="Payment reference ID (if payment was made)"
+              />
             </div>
 
             {/* Form Actions */}

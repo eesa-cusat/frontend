@@ -5,12 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { galleryService, Album, Photo } from '@/services/galleryService';
+import { getImageUrl } from '@/utils/api';
 import { 
   Search, 
   Filter, 
   Eye, 
   Download, 
-  Heart, 
   Calendar, 
   Camera, 
   Users, 
@@ -82,7 +82,15 @@ const GalleryPage: React.FC<GalleryPageProps> = () => {
     try {
       setPhotosLoading(true);
       const album = await galleryService.getAlbum(albumId);
-      setPhotos(album?.photos || []);
+      const albumPhotos = album?.photos || [];
+      setPhotos(albumPhotos);
+      
+      // Debug: Log image URLs to understand the issue
+      console.log('Gallery Debug - Album photos:', albumPhotos.map(p => ({
+        id: p.id,
+        original: p.image,
+        processed: getImageUrl(p.image)
+      })));
     } catch (error) {
       console.error('Error loading photos:', error);
     } finally {
@@ -105,20 +113,13 @@ const GalleryPage: React.FC<GalleryPageProps> = () => {
     setShowPhotoModal(true);
   };
 
-  const handleLikePhoto = async (photoId: number) => {
-    try {
-      // Like functionality would need to be implemented in the service
-      console.log('Like photo:', photoId);
-    } catch (error) {
-      console.error('Error liking photo:', error);
-    }
-  };
+
 
   const handleDownloadPhoto = async (photo: Photo) => {
     try {
       // Trigger download
       const link = document.createElement('a');
-      link.href = photo.image;
+      link.href = getImageUrl(photo.image) || photo.image;
       link.download = `photo-${photo.id}.jpg`;
       document.body.appendChild(link);
       link.click();
@@ -207,11 +208,16 @@ const GalleryPage: React.FC<GalleryPageProps> = () => {
           {/* Main image */}
           <div className="relative max-w-4xl max-h-full">
             <Image
-              src={selectedPhoto.image}
+              src={getImageUrl(selectedPhoto.image) || '/placeholder-image.jpg'}
               alt={selectedPhoto.caption || 'Photo'}
               width={1200}
               height={800}
               className="max-w-full max-h-full object-contain"
+              unoptimized
+              onError={(e) => {
+                console.error('Modal image failed to load:', selectedPhoto.image);
+                e.currentTarget.src = '/placeholder-image.jpg';
+              }}
             />
           </div>
 
@@ -231,15 +237,7 @@ const GalleryPage: React.FC<GalleryPageProps> = () => {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleLikePhoto(selectedPhoto.id)}
-                  className="text-white border-white hover:bg-white hover:text-black"
-                >
-                  <Heart size={16} className="mr-2" />
-                  Like
-                </Button>
+
                 <Button
                   size="sm"
                   variant="outline"
@@ -476,10 +474,15 @@ const GalleryPage: React.FC<GalleryPageProps> = () => {
                       {photoViewMode === 'grid' ? (
                         <div className="relative aspect-square overflow-hidden rounded-lg">
                           <Image
-                            src={photo.image}
+                            src={getImageUrl(photo.image) || '/placeholder-image.jpg'}
                             alt={photo.caption || 'Photo'}
                             fill
                             className="object-cover group-hover:scale-105 transition-transform duration-200"
+                            unoptimized
+                            onError={(e) => {
+                              console.error('Image failed to load:', photo.image);
+                              e.currentTarget.src = '/placeholder-image.jpg';
+                            }}
                           />
                           <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center">
                             <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" size={24} />
@@ -492,10 +495,15 @@ const GalleryPage: React.FC<GalleryPageProps> = () => {
                               <div className="flex-shrink-0">
                                 <div className="relative w-24 h-24 rounded-lg overflow-hidden">
                                   <Image
-                                    src={photo.image}
+                                    src={getImageUrl(photo.image) || '/placeholder-image.jpg'}
                                     alt={photo.caption || 'Photo'}
                                     fill
                                     className="object-cover"
+                                    unoptimized
+                                    onError={(e) => {
+                                      console.error('List view image failed to load:', photo.image);
+                                      e.currentTarget.src = '/placeholder-image.jpg';
+                                    }}
                                   />
                                 </div>
                               </div>

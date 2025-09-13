@@ -5,126 +5,200 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Calendar, MapPin, Users, UserPlus, Download } from "lucide-react";
 import Image from "next/image";
-import RegistrationModal, {
-  RegistrationFormData,
-} from "@/components/ui/RegistrationModal";
+import { eventsService, Event } from "@/services/eventsService";
+import { getImageUrl } from "@/utils/api";
 
-// Utility function to format time
-const formatTime = (timeString: string) => {
-  if (!timeString) return timeString;
-  
-  try {
-    // Handle different time formats
-    let date;
-    if (timeString.includes('T')) {
-      // ISO format: "2024-01-15T14:30:00" or "2025-09-24T09:24:26Z"
-      date = new Date(timeString);
-    } else if (timeString.includes(':')) {
-      // Time only format: "14:30:00" or "14:30"
-      const today = new Date();
-      const [hours, minutes] = timeString.split(':');
-      date = new Date(today.getFullYear(), today.getMonth(), today.getDate(), parseInt(hours), parseInt(minutes));
-    } else {
-      return timeString; // Return as-is if format is unrecognized
-    }
-    
-    return date.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
-  } catch {
-    return timeString; // Return original if parsing fails
-  }
-};
-
-// Utility function to format date and time
-const formatDateTime = (dateTimeString: string) => {
-  if (!dateTimeString) return dateTimeString;
-  
-  try {
-    const date = new Date(dateTimeString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    }) + ' at ' + date.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
-  } catch {
-    return dateTimeString; // Return original if parsing fails
-  }
-};
-
-// Utility function to format date only
-const formatDate = (dateString: string) => {
-  if (!dateString) return dateString;
-  
-  try {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  } catch {
-    return dateString; // Return original if parsing fails
-  }
-};
-
-interface Event {
-  id: number;
-  title: string;
-  description: string;
-  event_type: string;
-  status: string;
-  start_date: string;
-  end_date: string;
-  location: string;
-  venue?: string;
-  address?: string;
-  is_online: boolean;
-  meeting_link?: string;
-  banner_image?: string;
-  registration_required: boolean;
-  registration_count: number;
-  max_participants?: number;
-  is_registration_open: boolean;
-  registration_fee: number;
-  registration_deadline?: string;
-  payment_required: boolean;
-  payment_qr_code?: string;
-  payment_upi_id?: string;
-  payment_instructions?: string;
-  event_flyer?: string;
-  speakers?: Speaker[];
-  schedule?: ScheduleItem[];
-  contact_person?: string;
-  contact_email?: string;
-  contact_phone?: string;
-}
-
-interface Speaker {
+// Registration form interface
+interface RegistrationFormData {
   name: string;
-  title: string;
-  organization: string;
-  bio?: string;
-  profile_image?: string;
-  linkedin_url?: string;
-  twitter_url?: string;
-  website_url?: string;
+  email: string;
+  mobile_number: string;
+  participant_type?: 'student' | 'professional';
+  // Student fields
+  institution?: string;
+  department?: string;
+  year_of_study?: string;
+  // Professional fields
+  organization?: string;
+  designation?: string;
+  // Optional fields
+  dietary_requirements?: string;
+  special_needs?: string;
+  payment_reference?: string;
 }
 
-interface ScheduleItem {
-  title: string;
-  description: string;
-  start_time: string;
-  end_time: string;
-  venue_details?: string;
-  speaker?: Speaker;
+// Registration Modal Component
+interface RegistrationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (formData: RegistrationFormData) => Promise<void>;
+  eventTitle: string;
+  isRegistering: boolean;
 }
+
+const RegistrationModal: React.FC<RegistrationModalProps> = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  eventTitle,
+  isRegistering
+}) => {
+  const [formData, setFormData] = useState<RegistrationFormData>({
+    name: '',
+    email: '',
+    mobile_number: '',
+    institution: '',
+    department: '',
+    year_of_study: ''
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await onSubmit(formData);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">Register for Event</h2>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="mb-4">
+            <h3 className="font-semibold">{eventTitle}</h3>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Full Name *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Enter your full name"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email Address *
+              </label>
+              <input
+                type="email"
+                required
+                value={formData.email}
+                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="Enter your email address"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Mobile Number
+              </label>
+              <input
+                type="tel"
+                value={formData.mobile_number}
+                onChange={(e) => setFormData(prev => ({ ...prev, mobile_number: e.target.value }))}
+                placeholder="Enter your mobile number"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Institution
+              </label>
+              <input
+                type="text"
+                value={formData.institution}
+                onChange={(e) => setFormData(prev => ({ ...prev, institution: e.target.value }))}
+                placeholder="Enter your institution name"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Department
+              </label>
+              <input
+                type="text"
+                value={formData.department}
+                onChange={(e) => setFormData(prev => ({ ...prev, department: e.target.value }))}
+                placeholder="Enter your department"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Year of Study
+              </label>
+              <select
+                value={formData.year_of_study}
+                onChange={(e) => setFormData(prev => ({ ...prev, year_of_study: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Select year</option>
+                <option value="1st Year">1st Year</option>
+                <option value="2nd Year">2nd Year</option>
+                <option value="3rd Year">3rd Year</option>
+                <option value="4th Year">4th Year</option>
+                <option value="Graduate">Graduate</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isRegistering}
+                className={`flex-1 px-4 py-2 rounded-md text-white ${
+                  isRegistering
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-[#191A23] hover:bg-[#191A23]/90'
+                }`}
+              >
+                {isRegistering ? (
+                  <>
+                    <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin inline-block"></div>
+                    Registering...
+                  </>
+                ) : (
+                  'Register'
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 
 // Named function for the component
 function EventDetailPage() {
@@ -141,15 +215,12 @@ function EventDetailPage() {
       return;
     }
 
-    if (!event.is_registration_open) {
+    if (!eventsService.isRegistrationOpen(event)) {
       alert("Registration is closed for this event.");
       return;
     }
 
-    if (
-      event.max_participants &&
-      event.registration_count >= event.max_participants
-    ) {
+    if (eventsService.isEventFull(event)) {
       alert("This event has reached maximum capacity.");
       return;
     }
@@ -162,47 +233,34 @@ function EventDetailPage() {
 
     try {
       setIsRegistering(true);
-      const apiBaseUrl =
-        process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
 
-      const response = await fetch(
-        `${apiBaseUrl}/events/events/${id}/register/`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name: formData.name.trim(),
-            email: formData.email.trim(),
-            mobile_number: formData.mobile_number.trim(),
-            institution: formData.institution.trim(),
-            department: formData.department.trim(),
-            year_of_study: formData.year_of_study.trim(),
-          }),
-        }
-      );
+      const registrationData = {
+        event: event.id,
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        mobile_number: formData.mobile_number.trim(),
+        participant_type: formData.participant_type || 'student',
+        // Include only relevant fields based on participant type
+        ...(formData.participant_type === 'student' ? {
+          institution: formData.institution?.trim() || '',
+          department: formData.department?.trim() || '',
+          year_of_study: formData.year_of_study?.trim() || '',
+        } : {
+          organization: formData.organization?.trim() || '',
+          designation: formData.designation?.trim() || '',
+        }),
+        // Optional fields
+        dietary_requirements: formData.dietary_requirements?.trim() || '',
+        special_needs: formData.special_needs?.trim() || '',
+        payment_reference: formData.payment_reference?.trim() || '',
+      };
 
-      if (response.ok) {
+      const registrationResult = await eventsService.registerForEvent(event.id, registrationData);
+      
+      if (registrationResult) {
         setIsRegistered(true);
         setShowRegistrationModal(false);
-        window.location.reload();
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        if (
-          errorData.detail &&
-          errorData.detail.includes("already registered")
-        ) {
-          setIsRegistered(true);
-          setShowRegistrationModal(false);
-          alert("You are already registered for this event.");
-        } else {
-          throw new Error(
-            errorData.message ||
-              errorData.detail ||
-              `Registration failed (${response.status})`
-          );
-        }
+        alert("Registration successful! You will receive a confirmation email shortly.");
       }
     } catch (error) {
       alert(
@@ -216,28 +274,42 @@ function EventDetailPage() {
   };
 
   useEffect(() => {
+    let isCancelled = false;
+
     const fetchEvent = async () => {
       try {
-        const apiBaseUrl =
-          process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
-        const res = await fetch(`${apiBaseUrl}/events/events/${id}/`);
-
-        if (!res.ok) {
-          throw new Error(`Event not found (status ${res.status})`);
+        if (!id) return;
+        
+        const eventData = await eventsService.getEvent(Number(id));
+        
+        if (!eventData) {
+          throw new Error("Event not found");
         }
 
-        const data = await res.json();
-        setEvent(data);
-      } catch {
-        setError("Failed to load event details");
+        // Only update state if component is still mounted
+        if (!isCancelled) {
+          setEvent(eventData);
+        }
+      } catch (err) {
+        console.error('Error fetching event:', err);
+        if (!isCancelled) {
+          setError("Failed to load event details");
+        }
       } finally {
-        setLoading(false);
+        if (!isCancelled) {
+          setLoading(false);
+        }
       }
     };
 
     if (id) {
       fetchEvent();
     }
+
+    // Cleanup function to prevent state updates if component unmounts
+    return () => {
+      isCancelled = true;
+    };
   }, [id]);
 
   if (loading) {
@@ -279,10 +351,10 @@ function EventDetailPage() {
             </span>
             <span className="text-sm text-gray-500 flex items-center">
               <Calendar className="w-4 h-4 mr-1" />
-              {formatDate(event.start_date)}
+              {eventsService.formatDate(event.start_date)}
               {event.end_date &&
                 event.start_date !== event.end_date &&
-                ` - ${formatDate(event.end_date)}`}
+                ` - ${eventsService.formatDate(event.end_date)}`}
             </span>
             <span className="text-sm text-gray-500 flex items-center">
               <MapPin className="w-4 h-4 mr-1" />
@@ -316,7 +388,7 @@ function EventDetailPage() {
         {event.banner_image ? (
           <div className="mb-8">
             <Image
-              src={event.banner_image}
+              src={getImageUrl(event.banner_image) || ''}
               alt="Event Banner"
               width={800}
               height={400}
@@ -371,7 +443,7 @@ function EventDetailPage() {
               </span>
             </div>
 
-            {event.registration_fee > 0 && (
+            {event.registration_fee && parseFloat(event.registration_fee) > 0 && (
               <p className="text-gray-700 mb-2">
                 Registration Fee: ₹{event.registration_fee}
               </p>
@@ -379,7 +451,7 @@ function EventDetailPage() {
 
             {event.registration_deadline && (
               <p className="text-gray-700 mb-4">
-                Deadline: {formatDateTime(event.registration_deadline)}
+                Deadline: {eventsService.formatDateTime(event.registration_deadline)}
               </p>
             )}
 
@@ -389,11 +461,8 @@ function EventDetailPage() {
                 disabled={
                   isRegistering ||
                   isRegistered ||
-                  !event.is_registration_open ||
-                  Boolean(
-                    event.max_participants &&
-                      event.registration_count >= event.max_participants
-                  )
+                  !eventsService.isRegistrationOpen(event) ||
+                  eventsService.isEventFull(event)
                 }
                 className={`px-6 py-3 rounded-lg flex items-center gap-2 font-medium transition-all duration-300 ${
                   isRegistered
@@ -416,11 +485,8 @@ function EventDetailPage() {
                     <UserPlus className="w-4 h-4" />
                     Registered
                   </>
-                ) : !event.is_registration_open ? (
-                  "Registration Closed"
-                ) : event.max_participants &&
-                  event.registration_count >= event.max_participants ? (
-                  "Event Full"
+                ) : !eventsService.isRegistrationOpen(event) ? (
+                  eventsService.isEventFull(event) ? "Event Full" : "Registration Closed"
                 ) : (
                   <>
                     <UserPlus className="w-4 h-4" />
@@ -442,7 +508,7 @@ function EventDetailPage() {
                   <Download className="w-12 h-12 text-gray-500 mx-auto mb-2" />
                   <p className="text-gray-600 mb-4">PDF Flyer Available</p>
                   <a
-                    href={event.event_flyer}
+                    href={getImageUrl(event.event_flyer) || event.event_flyer}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -454,7 +520,7 @@ function EventDetailPage() {
               </div>
             ) : (
               <Image
-                src={event.event_flyer}
+                src={getImageUrl(event.event_flyer) || ''}
                 alt="Event Flyer"
                 width={800}
                 height={600}
@@ -473,7 +539,7 @@ function EventDetailPage() {
                 <div key={idx} className="flex items-start gap-4 bg-gray-50 p-6 rounded-lg">
                   {speaker.profile_image ? (
                     <Image
-                      src={speaker.profile_image}
+                      src={getImageUrl(speaker.profile_image) || ''}
                       alt={speaker.name}
                       width={80}
                       height={80}
@@ -501,26 +567,7 @@ function EventDetailPage() {
                           LinkedIn
                         </a>
                       )}
-                      {speaker.twitter_url && (
-                        <a
-                          href={speaker.twitter_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-400 hover:underline text-sm"
-                        >
-                          Twitter
-                        </a>
-                      )}
-                      {speaker.website_url && (
-                        <a
-                          href={speaker.website_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-gray-700 hover:underline text-sm"
-                        >
-                          Website
-                        </a>
-                      )}
+
                     </div>
                   </div>
                 </div>
@@ -539,7 +586,7 @@ function EventDetailPage() {
                   <h3 className="font-semibold text-gray-900 text-lg mb-2">{item.title}</h3>
                   <p className="text-gray-700 mb-3">{item.description}</p>
                   <div className="text-sm text-gray-500 mb-2">
-                    {formatTime(item.start_time)} - {formatTime(item.end_time)}
+                    {eventsService.formatTime(item.start_time)} - {eventsService.formatTime(item.end_time)}
                     {item.venue_details && ` | Venue: ${item.venue_details}`}
                   </div>
                   {item.speaker && (

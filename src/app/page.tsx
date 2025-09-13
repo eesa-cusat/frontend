@@ -43,30 +43,17 @@ export default function Home() {
   useEffect(() => {
     const fetchFeaturedData = async () => {
       setLoading(true);
-
-      // --- Fetch Events ---
       try {
-        const eventsResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/events/events/`
-        );
-
-        if (eventsResponse.ok) {
-          const data = await eventsResponse.json();
-          const featured =
-            data.results?.filter(
-              (event: { is_featured: boolean }) => event.is_featured
-            ) || [];
-          setFeaturedEvents(featured);
-        } else {
-          setFeaturedEvents([]);
-        }
+        // Fetch featured events using api.events.featured()
+        const eventsResponse = await import("@/lib/api").then(m => m.api.events.featured());
+        const featured = eventsResponse.data || [];
+        setFeaturedEvents(featured);
       } catch (error) {
         console.error("Error fetching featured events:", error);
         setFeaturedEvents([]);
       }
-
-      // --- Fetch Projects ---
       try {
+        // Fetch featured projects (keep as is for now)
         const projectsUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/projects/`;
         const projectsResponse = await fetch(projectsUrl);
         if (projectsResponse.ok) {
@@ -80,10 +67,8 @@ export default function Home() {
         console.error("Failed to fetch featured projects:", error);
         setFeaturedProjects([]);
       }
-
       setLoading(false);
     };
-
     fetchFeaturedData();
   }, []);
 
