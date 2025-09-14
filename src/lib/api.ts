@@ -3,7 +3,6 @@ import { ApiResponse, ApiError } from '@/types/common';
 import toast from 'react-hot-toast';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
-const DJANGO_ADMIN_URL = process.env.NEXT_PUBLIC_DJANGO_ADMIN_URL || 'http://localhost:8000/eesa';
 
 // Simple in-memory cache
 const cache = new Map<string, { data: any; timestamp: number; ttl: number }>();
@@ -46,7 +45,7 @@ apiClient.interceptors.request.use(
     config.headers['Accept-Encoding'] = 'gzip, deflate, br';
     
     // Check cache for GET requests
-    if (config.method === 'get' && !config.url?.includes('admin')) {
+    if (config.method === 'get') {
       const cacheKey = getCacheKey(config.url || '', config.params);
       const cachedData = getCachedData(cacheKey);
       
@@ -68,8 +67,8 @@ apiClient.interceptors.request.use(
 // Response interceptor to handle errors and caching
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
-    // Cache GET responses (excluding admin endpoints)
-    if (response.config.method === 'get' && !response.config.url?.includes('admin')) {
+    // Cache GET responses
+    if (response.config.method === 'get') {
       const cacheKey = getCacheKey(response.config.url || '', response.config.params);
       setCachedData(cacheKey, response.data, 5); // Cache for 5 minutes
     }
@@ -108,7 +107,7 @@ export const api = {
     upcoming: () => apiClient.get('/events/upcoming/'),
     featured: () => apiClient.get('/events/featured/'),
     stats: () => apiClient.get('/events/stats/'),
-    register: (data: any) => apiClient.post('/events/quick-register/', data),
+    register: (data: any) => apiClient.post(`/events/events/${data.event}/register/`, data),
     submitFeedback: (data: any) => apiClient.post('/events/submit-feedback/', data),
   },
 
@@ -166,29 +165,7 @@ export const clearApiCache = () => {
   cache.clear();
 };
 
-// Helper function to redirect to Django admin
-export const redirectToDjangoAdmin = (path: string = '') => {
-  const adminUrl = `${DJANGO_ADMIN_URL}/${path}`;
-  window.open(adminUrl, '_blank');
-};
-
-// Helper function to check if user should be redirected to admin
-export const shouldRedirectToAdmin = (action: string) => {
-  const adminActions = [
-    'upload',
-    'create',
-    'edit',
-    'delete',
-    'approve',
-    'manage',
-    'admin',
-    'dashboard'
-  ];
-
-  return adminActions.some(adminAction =>
-    action.toLowerCase().includes(adminAction)
-  );
-};
+// Removed admin-related functions - using separate admin dashboard
 
 // Generic API request handler with caching
 export const apiRequest = async <T>(

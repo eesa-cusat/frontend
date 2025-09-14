@@ -204,57 +204,7 @@ class AlumniService {
     }
   }
 
-  // Add new alumni (Admin only)
-  async addAlumni(alumniData: {
-    full_name: string;
-    email: string;
-    phone_number?: string;
-    batch: number;
-    job_title?: string;
-    current_company?: string;
-    current_location?: string;
-    linkedin_profile?: string;
-    employment_status: string;
-    willing_to_mentor?: boolean;
-  }): Promise<Alumni | null> {
-    try {
-      const alumni = await this.apiCall<Alumni>('alumni/', {
-        method: 'POST',
-        body: JSON.stringify(alumniData),
-      });
-      return alumni;
-    } catch (error) {
-      console.error('Error adding alumni:', error);
-      return null;
-    }
-  }
-
-  // Update alumni profile
-  async updateAlumni(id: number, alumniData: Partial<Alumni>): Promise<Alumni | null> {
-    try {
-      const alumni = await this.apiCall<Alumni>(`alumni/${id}/`, {
-        method: 'PATCH',
-        body: JSON.stringify(alumniData),
-      });
-      return alumni;
-    } catch (error) {
-      console.error(`Error updating alumni ${id}:`, error);
-      return null;
-    }
-  }
-
-  // Delete alumni
-  async deleteAlumni(id: number): Promise<boolean> {
-    try {
-      await this.apiCall(`alumni/${id}/`, {
-        method: 'DELETE',
-      });
-      return true;
-    } catch (error) {
-      console.error(`Error deleting alumni ${id}:`, error);
-      return false;
-    }
-  }
+  // Admin functionality moved to separate admin dashboard
 
   // Get employment status color
   getEmploymentStatusColor(status: string): string {

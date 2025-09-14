@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { galleryService, GalleryAlbum } from '@/services/galleryService';
+import { galleryService } from '@/services/galleryService';
 import { getImageUrl } from '@/utils/api';
 import { 
   Search, 
