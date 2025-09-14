@@ -385,9 +385,9 @@ const GalleryPage: React.FC<GalleryPageProps> = () => {
                     className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="all">All Types</option>
-                    <option value="EESA_PROGRAMS">EESA Programs</option>
-                    <option value="GENERAL_PROGRAMS">General Programs</option>
-                    <option value="ALUMNI_BATCHES">Alumni Batches</option>
+                    <option value="eesa">EESA Programs</option>
+                    <option value="general">General Programs</option>
+                    <option value="alumni">Alumni Batches</option>
                   </select>
                   <Button onClick={handleSearch} size="sm">
                     <Filter size={16} className="mr-2" />
