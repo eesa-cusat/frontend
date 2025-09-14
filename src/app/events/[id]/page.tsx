@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Calendar, MapPin, Users, UserPlus, Download, Camera, ArrowRight, Image as ImageIcon } from "lucide-react";
+import { Calendar, MapPin, Users, UserPlus, Download, Camera, ArrowRight, Image as ImageIcon, Eye } from "lucide-react";
 import Image from "next/image";
 import { eventsService, Event } from "@/services/eventsService";
 import { getImageUrl } from "@/utils/api";
@@ -217,21 +217,24 @@ function EventDetailPage() {
 
         {/* Event Banner */}
         {event.banner_image ? (
-          <div className="mb-8">
-            <Image
-              src={getImageUrl(event.banner_image) || ''}
-              alt="Event Banner"
-              width={800}
-              height={400}
-              className="rounded-lg w-full object-cover"
-            />
+          <div className="mb-6">
+            <div className="relative w-full h-48 md:h-64 lg:h-80 rounded-lg overflow-hidden">
+              <Image
+                src={getImageUrl(event.banner_image) || ''}
+                alt="Event Banner"
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
+                priority
+              />
+            </div>
           </div>
         ) : (
-          <div className="mb-8">
-            <div className="w-full h-64 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg flex items-center justify-center border-2 border-blue-200">
+          <div className="mb-6">
+            <div className="w-full h-48 md:h-56 lg:h-64 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg flex items-center justify-center border-2 border-blue-200">
               <div className="text-center">
-                <Calendar className="w-16 h-16 text-blue-500 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-blue-600 mb-2">
+                <Calendar className="w-12 h-12 md:w-16 md:h-16 text-blue-500 mx-auto mb-4" />
+                <h3 className="text-lg md:text-xl font-bold text-blue-600 mb-2">
                   {event.title}
                 </h3>
                 <p className="text-blue-500 text-sm">
@@ -250,34 +253,7 @@ function EventDetailPage() {
           <p className="text-gray-700 leading-relaxed">{event.description}</p>
         </div>
 
-        {/* Gallery Link */}
-        {((event.gallery_album_id) || (event.album && event.album.id)) && (
-          <div className="mb-8">
-            <div className="bg-gradient-to-r from-[#B9FF66]/20 to-[#B9FF66]/10 p-6 rounded-lg border border-[#B9FF66]/30">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <Camera className="w-6 h-6 text-[#191A23] mr-3" />
-                  <div>
-                    <h3 className="text-lg font-semibold text-[#191A23]">Event Gallery</h3>
-                    <p className="text-gray-600">
-                      {(event.photo_count && event.photo_count > 0) || (event.album && event.album.photo_count > 0)
-                        ? `View ${event.photo_count || event.album?.photo_count} photos from this event` 
-                        : "Photo album available for this event"}
-                    </p>
-                  </div>
-                </div>
-                <Link
-                  href={`/gallery?album=${event.gallery_album_id || event.album?.id}`}
-                  className="flex items-center text-[#191A23] hover:text-gray-700 bg-[#B9FF66] hover:bg-[#B9FF66]/80 px-4 py-3 rounded-lg transition-all duration-300 font-medium shadow-md hover:shadow-lg"
-                >
-                  <ImageIcon className="w-5 h-5 mr-2" />
-                  View Gallery
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Link>
-              </div>
-            </div>
-          </div>
-        )}        {/* Registration Section */}
+        {/* Registration Section */}
         {event.registration_required && (
           <div className="mb-8 bg-gray-50 rounded-lg p-6">
             <h2 className="text-2xl font-semibold text-gray-800 mb-4">
@@ -452,6 +428,37 @@ function EventDetailPage() {
                   )}
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Gallery Section */}
+        {((event.album && event.album.photo_count > 0) || event.gallery_album_id) && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-semibold text-gray-800 mb-4">Event Gallery</h2>
+            <div className="bg-white border-2 border-dashed border-gray-200 rounded-lg p-6 hover:border-blue-300 hover:bg-blue-50/30 transition-all duration-300">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <Camera className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-1">
+                      {event.album?.name || `${event.title} Photos`}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      {event.album?.photo_count || event.photo_count || 0} photos available
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  href={`/gallery?album=${event.album?.id || event.gallery_album_id}`}
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-300 font-medium shadow-sm hover:shadow-md"
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  View in Gallery
+                </Link>
+              </div>
             </div>
           </div>
         )}

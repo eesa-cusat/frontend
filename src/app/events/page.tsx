@@ -482,7 +482,7 @@ export default function EventsPage() {
                 {filteredEvents.length} events found
               </span>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredEvents.map((event) => {
                 const eventDate = new Date(event.start_date);
                 const today = new Date();
@@ -491,10 +491,11 @@ export default function EventsPage() {
                 return (
                   <div
                     key={event.id}
-                    className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200 hover:border-[#B9FF66]"
+                    className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-200 hover:border-[#B9FF66] cursor-pointer"
+                    onClick={() => window.location.href = `/events/${event.id}`}
                   >
-                    {/* Cover Photo */}
-                    <div className={`relative h-48 bg-gradient-to-r ${getCoverGradient(event.event_type || 'default')} rounded-lg mb-4 overflow-hidden`}>
+                    {/* Cover Photo - Made smaller */}
+                    <div className={`relative h-32 md:h-36 bg-gradient-to-r ${getCoverGradient(event.event_type || 'default')} overflow-hidden`}>
                       {event.event_flyer || event.banner_image ? (
                         <Image
                           src={getImageUrl(event.event_flyer || event.banner_image) || ""}
@@ -508,25 +509,24 @@ export default function EventsPage() {
                           <div className="absolute inset-0 bg-black/20"></div>
                           <div className="absolute inset-0 flex items-center justify-center">
                             <div className="text-center text-white">
-                              <Calendar className="w-12 h-12 mx-auto mb-2 opacity-80" />
-                              <p className="text-sm font-medium opacity-90">Event Cover Photo</p>
-                              <p className="text-xs opacity-70">{event.title}</p>
+                              <Calendar className="w-8 h-8 mx-auto mb-1 opacity-80" />
+                              <p className="text-xs font-medium opacity-90">Event Cover</p>
                             </div>
                           </div>
                         </>
                       )}
                       {/* Status badges overlay */}
-                      <div className="absolute top-3 left-3 flex items-center gap-2">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(eventStatus)}`}>
+                      <div className="absolute top-2 left-2 flex items-center gap-1">
+                        <span className={`px-2 py-1 rounded-md text-xs font-semibold ${getStatusColor(eventStatus)}`}>
                           {eventStatus.charAt(0).toUpperCase() + eventStatus.slice(1)}
                         </span>
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getTypeColor(event.event_type || 'event')}`}>
+                        <span className={`px-2 py-1 rounded-md text-xs font-semibold ${getTypeColor(event.event_type || 'event')}`}>
                           {event.event_type || 'Event'}
                         </span>
                       </div>
                       {event.is_featured && (
-                        <div className="absolute top-3 right-3">
-                          <span className="px-2 py-1 bg-yellow-400 text-yellow-900 rounded-full text-xs font-semibold flex items-center">
+                        <div className="absolute top-2 right-2">
+                          <span className="px-2 py-1 bg-yellow-400 text-yellow-900 rounded-md text-xs font-semibold flex items-center">
                             <Star className="w-3 h-3 mr-1" />
                             Featured
                           </span>
@@ -534,32 +534,32 @@ export default function EventsPage() {
                       )}
                     </div>
 
-                    <div className="p-6">
-                      <div className="mb-4">
-                        <h3 className="text-xl font-bold text-[#191A23] mb-2">{event.title}</h3>
-                        <p className="text-gray-600 text-sm mb-4 line-clamp-2">{event.description}</p>
+                    <div className="p-4">
+                      <div className="mb-3">
+                        <h3 className="text-lg font-bold text-[#191A23] mb-1 line-clamp-2">{event.title}</h3>
+                        <p className="text-gray-600 text-sm line-clamp-2">{event.description}</p>
                       </div>
 
-                      <div className="space-y-3 mb-4">
+                      <div className="space-y-2 mb-3">
                         <div className="flex items-center text-sm text-[#191A23]">
-                          <Calendar className="w-4 h-4 mr-3 text-gray-600" />
-                          <span className="font-medium">{formatDate(event.start_date)}</span>
+                          <Calendar className="w-4 h-4 mr-2 text-gray-600 flex-shrink-0" />
+                          <span className="font-medium truncate">{formatDate(event.start_date)}</span>
                         </div>
                         <div className="flex items-center text-sm text-[#191A23]">
-                          <Clock className="w-4 h-4 mr-3 text-gray-600" />
-                          <span className="font-medium">
+                          <Clock className="w-4 h-4 mr-2 text-gray-600 flex-shrink-0" />
+                          <span className="font-medium truncate">
                             {formatTime(event.start_date)} - {formatTime(event.end_date || event.start_date)}
                           </span>
                         </div>
                         {event.location && (
                           <div className="flex items-center text-sm text-[#191A23]">
-                            <MapPin className="w-4 h-4 mr-3 text-gray-600" />
-                            <span className="font-medium">{event.location}</span>
+                            <MapPin className="w-4 h-4 mr-2 text-gray-600 flex-shrink-0" />
+                            <span className="font-medium truncate">{event.location}</span>
                           </div>
                         )}
                         {event.registration_required && event.max_participants && (
                           <div className="flex items-center text-sm text-[#191A23]">
-                            <Users className="w-4 h-4 mr-3 text-gray-600" />
+                            <Users className="w-4 h-4 mr-2 text-gray-600 flex-shrink-0" />
                             <span className="font-medium">
                               {event.registration_count || 0}/{event.max_participants} registered
                             </span>
@@ -567,15 +567,18 @@ export default function EventsPage() {
                         )}
                       </div>
 
-                      <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                        <div className="flex space-x-3">
-                          <Link
-                            href={`/events/${event.id}`}
-                            className="flex items-center text-[#191A23] hover:text-gray-700 bg-[#B9FF66]/20 hover:bg-[#B9FF66]/30 px-3 py-2 rounded-lg transition-colors text-sm font-medium"
+                      <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.location.href = `/events/${event.id}`;
+                            }}
+                            className="flex items-center text-[#191A23] hover:text-gray-700 bg-[#B9FF66]/20 hover:bg-[#B9FF66]/30 px-3 py-1.5 rounded-md transition-colors text-sm font-medium"
                           >
                             <Eye className="w-4 h-4 mr-1" />
                             View Details
-                          </Link>
+                          </button>
                           {eventStatus === 'upcoming' && event.registration_required && (
                             <Button
                               onClick={(e) => {
@@ -588,7 +591,8 @@ export default function EventsPage() {
                                 registeringEvents.has(event.id) ||
                                 registeredEvents.has(event.id)
                               }
-                              className={`transition-all duration-300 ${
+                              size="sm"
+                              className={`transition-all duration-300 text-xs ${
                                 registeredEvents.has(event.id)
                                   ? "bg-[#191A23] text-[#B9FF66] cursor-default"
                                   : registeringEvents.has(event.id)
@@ -598,17 +602,17 @@ export default function EventsPage() {
                             >
                               {registeredEvents.has(event.id) ? (
                                 <>
-                                  <UserPlus className="w-4 h-4 mr-1" />
-                                  Registered ✓
+                                  <UserPlus className="w-3 h-3 mr-1" />
+                                  Registered
                                 </>
                               ) : registeringEvents.has(event.id) ? (
                                 <>
-                                  <div className="w-4 h-4 mr-1 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                  <div className="w-3 h-3 mr-1 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                                   Registering...
                                 </>
                               ) : (
                                 <>
-                                  <UserPlus className="w-4 h-4 mr-1" />
+                                  <UserPlus className="w-3 h-3 mr-1" />
                                   Register
                                 </>
                               )}
@@ -616,7 +620,7 @@ export default function EventsPage() {
                           )}
                         </div>
                         <span className="text-xs text-gray-500 font-medium">
-                          {event.speakers ? `${event.speakers.length} speaker${event.speakers.length > 1 ? 's' : ''}` : 'Event Details'}
+                          {event.speakers ? `${event.speakers.length} speaker${event.speakers.length > 1 ? 's' : ''}` : ''}
                         </span>
                       </div>
                     </div>
