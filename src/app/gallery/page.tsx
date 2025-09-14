@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -57,6 +58,8 @@ interface Photo {
 interface GalleryPageProps {}
 
 const GalleryPage: React.FC<GalleryPageProps> = () => {
+  const searchParams = useSearchParams();
+  
   // State management
   const [albums, setAlbums] = useState<Album[]>([]);
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -81,6 +84,19 @@ const GalleryPage: React.FC<GalleryPageProps> = () => {
       loadPhotos(selectedAlbum.id);
     }
   }, [selectedAlbum]);
+
+  // Handle album URL parameter (for direct links from events)
+  useEffect(() => {
+    const albumParam = searchParams.get('album');
+    if (albumParam && albums.length > 0) {
+      const albumId = parseInt(albumParam);
+      const targetAlbum = albums.find(album => album.id === albumId);
+      if (targetAlbum && !selectedAlbum) {
+        setSelectedAlbum(targetAlbum);
+        setViewMode('photos');
+      }
+    }
+  }, [searchParams, albums, selectedAlbum]);
 
   const loadAlbums = async () => {
     try {

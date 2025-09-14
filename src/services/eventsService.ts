@@ -1,5 +1,33 @@
 // Events Service - Implementation according to API guide
 
+// Album Interface (for event gallery)
+export interface EventAlbum {
+  id: number;
+  name: string;
+  type: string;
+  description: string;
+  cover_image?: string;
+  event: number;
+  batch_year?: number;
+  event_title: string;
+  batch_info?: any;
+  created_at: string;
+  created_by?: number;
+  created_by_name?: string;
+  photo_count: number;
+  photos?: EventPhoto[];
+}
+
+// Photo Interface (for album photos)
+export interface EventPhoto {
+  id: number;
+  image: string;
+  caption?: string;
+  uploaded_at: string;
+  uploaded_by?: number;
+  uploaded_by_name?: string;
+}
+
 // Event Interface
 export interface Event {
   id: number;
@@ -38,6 +66,7 @@ export interface Event {
   created_at: string;
   gallery_album_id?: number;
   photo_count?: number;
+  album?: EventAlbum;  // Full album object when fetched from detail endpoint
   speakers?: EventSpeaker[];
   schedule?: EventSchedule[];
 }

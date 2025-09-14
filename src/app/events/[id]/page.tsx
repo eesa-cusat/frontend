@@ -251,7 +251,7 @@ function EventDetailPage() {
         </div>
 
         {/* Gallery Link */}
-        {event.gallery_album_id && (
+        {((event.gallery_album_id) || (event.album && event.album.id)) && (
           <div className="mb-8">
             <div className="bg-gradient-to-r from-[#B9FF66]/20 to-[#B9FF66]/10 p-6 rounded-lg border border-[#B9FF66]/30">
               <div className="flex items-center justify-between">
@@ -260,14 +260,14 @@ function EventDetailPage() {
                   <div>
                     <h3 className="text-lg font-semibold text-[#191A23]">Event Gallery</h3>
                     <p className="text-gray-600">
-                      {event.photo_count && event.photo_count > 0 
-                        ? `View ${event.photo_count} photos from this event` 
+                      {(event.photo_count && event.photo_count > 0) || (event.album && event.album.photo_count > 0)
+                        ? `View ${event.photo_count || event.album?.photo_count} photos from this event` 
                         : "Photo album available for this event"}
                     </p>
                   </div>
                 </div>
                 <Link
-                  href={`/gallery?album=${event.gallery_album_id}`}
+                  href={`/gallery?album=${event.gallery_album_id || event.album?.id}`}
                   className="flex items-center text-[#191A23] hover:text-gray-700 bg-[#B9FF66] hover:bg-[#B9FF66]/80 px-4 py-3 rounded-lg transition-all duration-300 font-medium shadow-md hover:shadow-lg"
                 >
                   <ImageIcon className="w-5 h-5 mr-2" />
@@ -277,9 +277,7 @@ function EventDetailPage() {
               </div>
             </div>
           </div>
-        )}
-
-        {/* Registration Section */}
+        )}        {/* Registration Section */}
         {event.registration_required && (
           <div className="mb-8 bg-gray-50 rounded-lg p-6">
             <h2 className="text-2xl font-semibold text-gray-800 mb-4">
