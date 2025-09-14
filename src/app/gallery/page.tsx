@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -57,7 +57,7 @@ interface Photo {
 
 interface GalleryPageProps {}
 
-const GalleryPage: React.FC<GalleryPageProps> = () => {
+const GalleryPageContent: React.FC<GalleryPageProps> = () => {
   const searchParams = useSearchParams();
   
   // State management
@@ -650,6 +650,14 @@ const GalleryPage: React.FC<GalleryPageProps> = () => {
       {/* Photo Modal */}
       <PhotoModal />
     </div>
+  );
+};
+
+const GalleryPage: React.FC<GalleryPageProps> = () => {
+  return (
+    <Suspense fallback={<div className="min-h-screen p-4 flex items-center justify-center">Loading gallery...</div>}>
+      <GalleryPageContent />
+    </Suspense>
   );
 };
 
