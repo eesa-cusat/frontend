@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { galleryService, Album, Photo } from '@/services/galleryService';
+import { galleryService, GalleryAlbum } from '@/services/galleryService';
 import { getImageUrl } from '@/utils/api';
 import { 
   Search, 
@@ -27,6 +27,32 @@ import {
   User
 } from 'lucide-react';
 import Image from 'next/image';
+
+// Define interfaces for gallery components
+interface Album {
+  id: number;
+  name: string;
+  type: string;
+  description?: string;
+  cover_image?: string;
+  created_at: string;
+  photo_count: number;
+  event?: {
+    title: string;
+  };
+  batch_year?: number;
+}
+
+interface Photo {
+  id: number;
+  image: string;
+  caption?: string;
+  uploaded_at: string;
+  uploaded_by: {
+    first_name: string;
+    last_name: string;
+  };
+}
 
 interface GalleryPageProps {}
 
@@ -59,20 +85,50 @@ const GalleryPage: React.FC<GalleryPageProps> = () => {
   const loadAlbums = async () => {
     try {
       setLoading(true);
-      const filters: any = {};
-
+      
+      // Fetch albums from API
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api'}/gallery/albums/`, {
+        headers: { 'Accept': 'application/json' }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      const albumsArray = Array.isArray(data.results) ? data.results : Array.isArray(data) ? data : [];
+      
+      // Transform albums to match our interface
+      const transformedAlbums: Album[] = albumsArray.map((album: any) => ({
+        id: album.id,
+        name: album.name || album.title,
+        type: album.type,
+        description: album.description,
+        cover_image: album.cover_image,
+        created_at: album.created_at,
+        photo_count: album.photo_count || 0,
+        event: album.event,
+        batch_year: album.batch_year
+      }));
+      
+      // Apply filters
+      let filteredAlbums = transformedAlbums;
+      
       if (albumTypeFilter !== 'all') {
-        filters.album_type = albumTypeFilter;
+        filteredAlbums = filteredAlbums.filter(album => album.type === albumTypeFilter.toLowerCase());
       }
-
+      
       if (searchTerm) {
-        filters.search = searchTerm;
+        filteredAlbums = filteredAlbums.filter(album => 
+          album.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (album.description && album.description.toLowerCase().includes(searchTerm.toLowerCase()))
+        );
       }
-
-      const albumsData = await galleryService.getAlbums(filters);
-      setAlbums(albumsData);
+      
+      setAlbums(filteredAlbums);
     } catch (error) {
       console.error('Error loading albums:', error);
+      setAlbums([]);
     } finally {
       setLoading(false);
     }
@@ -81,18 +137,39 @@ const GalleryPage: React.FC<GalleryPageProps> = () => {
   const loadPhotos = async (albumId: number) => {
     try {
       setPhotosLoading(true);
-      const album = await galleryService.getAlbum(albumId);
-      const albumPhotos = album?.photos || [];
-      setPhotos(albumPhotos);
+      
+      // Fetch photos from gallery photos API endpoint with album query parameter
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api'}/gallery/photos/?album=${albumId}`, {
+        headers: { 'Accept': 'application/json' }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      const photosArray = Array.isArray(data.results) ? data.results : Array.isArray(data) ? data : [];
+      
+      // Transform photos to match our interface
+      const transformedPhotos: Photo[] = photosArray.map((photo: any) => ({
+        id: photo.id,
+        image: photo.image,
+        caption: photo.caption,
+        uploaded_at: photo.uploaded_at,
+        uploaded_by: photo.uploaded_by || { first_name: '', last_name: '' }
+      }));
+      
+      setPhotos(transformedPhotos);
       
       // Debug: Log image URLs to understand the issue
-      console.log('Gallery Debug - Album photos:', albumPhotos.map(p => ({
+      console.log('Gallery Debug - Album photos:', transformedPhotos.map(p => ({
         id: p.id,
         original: p.image,
         processed: getImageUrl(p.image)
       })));
     } catch (error) {
       console.error('Error loading photos:', error);
+      setPhotos([]);
     } finally {
       setPhotosLoading(false);
     }
@@ -168,7 +245,11 @@ const GalleryPage: React.FC<GalleryPageProps> = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return galleryService.formatDate(dateString);
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
   };
 
   // Photo Modal Component
@@ -206,14 +287,11 @@ const GalleryPage: React.FC<GalleryPageProps> = () => {
           )}
 
           {/* Main image */}
-          <div className="relative max-w-4xl max-h-full">
-            <Image
-              src={getImageUrl(selectedPhoto.image) || '/placeholder-image.jpg'}
+          <div className="relative max-w-4xl max-h-full flex items-center justify-center">
+            <img
+              src={getImageUrl(selectedPhoto.image) || selectedPhoto.image || '/placeholder-image.jpg'}
               alt={selectedPhoto.caption || 'Photo'}
-              width={1200}
-              height={800}
-              className="max-w-full max-h-full object-contain"
-              unoptimized
+              className="max-w-full max-h-[90vh] object-contain rounded-lg"
               onError={(e) => {
                 console.error('Modal image failed to load:', selectedPhoto.image);
                 e.currentTarget.src = '/placeholder-image.jpg';
@@ -472,13 +550,11 @@ const GalleryPage: React.FC<GalleryPageProps> = () => {
                       onClick={() => handlePhotoClick(photo, index)}
                     >
                       {photoViewMode === 'grid' ? (
-                        <div className="relative aspect-square overflow-hidden rounded-lg">
-                          <Image
-                            src={getImageUrl(photo.image) || '/placeholder-image.jpg'}
+                        <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-200">
+                          <img
+                            src={getImageUrl(photo.image) || photo.image || '/placeholder-image.jpg'}
                             alt={photo.caption || 'Photo'}
-                            fill
-                            className="object-cover group-hover:scale-105 transition-transform duration-200"
-                            unoptimized
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                             onError={(e) => {
                               console.error('Image failed to load:', photo.image);
                               e.currentTarget.src = '/placeholder-image.jpg';
@@ -493,13 +569,11 @@ const GalleryPage: React.FC<GalleryPageProps> = () => {
                           <CardContent className="p-4">
                             <div className="flex items-start space-x-4">
                               <div className="flex-shrink-0">
-                                <div className="relative w-24 h-24 rounded-lg overflow-hidden">
-                                  <Image
-                                    src={getImageUrl(photo.image) || '/placeholder-image.jpg'}
+                                <div className="w-24 h-24 rounded-lg overflow-hidden bg-gray-200">
+                                  <img
+                                    src={getImageUrl(photo.image) || photo.image || '/placeholder-image.jpg'}
                                     alt={photo.caption || 'Photo'}
-                                    fill
-                                    className="object-cover"
-                                    unoptimized
+                                    className="w-full h-full object-cover"
                                     onError={(e) => {
                                       console.error('List view image failed to load:', photo.image);
                                       e.currentTarget.src = '/placeholder-image.jpg';

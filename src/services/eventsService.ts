@@ -36,6 +36,8 @@ export interface Event {
   is_ongoing: boolean;
   is_registration_open: boolean;
   created_at: string;
+  gallery_album_id?: number;
+  photo_count?: number;
   speakers?: EventSpeaker[];
   schedule?: EventSchedule[];
 }

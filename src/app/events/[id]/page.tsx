@@ -3,200 +3,13 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Calendar, MapPin, Users, UserPlus, Download } from "lucide-react";
+import { Calendar, MapPin, Users, UserPlus, Download, Camera, ArrowRight, Image as ImageIcon } from "lucide-react";
 import Image from "next/image";
 import { eventsService, Event } from "@/services/eventsService";
 import { getImageUrl } from "@/utils/api";
-
-// Registration form interface
-interface RegistrationFormData {
-  name: string;
-  email: string;
-  mobile_number: string;
-  participant_type?: 'student' | 'professional';
-  // Student fields
-  institution?: string;
-  department?: string;
-  year_of_study?: string;
-  // Professional fields
-  organization?: string;
-  designation?: string;
-  // Optional fields
-  dietary_requirements?: string;
-  special_needs?: string;
-  payment_reference?: string;
-}
-
-// Registration Modal Component
-interface RegistrationModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (formData: RegistrationFormData) => Promise<void>;
-  eventTitle: string;
-  isRegistering: boolean;
-}
-
-const RegistrationModal: React.FC<RegistrationModalProps> = ({
-  isOpen,
-  onClose,
-  onSubmit,
-  eventTitle,
-  isRegistering
-}) => {
-  const [formData, setFormData] = useState<RegistrationFormData>({
-    name: '',
-    email: '',
-    mobile_number: '',
-    institution: '',
-    department: '',
-    year_of_study: ''
-  });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await onSubmit(formData);
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold">Register for Event</h2>
-            <button
-              onClick={onClose}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              ×
-            </button>
-          </div>
-
-          <div className="mb-4">
-            <h3 className="font-semibold">{eventTitle}</h3>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Full Name *
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="Enter your full name"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email Address *
-              </label>
-              <input
-                type="email"
-                required
-                value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                placeholder="Enter your email address"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Mobile Number
-              </label>
-              <input
-                type="tel"
-                value={formData.mobile_number}
-                onChange={(e) => setFormData(prev => ({ ...prev, mobile_number: e.target.value }))}
-                placeholder="Enter your mobile number"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Institution
-              </label>
-              <input
-                type="text"
-                value={formData.institution}
-                onChange={(e) => setFormData(prev => ({ ...prev, institution: e.target.value }))}
-                placeholder="Enter your institution name"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Department
-              </label>
-              <input
-                type="text"
-                value={formData.department}
-                onChange={(e) => setFormData(prev => ({ ...prev, department: e.target.value }))}
-                placeholder="Enter your department"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Year of Study
-              </label>
-              <select
-                value={formData.year_of_study}
-                onChange={(e) => setFormData(prev => ({ ...prev, year_of_study: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select year</option>
-                <option value="1st Year">1st Year</option>
-                <option value="2nd Year">2nd Year</option>
-                <option value="3rd Year">3rd Year</option>
-                <option value="4th Year">4th Year</option>
-                <option value="Graduate">Graduate</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-
-            <div className="flex gap-3 pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isRegistering}
-                className={`flex-1 px-4 py-2 rounded-md text-white ${
-                  isRegistering
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-[#191A23] hover:bg-[#191A23]/90'
-                }`}
-              >
-                {isRegistering ? (
-                  <>
-                    <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin inline-block"></div>
-                    Registering...
-                  </>
-                ) : (
-                  'Register'
-                )}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  );
-};
+import RegistrationModal, {
+  RegistrationFormData,
+} from "@/components/ui/RegistrationModal";
 
 
 
@@ -234,35 +47,53 @@ function EventDetailPage() {
     try {
       setIsRegistering(true);
 
-      const registrationData = {
+      const registrationPayload = {
         event: event.id,
         name: formData.name.trim(),
         email: formData.email.trim(),
         mobile_number: formData.mobile_number.trim(),
-        participant_type: formData.participant_type || 'student',
-        // Include only relevant fields based on participant type
-        ...(formData.participant_type === 'student' ? {
-          institution: formData.institution?.trim() || '',
-          department: formData.department?.trim() || '',
-          year_of_study: formData.year_of_study?.trim() || '',
-        } : {
-          organization: formData.organization?.trim() || '',
-          designation: formData.designation?.trim() || '',
-        }),
-        // Optional fields
+        institution: formData.institution?.trim() || '',
+        department: formData.department?.trim() || '',
+        year_of_study: formData.year_of_study?.trim() || '',
+        organization: formData.organization?.trim() || '',
+        designation: formData.designation?.trim() || '',
         dietary_requirements: formData.dietary_requirements?.trim() || '',
         special_needs: formData.special_needs?.trim() || '',
         payment_reference: formData.payment_reference?.trim() || '',
       };
 
-      const registrationResult = await eventsService.registerForEvent(event.id, registrationData);
-      
-      if (registrationResult) {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
+      const response = await fetch(`${API_BASE_URL}/events/quick-register/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(registrationPayload),
+      });
+
+      if (response.ok) {
         setIsRegistered(true);
         setShowRegistrationModal(false);
-        alert("Registration successful! You will receive a confirmation email shortly.");
+        alert("🎉 Registration successful! We're excited to have you join us for this event.");
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        if (
+          errorData.detail &&
+          errorData.detail.includes("already registered")
+        ) {
+          setShowRegistrationModal(false);
+          setIsRegistered(true);
+          alert("You are already registered for this event.");
+        } else {
+          throw new Error(
+            errorData.message ||
+              errorData.detail ||
+              `Registration failed (${response.status})`
+          );
+        }
       }
     } catch (error) {
+      console.error("Registration error:", error);
       alert(
         error instanceof Error
           ? error.message
@@ -418,6 +249,35 @@ function EventDetailPage() {
           </h2>
           <p className="text-gray-700 leading-relaxed">{event.description}</p>
         </div>
+
+        {/* Gallery Link */}
+        {event.gallery_album_id && (
+          <div className="mb-8">
+            <div className="bg-gradient-to-r from-[#B9FF66]/20 to-[#B9FF66]/10 p-6 rounded-lg border border-[#B9FF66]/30">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <Camera className="w-6 h-6 text-[#191A23] mr-3" />
+                  <div>
+                    <h3 className="text-lg font-semibold text-[#191A23]">Event Gallery</h3>
+                    <p className="text-gray-600">
+                      {event.photo_count && event.photo_count > 0 
+                        ? `View ${event.photo_count} photos from this event` 
+                        : "Photo album available for this event"}
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  href={`/gallery?album=${event.gallery_album_id}`}
+                  className="flex items-center text-[#191A23] hover:text-gray-700 bg-[#B9FF66] hover:bg-[#B9FF66]/80 px-4 py-3 rounded-lg transition-all duration-300 font-medium shadow-md hover:shadow-lg"
+                >
+                  <ImageIcon className="w-5 h-5 mr-2" />
+                  View Gallery
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Registration Section */}
         {event.registration_required && (
