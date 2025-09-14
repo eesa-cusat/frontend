@@ -48,8 +48,8 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onClick }) => {
     }
   };
 
-  // Get the best available image (prioritize banner_image, then event_flyer, then fallback)
-  const eventImage = event.banner_image || event.event_flyer || event.image || event.poster;
+  // Get the best available image (prioritize event_flyer, then banner_image, then fallback)
+  const eventImage = event.event_flyer || event.banner_image || event.image || event.poster;
 
   return (
     <div

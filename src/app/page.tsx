@@ -46,8 +46,34 @@ export default function Home() {
       try {
         // Fetch featured events using api.events.featured()
         const eventsResponse = await import("@/lib/api").then(m => m.api.events.featured());
-        const featured = eventsResponse.data || [];
-        setFeaturedEvents(featured);
+        const featuredEvents = eventsResponse.data || [];
+        
+        // Fetch detailed data for each featured event to get event_flyer field
+        const eventsWithFlyers = await Promise.all(
+          featuredEvents.map(async (event: any) => {
+            try {
+              const detailResponse = await fetch(
+                `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api'}/events/${event.id}/`
+              );
+              if (detailResponse.ok) {
+                const detailData = await detailResponse.json();
+                return {
+                  ...event,
+                  event_flyer: detailData.event_flyer || null,
+                };
+              }
+              return event;
+            } catch (error) {
+              console.error(
+                `Failed to fetch details for featured event ${event.id}:`,
+                error
+              );
+              return event;
+            }
+          })
+        );
+        
+        setFeaturedEvents(eventsWithFlyers);
       } catch (error) {
         console.error("Error fetching featured events:", error);
         setFeaturedEvents([]);

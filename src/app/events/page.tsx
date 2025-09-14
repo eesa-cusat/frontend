@@ -157,7 +157,7 @@ export default function EventsPage() {
           eventsArray.map(async (event: Event) => {
             try {
               const detailResponse = await fetch(
-                `${API_BASE_URL}/events/events/${event.id}/`
+                `${API_BASE_URL}/events/${event.id}/`
               );
               if (detailResponse.ok) {
                 const detailData = await detailResponse.json();
