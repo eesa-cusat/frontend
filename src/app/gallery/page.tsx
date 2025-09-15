@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import LazyImage from "@/components/ui/LazyImage";
 import { getImageUrl } from "@/utils/api";
+import { useSeamlessNavigation, useProgressiveLoading } from "@/lib/seamlessNavigation";
 
 // API Configuration
 const API_BASE_URL =
@@ -55,6 +56,24 @@ interface Photo {
 }
 
 const GalleryPage: React.FC = () => {
+  // Seamless navigation and caching
+  const {
+    isPageCached,
+    isDataLoaded,
+    markVisited,
+    cachePage,
+    getCachedData,
+    hasGlobalCacheData,
+    getGlobalCacheData,
+    storeInGlobalCache,
+    ensurePrefetch,
+    isPrefetching,
+    isInitialPrefetchDone
+  } = useSeamlessNavigation('gallery');
+
+  // Progressive loading for images
+  const { markImageLoaded, isImageLoaded, isImagesLoading } = useProgressiveLoading([]);
+
   // Albums state
   const [albums, setAlbums] = useState<Album[]>([]);
   const [albumsLoading, setAlbumsLoading] = useState(false);
@@ -115,7 +134,23 @@ const GalleryPage: React.FC = () => {
 
   // Fetch albums with pagination
   const fetchAlbums = useCallback(
-    async (searchTerm = "", albumType = "all", page = 1) => {
+    async (searchTerm = "", albumType = "all", page = 1, useCache = true) => {
+      // Check cache first for instant loading
+      if (useCache && searchTerm === "" && albumType === "all") {
+        const cachedData = getGlobalCacheData('gallery', 'albums', page);
+        
+        if (cachedData) {
+          setAlbums(cachedData.results || []);
+          setAlbumsTotalCount(cachedData.count || 0);
+          setAlbumsTotalPages(Math.ceil((cachedData.count || 0) / 12));
+          setAlbumsHasNextPage(!!cachedData.next);
+          setAlbumsHasPrevPage(!!cachedData.previous);
+          setAlbumsCurrentPage(page);
+          setAlbumsLoading(false);
+          return;
+        }
+      }
+
       setAlbumsLoading(true);
       setAlbumsError(null);
       try {
@@ -147,6 +182,11 @@ const GalleryPage: React.FC = () => {
         setAlbumsHasNextPage(!!data.next);
         setAlbumsHasPrevPage(!!data.previous);
         setAlbumsCurrentPage(page);
+
+        // Cache data for future use (only cache basic list pages)
+        if (searchTerm === "" && albumType === "all") {
+          storeInGlobalCache('gallery', 'albums', data, page);
+        }
       } catch (err) {
         console.error("Error fetching albums:", err);
         setAlbumsError("Failed to load albums. Please try again later.");
@@ -304,9 +344,42 @@ const GalleryPage: React.FC = () => {
     });
   };
 
+  // Initialize page with cache awareness
   useEffect(() => {
-    fetchAlbums("", "all", 1);
-  }, [fetchAlbums]);
+    // Mark page as visited for cache management
+    markVisited();
+    
+    // Start prefetch if not done
+    ensurePrefetch();
+    
+    // Load cached page state
+    const cachedData = getCachedData();
+    if (cachedData) {
+      setAlbums(cachedData.albums || []);
+      setAlbumsCurrentPage(cachedData.albumsCurrentPage || 1);
+      setSearchQuery(cachedData.searchQuery || "");
+      setSelectedAlbumType(cachedData.selectedAlbumType || "all");
+      setViewMode(cachedData.viewMode || "albums");
+    } else {
+      fetchAlbums("", "all", 1);
+    }
+  }, [fetchAlbums, markVisited, ensurePrefetch, getCachedData]);
+
+  // Cache page state when data changes
+  useEffect(() => {
+    if (albums.length > 0) {
+      const pageState = {
+        albums,
+        albumsCurrentPage,
+        searchQuery,
+        selectedAlbumType,
+        viewMode,
+        albumsTotalCount,
+        albumsTotalPages
+      };
+      cachePage(() => null, pageState);
+    }
+  }, [albums, albumsCurrentPage, searchQuery, selectedAlbumType, viewMode, albumsTotalCount, albumsTotalPages, cachePage]);
 
   // Photo Modal Component
   const PhotoModal = () => {
@@ -347,10 +420,13 @@ const GalleryPage: React.FC = () => {
             <LazyImage
               src={getImageUrl(selectedPhoto.image) || selectedPhoto.image}
               alt={selectedPhoto.caption || "Photo"}
-              className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
+              className={`max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl transition-all duration-500 ${
+                isImageLoaded(`photo-${selectedPhoto.id}`) ? 'opacity-100' : 'opacity-0'
+              }`}
               width={1200}
               height={800}
               priority={true}
+              onLoad={() => markImageLoaded(`photo-${selectedPhoto.id}`)}
             />
           </div>
 

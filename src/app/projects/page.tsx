@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import LazyImage from "@/components/ui/LazyImage";
 import { getImageUrl } from "@/utils/api";
+import { useSeamlessNavigation, useProgressiveLoading } from "@/lib/seamlessNavigation";
 
 // API Configuration
 const API_BASE_URL =
@@ -71,6 +72,21 @@ interface Project {
 }
 
 const ProjectsPage: React.FC = () => {
+  // Seamless navigation and caching
+  const {
+    isPageCached,
+    isDataLoaded,
+    markVisited,
+    cachePage,
+    getCachedData,
+    hasGlobalCacheData,
+    getGlobalCacheData,
+    storeInGlobalCache,
+    ensurePrefetch,
+    isPrefetching,
+    isInitialPrefetchDone
+  } = useSeamlessNavigation('projects');
+
   // State management
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
@@ -87,6 +103,9 @@ const ProjectsPage: React.FC = () => {
   const [hasNextPage, setHasNextPage] = useState(false);
   const [hasPrevPage, setHasPrevPage] = useState(false);
 
+  // Progressive loading for images
+  const { markImageLoaded, isImageLoaded, isImagesLoading } = useProgressiveLoading(projects);
+
   const categories = [
     { value: "all", label: "All Categories" },
     { value: "web_development", label: "Web Development" },
@@ -102,11 +121,28 @@ const ProjectsPage: React.FC = () => {
     { value: "other", label: "Other" },
   ];
 
-  // Optimized fetch with pagination
+  // Optimized fetch with caching and progressive loading
   const fetchProjects = useCallback(
-    async (searchTerm = "", categoryFilter = "all", page = 1) => {
+    async (searchTerm = "", categoryFilter = "all", page = 1, useCache = true) => {
+      // Check cache first for instant loading
+      if (useCache && searchTerm === "" && categoryFilter === "all") {
+        const cacheKey = `projects_list_${page}`;
+        const cachedData = getGlobalCacheData('projects', 'list', page);
+        
+        if (cachedData) {
+          setProjects(cachedData.results || []);
+          setTotalCount(cachedData.count || 0);
+          setTotalPages(Math.ceil((cachedData.count || 0) / 12));
+          setHasNextPage(!!cachedData.next);
+          setHasPrevPage(!!cachedData.previous);
+          setLoading(false);
+          return;
+        }
+      }
+
       setLoading(true);
       setError(null);
+      
       try {
         const params = new URLSearchParams();
         params.append("page", page.toString());
@@ -153,6 +189,11 @@ const ProjectsPage: React.FC = () => {
           : [];
 
         setProjects(transformedProjects);
+
+        // Cache data for future use (only cache basic list pages, not filtered/searched results)
+        if (searchTerm === "" && categoryFilter === "all") {
+          storeInGlobalCache('projects', 'list', data, page);
+        }
       } catch (err) {
         console.error("Error fetching projects:", err);
         setError("Failed to load projects. Please try again later.");
@@ -202,9 +243,25 @@ const ProjectsPage: React.FC = () => {
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
+  // Initialize page with cache awareness
   useEffect(() => {
-    fetchProjects("", "all", 1);
-  }, [fetchProjects]);
+    // Mark page as visited for cache management
+    markVisited();
+    
+    // Start prefetch if not done
+    ensurePrefetch();
+    
+    // Load data - first check cache, then fetch if needed
+    const cachedData = getCachedData();
+    if (cachedData) {
+      setProjects(cachedData.projects || []);
+      setCurrentPage(cachedData.currentPage || 1);
+      setSelectedCategory(cachedData.selectedCategory || "all");
+      setSearchQuery(cachedData.searchQuery || "");
+    } else {
+      fetchProjects("", "all", 1);
+    }
+  }, [fetchProjects, markVisited, ensurePrefetch, getCachedData]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -217,6 +274,23 @@ const ProjectsPage: React.FC = () => {
   const handleRetry = () => {
     fetchProjects(searchQuery, selectedCategory, currentPage);
   };
+
+  // Cache page state when projects change
+  useEffect(() => {
+    if (projects.length > 0) {
+      const pageState = {
+        projects,
+        currentPage,
+        selectedCategory,
+        searchQuery,
+        totalCount,
+        totalPages,
+        hasNextPage,
+        hasPrevPage
+      };
+      cachePage(ProjectsPage, pageState);
+    }
+  }, [projects, currentPage, selectedCategory, searchQuery, totalCount, totalPages, hasNextPage, hasPrevPage, cachePage]);
 
   if (loading && projects.length === 0) {
     return (
@@ -433,9 +507,12 @@ const ProjectsPage: React.FC = () => {
                           fill
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                           objectFit="cover"
-                          className="transition-transform duration-500 group-hover:scale-110"
+                          className={`transition-all duration-500 group-hover:scale-110 ${
+                            isImageLoaded(`project-${project.id}`) ? 'opacity-100' : 'opacity-0'
+                          }`}
                           priority={false}
                           loading="lazy"
+                          onLoad={() => markImageLoaded(`project-${project.id}`)}
                         />
                       ) : (
                         <div className="flex items-center justify-center h-full relative z-10 bg-gradient-to-br from-[#191A23] to-[#2A2B35]">

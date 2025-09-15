@@ -6,6 +6,7 @@ import { Toaster } from "react-hot-toast";
 import Script from "next/script";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
+import { PrefetchProvider } from "@/components/providers/PrefetchProvider";
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
   subsets: ["latin"],
@@ -101,7 +102,9 @@ export default function RootLayout({
         </Script>
       </head>
       <body className={`${spaceGrotesk.variable} font-sans antialiased`}>
-        <LayoutWrapper>{children}</LayoutWrapper>
+        <PrefetchProvider>
+          <LayoutWrapper>{children}</LayoutWrapper>
+        </PrefetchProvider>
         <Toaster
           position="top-right"
           toastOptions={{
