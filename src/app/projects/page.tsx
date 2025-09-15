@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import LazyImage from "@/components/ui/LazyImage";
 import { getImageUrl } from "@/utils/api";
-import { useSeamlessNavigation, useProgressiveLoading } from "@/lib/seamlessNavigation";
+import { useSeamlessNavigation } from "@/lib/seamlessNavigation";
 
 // API Configuration
 const API_BASE_URL =
@@ -104,7 +104,7 @@ const ProjectsPage: React.FC = () => {
   const [hasPrevPage, setHasPrevPage] = useState(false);
 
   // Progressive loading for images
-  const { markImageLoaded, isImageLoaded, isImagesLoading } = useProgressiveLoading(projects);
+  // Removed progressive loading for simpler image display
 
   const categories = [
     { value: "all", label: "All Categories" },
@@ -501,19 +501,19 @@ const ProjectsPage: React.FC = () => {
 
                     <div className="relative h-64 bg-gray-200 overflow-hidden">
                       {project.thumbnail_image ? (
-                        <LazyImage
-                          src={getImageUrl(project.thumbnail_image) || ''}
-                          alt={`${project.title} cover image`}
-                          fill
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                          objectFit="cover"
-                          className={`transition-all duration-500 group-hover:scale-110 ${
-                            isImageLoaded(`project-${project.id}`) ? 'opacity-100' : 'opacity-0'
-                          }`}
-                          priority={false}
-                          loading="lazy"
-                          onLoad={() => markImageLoaded(`project-${project.id}`)}
-                        />
+                        <div className="absolute inset-0">
+                          <LazyImage
+                            src={getImageUrl(project.thumbnail_image) || ''}
+                            alt={`${project.title} cover image`}
+                            fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            objectFit="cover"
+                            className="transition-transform duration-500 group-hover:scale-110"
+                            priority={false}
+                            loading="lazy"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                        </div>
                       ) : (
                         <div className="flex items-center justify-center h-full relative z-10 bg-gradient-to-br from-[#191A23] to-[#2A2B35]">
                           <div className="absolute inset-0 opacity-10">

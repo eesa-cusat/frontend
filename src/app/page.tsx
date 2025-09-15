@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import MarqueeNotifications from "@/components/ui/MarqueeNotifications";
 import AutoScrollCarousel from "@/components/ui/AutoScrollCarousel";
 import { EventCard, ProjectCard } from "@/components/ui/CarouselCards";
+import { useGlobalCache } from "@/lib/globalCache";
+import { useBackgroundPrefetch } from "@/lib/backgroundPrefetch";
 
 interface FeaturedEvent {
   id: number;
@@ -28,6 +30,7 @@ interface FeaturedProject {
   technologies: string[];
   is_featured: boolean;
   image?: string;
+  thumbnail_image?: string; // Backend field
   github_url?: string;
   project_report?: string;
   demo_url?: string;
@@ -40,20 +43,66 @@ export default function Home() {
   );
   const [loading, setLoading] = useState(true);
 
+  // Cache and prefetch hooks
+  const { getData, setData } = useGlobalCache();
+  const { markHomepageLoaded } = useBackgroundPrefetch();
+
   useEffect(() => {
     const fetchFeaturedData = async () => {
       setLoading(true);
+
+      // Check cache first for instant loading
+      const cachedEvents = getData("events", "list", 1);
+      const cachedProjects =
+        getData("projects", "featured", 1) || getData("projects", "list", 1);
+
+      if (cachedEvents?.results) {
+        const eventsWithFlyers = cachedEvents.results.filter(
+          (event: any) => event.is_featured
+        );
+        setFeaturedEvents(eventsWithFlyers.slice(0, 6));
+        console.log(`Loaded ${eventsWithFlyers.length} cached featured events`);
+      }
+
+      if (cachedProjects?.results) {
+        const rawFeaturedProjects = cachedProjects.results.filter(
+          (project: any) => project.is_featured === true
+        );
+        // Map thumbnail_image to image field for cached data too
+        const featuredProjects = rawFeaturedProjects.map((project: any) => ({
+          ...project,
+          image: project.thumbnail_image || project.image
+        }));
+        setFeaturedProjects(featuredProjects.slice(0, 6));
+        console.log(
+          `Loaded ${featuredProjects.length} cached featured projects`
+        );
+      }
+
+      // If we have cached data, show it immediately and mark as loaded
+      if (cachedEvents && cachedProjects) {
+        setLoading(false);
+        // Mark homepage as loaded for background prefetch
+        markHomepageLoaded();
+        return;
+      }
+
       try {
         // Fetch featured events using api.events.featured()
-        const eventsResponse = await import("@/lib/api").then(m => m.api.events.featured());
+        const eventsResponse = await import("@/lib/api").then((m) =>
+          m.api.events.featured()
+        );
         const featuredEvents = eventsResponse.data || [];
-        
+
         // Fetch detailed data for each featured event to get event_flyer field
         const eventsWithFlyers = await Promise.all(
           featuredEvents.map(async (event: any) => {
             try {
               const detailResponse = await fetch(
-                `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api'}/events/${event.id}/`
+                `${
+                  process.env.NEXT_PUBLIC_API_BASE_URL ||
+                  "http://localhost:8000/api"
+                }/events/${event.id}/`
               );
               if (detailResponse.ok) {
                 const detailData = await detailResponse.json();
@@ -72,31 +121,50 @@ export default function Home() {
             }
           })
         );
-        
+
         setFeaturedEvents(eventsWithFlyers);
+
+        // Cache the events data
+        setData(
+          "events",
+          "list",
+          { results: eventsWithFlyers, count: eventsWithFlyers.length },
+          1
+        );
       } catch (error) {
         console.error("Error fetching featured events:", error);
         setFeaturedEvents([]);
       }
       try {
-        // Fetch featured projects (keep as is for now)
-        const projectsUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/projects/`;
-        const projectsResponse = await fetch(projectsUrl);
-        if (projectsResponse.ok) {
-          const projectsData = await projectsResponse.json();
-          const featured = projectsData.projects?.slice(0, 6) || [];
-          setFeaturedProjects(featured);
-        } else {
-          setFeaturedProjects([]);
-        }
+        // Fetch featured projects using optimized API client
+        const projectsResponse = await import("@/lib/api").then((m) =>
+          m.api.projects.featured()
+        );
+        const rawProjects = projectsResponse.data?.featured_projects || [];
+        // Map backend thumbnail_image field to frontend image field
+        const featuredProjects = rawProjects.map((project: any) => ({
+          ...project,
+          image: project.thumbnail_image // Map backend field to frontend expected field
+        }));
+        console.log(
+          `🎯 Loaded ${featuredProjects.length} featured projects using optimized API client`
+        );
+        setFeaturedProjects(featuredProjects); // Backend already limits to 6
+
+        // Cache the featured projects data
+        setData("projects", "featured", { results: featuredProjects }, 1);
       } catch (error) {
         console.error("Failed to fetch featured projects:", error);
         setFeaturedProjects([]);
       }
+
       setLoading(false);
+
+      // Mark homepage as loaded to trigger background prefetch
+      markHomepageLoaded();
     };
     fetchFeaturedData();
-  }, []);
+  }, [getData, setData, markHomepageLoaded]);
 
   return (
     <div className="min-h-screen bg-white font-sans">
@@ -201,7 +269,7 @@ export default function Home() {
 
               <div className="pt-4">
                 <Link href="/events">
-                  <Button className="bg-black text-white hover:bg-gray-800 px-6 lg:px-8 py-3 lg:py-4 text-base lg:text-lg font-medium rounded-xl transition-colors">
+                  <Button className="bg-[#191A23] text-[#B9FF66] hover:bg-[#2A2B35] hover:text-[#A8FF44] px-6 lg:px-8 py-3 lg:py-4 text-base lg:text-lg font-medium rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
                     Explore Now
                   </Button>
                 </Link>
@@ -400,7 +468,9 @@ export default function Home() {
           <div className="relative">
             {loading ? (
               <div className="flex justify-center items-center h-48">
-                <div className="text-gray-500">Loading featured projects...</div>
+                <div className="text-gray-500">
+                  Loading featured projects...
+                </div>
               </div>
             ) : featuredProjects.length > 0 ? (
               <AutoScrollCarousel autoplayDelay={5000} spaceBetween={20}>
@@ -423,7 +493,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
     </div>
   );
 }
