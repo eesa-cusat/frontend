@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import Image from "next/image"; // Use Next.js Image for performance
 import {
   Calendar,
   Users,
@@ -13,7 +12,10 @@ import {
   Code2,
   AlertCircle,
   Star,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
+import LazyImage from "@/components/ui/LazyImage";
 import { getImageUrl } from "@/utils/api";
 
 // API Configuration
@@ -33,7 +35,7 @@ interface Project {
   github_url?: string;
   demo_url?: string;
   project_report?: string;
-  thumbnail_image?: string | null; // Direct image URL from API
+  thumbnail_image?: string | null;
   featured_video?: string;
   is_featured?: boolean;
   created_by?: {
@@ -69,16 +71,21 @@ interface Project {
 }
 
 const ProjectsPage: React.FC = () => {
-  // Initialize with an empty array; no more sample data
+  // State management
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(
-    null
-  );
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [hasPrevPage, setHasPrevPage] = useState(false);
 
   const categories = [
     { value: "all", label: "All Categories" },
@@ -95,23 +102,23 @@ const ProjectsPage: React.FC = () => {
     { value: "other", label: "Other" },
   ];
 
+  // Optimized fetch with pagination
   const fetchProjects = useCallback(
-    async (searchTerm = "", categoryFilter = "all") => {
+    async (searchTerm = "", categoryFilter = "all", page = 1) => {
       setLoading(true);
       setError(null);
       try {
         const params = new URLSearchParams();
+        params.append("page", page.toString());
+        params.append("page_size", "12");
         if (searchTerm.trim()) {
           params.append("search", searchTerm.trim());
         }
         if (categoryFilter !== "all") {
           params.append("category", categoryFilter);
         }
-        const queryString = params.toString();
-        // Use the API endpoint you provided
-        const url = `${API_BASE_URL}/projects/${
-          queryString ? `?${queryString}` : ""
-        }`;
+        
+        const url = `${API_BASE_URL}/projects/?${params.toString()}`;
 
         const response = await fetch(url, {
           method: "GET",
@@ -125,15 +132,20 @@ const ProjectsPage: React.FC = () => {
         }
 
         const data = await response.json();
-        const projectsData = data.projects || data.results || data;
+        const projectsData = data.results || [];
+
+        // Update pagination info
+        setTotalCount(data.count || 0);
+        setTotalPages(Math.ceil((data.count || 0) / 12));
+        setHasNextPage(!!data.next);
+        setHasPrevPage(!!data.previous);
 
         const transformedProjects = Array.isArray(projectsData)
           ? projectsData.map((project: Project) => ({
               ...project,
               student_batch: project.student_batch || "2024",
-              team_count: project.team_members?.length || 1,
+              team_count: project.team_count || 1,
               created_by_name: project.created_by_name,
-              // Use thumbnail_image directly from the API response
               thumbnail_image: project.thumbnail_image || null,
               status: project.status || "completed",
               technologies: project.technologies || [],
@@ -152,12 +164,13 @@ const ProjectsPage: React.FC = () => {
   );
 
   const debouncedSearch = useCallback(
-    (searchTerm: string, categoryFilter: string) => {
+    (searchTerm: string, categoryFilter: string, page = 1) => {
       if (searchTimeout) {
         clearTimeout(searchTimeout);
       }
       const timeout = setTimeout(() => {
-        fetchProjects(searchTerm, categoryFilter);
+        setCurrentPage(page);
+        fetchProjects(searchTerm, categoryFilter, page);
       }, 500);
       setSearchTimeout(timeout);
     },
@@ -166,12 +179,18 @@ const ProjectsPage: React.FC = () => {
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
-    debouncedSearch(value, selectedCategory);
+    debouncedSearch(value, selectedCategory, 1);
   };
 
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
-    debouncedSearch(searchQuery, category);
+    debouncedSearch(searchQuery, category, 1);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    fetchProjects(searchQuery, selectedCategory, page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleProjectClick = (projectId: number) => {
@@ -184,7 +203,7 @@ const ProjectsPage: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchProjects("", "all");
+    fetchProjects("", "all", 1);
   }, [fetchProjects]);
 
   const formatDate = (dateString: string) => {
@@ -196,7 +215,7 @@ const ProjectsPage: React.FC = () => {
   };
 
   const handleRetry = () => {
-    fetchProjects(searchQuery, selectedCategory);
+    fetchProjects(searchQuery, selectedCategory, currentPage);
   };
 
   if (loading && projects.length === 0) {
@@ -234,6 +253,7 @@ const ProjectsPage: React.FC = () => {
     <div className="min-h-screen bg-[#F3F3F3]">
       <section className="py-20 bg-gradient-to-b from-[#F3F3F3] to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header */}
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-[#191A23] mb-6">
               Student{" "}
@@ -247,6 +267,7 @@ const ProjectsPage: React.FC = () => {
             </p>
           </div>
 
+          {/* Search and Filters */}
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 mb-12">
             <div className="flex flex-col gap-6">
               <div className="relative w-full">
@@ -319,6 +340,7 @@ const ProjectsPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Active filters display */}
             {(searchQuery || selectedCategory !== "all") && (
               <div className="mt-6 pt-6 border-t border-gray-100">
                 <div className="flex flex-wrap items-center gap-3">
@@ -341,8 +363,7 @@ const ProjectsPage: React.FC = () => {
                     <div className="flex items-center bg-[#191A23]/10 text-[#191A23] px-3 py-1 rounded-full text-sm">
                       <Code2 className="w-3 h-3 mr-2" />
                       {
-                        categories.find((b) => b.value === selectedCategory)
-                          ?.label
+                        categories.find((b) => b.value === selectedCategory)?.label
                       }
                       <button
                         onClick={() => handleCategoryChange("all")}
@@ -357,14 +378,15 @@ const ProjectsPage: React.FC = () => {
             )}
           </div>
 
+          {/* Results summary */}
           {(searchQuery || selectedCategory !== "all") && (
             <div className="mb-8 text-center">
               <p className="text-gray-600 text-lg">
                 Found{" "}
                 <span className="font-bold text-[#191A23]">
-                  {projects.length}
+                  {totalCount}
                 </span>{" "}
-                project{projects.length !== 1 ? "s" : ""}
+                project{totalCount !== 1 ? "s" : ""}
                 {searchQuery && (
                   <span>
                     {" "}
@@ -391,122 +413,122 @@ const ProjectsPage: React.FC = () => {
             </div>
           )}
 
+          {/* Projects Grid */}
           {projects.length > 0 ? (
-            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-              {projects.map((project) => (
-                <div
-                  key={project.id}
-                  className="group relative bg-white rounded-3xl border border-gray-100 shadow-lg hover:shadow-2xl overflow-hidden transition-all duration-500 transform hover:-translate-y-2 cursor-pointer"
-                  onClick={() => handleProjectClick(project.id)}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <>
+              <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                {projects.map((project) => (
+                  <div
+                    key={project.id}
+                    className="group relative bg-white rounded-3xl border border-gray-100 shadow-lg hover:shadow-2xl overflow-hidden transition-all duration-500 transform hover:-translate-y-2 cursor-pointer"
+                    onClick={() => handleProjectClick(project.id)}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
-                  <div className="relative h-64 bg-gray-200 overflow-hidden">
-                    {project.thumbnail_image ? (
-                      <Image
-                        src={getImageUrl(project.thumbnail_image) || ''}
-                        alt={`${project.title} cover image`}
-                        fill
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        style={{ objectFit: "cover" }}
-                        className="transition-transform duration-500 group-hover:scale-110"
-                        priority={false}
-                      />
-                    ) : (
-                      <div className="flex items-center justify-center h-full relative z-10 bg-gradient-to-br from-[#191A23] to-[#2A2B35]">
-                        <div className="absolute inset-0 opacity-10">
-                          <div
-                            className="h-full w-full"
-                            style={{
-                              backgroundImage: `
+                    <div className="relative h-64 bg-gray-200 overflow-hidden">
+                      {project.thumbnail_image ? (
+                        <LazyImage
+                          src={getImageUrl(project.thumbnail_image) || ''}
+                          alt={`${project.title} cover image`}
+                          fill
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          objectFit="cover"
+                          className="transition-transform duration-500 group-hover:scale-110"
+                          priority={false}
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full relative z-10 bg-gradient-to-br from-[#191A23] to-[#2A2B35]">
+                          <div className="absolute inset-0 opacity-10">
+                            <div
+                              className="h-full w-full"
+                              style={{
+                                backgroundImage: `
                                   radial-gradient(circle at 25% 25%, rgba(185, 255, 102, 0.3) 0%, transparent 50%),
                                   radial-gradient(circle at 75% 75%, rgba(185, 255, 102, 0.2) 0%, transparent 50%)
                                 `,
-                            }}
-                          ></div>
-                        </div>
-                        <div className="text-center transform group-hover:scale-110 transition-transform duration-300">
-                          <div className="w-20 h-20 bg-[#B9FF66] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg transform rotate-3 group-hover:rotate-0 transition-transform duration-300">
-                            <Code2 className="w-10 h-10 text-[#191A23]" />
+                              }}
+                            ></div>
                           </div>
-                          <div className="bg-white/10 backdrop-blur-sm text-[#B9FF66] px-4 py-2 rounded-full text-sm font-medium">
-                            {project.category}
+                          <div className="text-center transform group-hover:scale-110 transition-transform duration-300">
+                            <div className="w-20 h-20 bg-[#B9FF66] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg transform rotate-3 group-hover:rotate-0 transition-transform duration-300">
+                              <Code2 className="w-10 h-10 text-[#191A23]" />
+                            </div>
+                            <div className="bg-white/10 backdrop-blur-sm text-[#B9FF66] px-4 py-2 rounded-full text-sm font-medium">
+                              {project.category}
+                            </div>
                           </div>
                         </div>
+                      )}
+                      <div className="absolute top-4 right-4 flex flex-col gap-2 z-20">
+                        {project.is_featured && (
+                          <div className="bg-[#B9FF66] text-[#191A23] px-3 py-1 text-xs font-bold rounded-full flex items-center shadow-lg">
+                            <Star className="w-3 h-3 mr-1" />
+                            FEATURED
+                          </div>
+                        )}
+                        {project.status && (
+                          <div
+                            className={`px-3 py-1 text-xs font-medium rounded-full backdrop-blur-sm ${
+                              project.status === "completed"
+                                ? "bg-green-500/20 text-green-300 border border-green-500/30"
+                                : "bg-orange-500/20 text-orange-300 border border-orange-500/30"
+                            }`}
+                          >
+                            {project.status === "completed"
+                              ? "✓ Complete"
+                              : "⏳ In Progress"}
+                          </div>
+                        )}
                       </div>
-                    )}
-                    <div className="absolute top-4 right-4 flex flex-col gap-2 z-20">
-                      {project.is_featured && (
-                        <div className="bg-[#B9FF66] text-[#191A23] px-3 py-1 text-xs font-bold rounded-full flex items-center shadow-lg">
-                          <Star className="w-3 h-3 mr-1" />
-                          FEATURED
-                        </div>
-                      )}
-                      {project.status && (
-                        <div
-                          className={`px-3 py-1 text-xs font-medium rounded-full backdrop-blur-sm ${
-                            project.status === "completed"
-                              ? "bg-green-500/20 text-green-300 border border-green-500/30"
-                              : "bg-orange-500/20 text-orange-300 border border-orange-500/30"
-                          }`}
-                        >
-                          {project.status === "completed"
-                            ? "✓ Complete"
-                            : "⏳ In Progress"}
-                        </div>
-                      )}
                     </div>
-                  </div>
 
-                  <div className="relative p-8 space-y-4">
-                    <h3 className="text-xl md:text-2xl font-bold text-[#191A23] mb-3 line-clamp-2 group-hover:text-[#2A2B35] transition-colors">
-                      {project.title}
-                    </h3>
+                    <div className="relative p-8 space-y-4">
+                      <h3 className="text-xl md:text-2xl font-bold text-[#191A23] mb-3 line-clamp-2 group-hover:text-[#2A2B35] transition-colors">
+                        {project.title}
+                      </h3>
 
-                    <p className="text-gray-600 text-sm md:text-base leading-relaxed line-clamp-3 mb-4">
-                      {project.description}
-                    </p>
+                      <p className="text-gray-600 text-sm md:text-base leading-relaxed line-clamp-3 mb-4">
+                        {project.description}
+                      </p>
 
-                    <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
-                      <div className="flex items-center">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        <span>{formatDate(project.created_at)}</span>
-                      </div>
-                      {project.team_count && project.team_count > 1 && (
+                      <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
                         <div className="flex items-center">
-                          <Users className="w-4 h-4 mr-2" />
-                          <span>Team of {project.team_count}</span>
+                          <Calendar className="w-4 h-4 mr-2" />
+                          <span>{formatDate(project.created_at)}</span>
+                        </div>
+                        {project.team_count && project.team_count > 1 && (
+                          <div className="flex items-center">
+                            <Users className="w-4 h-4 mr-2" />
+                            <span>Team of {project.team_count}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {project.student_batch && (
+                        <div className="flex items-center bg-gray-50 px-4 py-3 rounded-xl mb-4">
+                          <div className="w-8 h-8 bg-[#191A23] rounded-full flex items-center justify-center mr-3">
+                            <Calendar className="w-4 h-4 text-[#B9FF66]" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-[#191A23]">
+                              {project.student_batch}
+                            </p>
+                            <p className="text-xs text-gray-500">Student Batch</p>
+                          </div>
                         </div>
                       )}
-                    </div>
 
-                    {project.student_batch && (
-                      <div className="flex items-center bg-gray-50 px-4 py-3 rounded-xl mb-4">
-                        <div className="w-8 h-8 bg-[#191A23] rounded-full flex items-center justify-center mr-3">
-                          <Calendar className="w-4 h-4 text-[#B9FF66]" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-[#191A23]">
-                            {project.student_batch}
-                          </p>
-                          <p className="text-xs text-gray-500">Student Batch</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {project.technologies &&
-                      project.technologies.length > 0 && (
+                      {project.technologies && project.technologies.length > 0 && (
                         <div className="flex flex-wrap gap-2 mb-6">
-                          {project.technologies
-                            .slice(0, 3)
-                            .map((tech, index) => (
-                              <span
-                                key={index}
-                                className="px-3 py-1 bg-[#B9FF66]/10 text-[#191A23] text-xs font-medium rounded-full border border-[#B9FF66]/20 hover:bg-[#B9FF66]/20 transition-colors"
-                              >
-                                {tech}
-                              </span>
-                            ))}
+                          {project.technologies.slice(0, 3).map((tech, index) => (
+                            <span
+                              key={index}
+                              className="px-3 py-1 bg-[#B9FF66]/10 text-[#191A23] text-xs font-medium rounded-full border border-[#B9FF66]/20 hover:bg-[#B9FF66]/20 transition-colors"
+                            >
+                              {tech}
+                            </span>
+                          ))}
                           {project.technologies.length > 3 && (
                             <span className="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
                               +{project.technologies.length - 3} more
@@ -515,32 +537,82 @@ const ProjectsPage: React.FC = () => {
                         </div>
                       )}
 
-                    <div className="flex gap-3 pt-4 border-t border-gray-100">
-                      {project.demo_url && (
-                        <button
-                          onClick={(e) => openLink(project.demo_url!, e)}
-                          className="flex-1 bg-[#191A23] hover:bg-[#2A2B35] text-[#B9FF66] px-4 py-3 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 flex items-center justify-center shadow-lg"
-                        >
-                          <ExternalLink className="w-4 h-4 mr-2" />
-                          Live Demo
-                        </button>
-                      )}
-                      {project.github_url && (
-                        <button
-                          onClick={(e) => openLink(project.github_url!, e)}
-                          className="flex-1 bg-gray-100 hover:bg-gray-200 text-[#191A23] px-4 py-3 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 flex items-center justify-center"
-                        >
-                          <Github className="w-4 h-4 mr-2" />
-                          Source
-                        </button>
-                      )}
-                    </div>
+                      <div className="flex gap-3 pt-4 border-t border-gray-100">
+                        {project.demo_url && (
+                          <button
+                            onClick={(e) => openLink(project.demo_url!, e)}
+                            className="flex-1 bg-[#191A23] hover:bg-[#2A2B35] text-[#B9FF66] px-4 py-3 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 flex items-center justify-center shadow-lg"
+                          >
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            Live Demo
+                          </button>
+                        )}
+                        {project.github_url && (
+                          <button
+                            onClick={(e) => openLink(project.github_url!, e)}
+                            className="flex-1 bg-gray-100 hover:bg-gray-200 text-[#191A23] px-4 py-3 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 flex items-center justify-center"
+                          >
+                            <Github className="w-4 h-4 mr-2" />
+                            Source
+                          </button>
+                        )}
+                      </div>
 
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#B9FF66]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-b-3xl"></div>
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#B9FF66]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-b-3xl"></div>
+                    </div>
                   </div>
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center mt-12 gap-2">
+                  <button
+                    onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                    disabled={!hasPrevPage}
+                    className="flex items-center px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-1" />
+                    Previous
+                  </button>
+                  
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    const pageNumber = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
+                    return (
+                      <button
+                        key={pageNumber}
+                        onClick={() => handlePageChange(pageNumber)}
+                        className={`px-4 py-2 rounded-lg transition-colors ${
+                          pageNumber === currentPage
+                            ? 'bg-[#191A23] text-[#B9FF66] font-semibold'
+                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNumber}
+                      </button>
+                    );
+                  })}
+                  
+                  <button
+                    onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                    disabled={!hasNextPage}
+                    className="flex items-center px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </button>
                 </div>
-              ))}
-            </div>
+              )}
+
+              {/* Results count */}
+              {totalCount > 0 && (
+                <div className="text-center mt-6">
+                  <p className="text-gray-600 text-sm">
+                    Showing page {currentPage} of {totalPages} ({totalCount} total projects)
+                  </p>
+                </div>
+              )}
+            </>
           ) : (
             <div className="text-center py-20">
               <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -557,11 +629,6 @@ const ProjectsPage: React.FC = () => {
                               ?.label
                           }`
                         : ""
-                    }`
-                  : selectedCategory !== "all"
-                  ? `No projects found in ${
-                      categories.find((b) => b.value === selectedCategory)
-                        ?.label
                     }`
                   : "No projects available at the moment"}
               </h3>

@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import RegistrationModal, {
   RegistrationFormData,
 } from "@/components/ui/RegistrationModal";
+import LazyImage from "@/components/ui/LazyImage";
 import { getImageUrl } from "@/utils/api";
 import { useToast } from "@/components/ui/Toast";
 
@@ -125,13 +126,13 @@ export default function EventsPage() {
     }
   };
 
-  // Fetch events from Django API
+  // Optimized fetch events from Django API - no secondary calls needed
   useEffect(() => {
     const fetchEvents = async () => {
       try {
         setLoading(true);
 
-        // Fetch events with pagination
+        // Fetch events with pagination - EventListSerializer now includes event_flyer
         const url = new URL(`${API_BASE_URL}/events/`);
         url.searchParams.append('page', currentPage.toString());
         url.searchParams.append('page_size', '12');
@@ -143,6 +144,7 @@ export default function EventsPage() {
         if (!eventsResponse.ok) {
           throw new Error(`HTTP error! status: ${eventsResponse.status}`);
         }
+        
         const eventsData = await eventsResponse.json();
         const eventsArray = Array.isArray(eventsData.results)
           ? eventsData.results
@@ -152,34 +154,11 @@ export default function EventsPage() {
         setTotalCount(eventsData.count || 0);
         setTotalPages(Math.ceil((eventsData.count || 0) / 12));
 
-        // Fetch detailed data for each event to get event_flyer field
-        const eventsWithFlyers = await Promise.all(
-          eventsArray.map(async (event: Event) => {
-            try {
-              const detailResponse = await fetch(
-                `${API_BASE_URL}/events/${event.id}/`
-              );
-              if (detailResponse.ok) {
-                const detailData = await detailResponse.json();
-                return {
-                  ...event,
-                  event_flyer: detailData.event_flyer || null,
-                };
-              }
-              return event;
-            } catch (error) {
-              console.error(
-                `Failed to fetch details for event ${event.id}:`,
-                error
-              );
-              return event;
-            }
-          })
-        );
-
-        setEvents(eventsWithFlyers);
+        // No need for secondary API calls - event_flyer is now in the list response
+        setEvents(eventsArray);
+        
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Error fetching events:", error);
         setEvents([]); // Set empty array if API fails
       } finally {
         setLoading(false);
@@ -494,15 +473,17 @@ export default function EventsPage() {
                     className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-200 hover:border-[#B9FF66] cursor-pointer"
                     onClick={() => window.location.href = `/events/${event.id}`}
                   >
-                    {/* Cover Photo - Made smaller */}
+                    {/* Cover Photo - Optimized with lazy loading */}
                     <div className={`relative h-32 md:h-36 bg-gradient-to-r ${getCoverGradient(event.event_type || 'default')} overflow-hidden`}>
                       {event.event_flyer || event.banner_image ? (
-                        <Image
+                        <LazyImage
                           src={getImageUrl(event.event_flyer || event.banner_image) || ""}
                           alt={event.title}
                           fill
-                          className="object-cover"
+                          objectFit="cover"
                           sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                          className="transition-transform duration-300 hover:scale-105"
+                          priority={false} // Enable lazy loading for better performance
                         />
                       ) : (
                         <>
