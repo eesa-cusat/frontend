@@ -37,6 +37,7 @@ interface Project {
   demo_url?: string;
   project_report?: string;
   thumbnail_image?: string | null;
+  image?: string | null; // Mapped from thumbnail_image for consistency
   featured_video?: string;
   is_featured?: boolean;
   created_by?: {
@@ -183,6 +184,7 @@ const ProjectsPage: React.FC = () => {
               team_count: project.team_count || 1,
               created_by_name: project.created_by_name,
               thumbnail_image: project.thumbnail_image || null,
+              image: project.thumbnail_image || null, // Map thumbnail_image to image field for consistency with homepage
               status: project.status || "completed",
               technologies: project.technologies || [],
             }))
@@ -500,10 +502,10 @@ const ProjectsPage: React.FC = () => {
                     <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
                     <div className="relative h-64 bg-gray-200 overflow-hidden">
-                      {project.thumbnail_image ? (
+                      {project.image ? (
                         <div className="absolute inset-0">
                           <LazyImage
-                            src={getImageUrl(project.thumbnail_image) || ''}
+                            src={getImageUrl(project.image) || ''}
                             alt={`${project.title} cover image`}
                             fill
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"

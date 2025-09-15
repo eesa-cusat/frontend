@@ -67,6 +67,7 @@ class BackgroundPrefetcher {
   private subscribers: Set<() => void> = new Set();
   private abortController: AbortController | null = null;
   private navigationTimeout: NodeJS.Timeout | null = null;
+  private permanentFailures: Set<string> = new Set();
 
   constructor() {
     // Initialize progress for all apps
@@ -74,8 +75,19 @@ class BackgroundPrefetcher {
       this.progress[app] = globalCache.isPrefetchDone(app) ? 'done' : 'pending';
     });
 
-    // Listen for navigation events to pause prefetching
+    // Load permanent failures from localStorage to prevent 404 spam
     if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('permanentFailures');
+        if (saved) {
+          const failures = JSON.parse(saved);
+          this.permanentFailures = new Set(failures);
+          console.log('🛑 Loaded permanent failures:', Array.from(this.permanentFailures));
+        }
+      } catch (error) {
+        console.warn('Failed to load permanent failures:', error);
+      }
+      
       this.setupNavigationListeners();
     }
   }
@@ -261,6 +273,27 @@ class BackgroundPrefetcher {
         }
         
         try {
+          // Skip permanently failed endpoints
+          const endpointKey = `${app}.${endpoint.type}`;
+          if (this.permanentFailures.has(endpointKey)) {
+            console.log(`⚠️ Skipping permanently failed endpoint: ${endpointKey}`);
+            continue;
+          }
+
+          // Skip known non-existent endpoints to prevent 404 spam
+          const skipEndpoints = [
+            'gallery.featured',
+            'academics.overview', 
+            'alumni.featured',
+            'placements.featured',
+            'placements.list'
+          ];
+          if (skipEndpoints.includes(endpointKey)) {
+            console.log(`🚫 Skipping non-existent endpoint: ${endpointKey}`);
+            this.permanentFailures.add(endpointKey);
+            continue;
+          }
+
           // Check if already cached
           const cached = globalCache.get(app, endpoint.type, 1);
           if (cached) {
@@ -289,11 +322,19 @@ class BackgroundPrefetcher {
         } catch (error: any) {
           // Only log error if it's not an abort or pause
           if (!this.abortController?.signal.aborted && !this.isPaused) {
-            console.error(`❌ Failed to prefetch ${app}.${endpoint.type}:`, {
-              url: `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api'}${endpoint.url}`,
-              error: error.message,
-              status: error.response?.status
-            });
+            const status = error.response?.status;
+            if (status === 404) {
+              console.warn(`⚠️ Endpoint not found (skipping future attempts): ${app}.${endpoint.type}`);
+              // Mark this endpoint as permanently failed to avoid future attempts
+              if (!this.permanentFailures) this.permanentFailures = new Set();
+              this.permanentFailures.add(`${app}.${endpoint.type}`);
+            } else {
+              console.error(`❌ Failed to prefetch ${app}.${endpoint.type}:`, {
+                url: `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api'}${endpoint.url}`,
+                error: error.message,
+                status: status
+              });
+            }
           }
           // Don't throw - continue with other endpoints
         }
@@ -373,6 +414,58 @@ class BackgroundPrefetcher {
 
 // Global prefetcher instance
 const backgroundPrefetcher = new BackgroundPrefetcher();
+
+// Cache clearing utility for invalid/non-existent endpoints
+export const clearInvalidEndpointsCache = () => {
+  if (typeof window !== 'undefined') {
+    // Clear localStorage cache for endpoints that don't exist
+    const invalidKeys = [
+      'alumni_featured',        // Featured alumni - not implemented
+      'gallery_featured',       // Featured gallery - not implemented  
+      'placements_featured',    // Featured placements - not implemented
+      'placements_list',        // General placements - not implemented
+      'academics_overview'      // Academic overview - not implemented
+    ];
+    
+    invalidKeys.forEach(key => {
+      localStorage.removeItem(`cache_${key}`);
+      localStorage.removeItem(`globalCache_${key}`);
+    });
+    
+    // Clear globalCache for apps with endpoints that cause 404s
+    ['alumni', 'placements', 'gallery'].forEach(app => {
+      if (globalCache.clearApp) globalCache.clearApp(app);
+    });
+    
+    console.log('🧹 Cleared cache for non-existent API endpoints (alumni/gallery/placements featured)');
+  }
+};
+
+// Clean browser cache and prevent future 404 spam
+export const stopInvalidEndpointRequests = () => {
+  if (typeof window !== 'undefined') {
+    // Mark these endpoints as permanently failed to prevent future requests
+    const failedEndpoints = [
+      'alumni.featured',        // Alumni featured profiles - not implemented 
+      'gallery.featured',       // Featured gallery images - not implemented
+      'placements.featured',    // Featured placements - not implemented
+      'placements.list',        // Placements list - endpoint doesn't exist
+      'academics.overview'      // Academic overview stats - not implemented
+    ];
+    
+    // Get existing failures and merge
+    try {
+      const existing = localStorage.getItem('permanentFailures');
+      const existingFailures = existing ? JSON.parse(existing) : [];
+      const mergedFailures = [...new Set([...existingFailures, ...failedEndpoints])];
+      localStorage.setItem('permanentFailures', JSON.stringify(mergedFailures));
+      console.log('🛑 Marked non-existent endpoints as permanently failed:', mergedFailures);
+    } catch (error) {
+      localStorage.setItem('permanentFailures', JSON.stringify(failedEndpoints));
+      console.log('🛑 Marked non-existent endpoints as permanently failed');
+    }
+  }
+};
 
 // React hook for using background prefetcher
 export const useBackgroundPrefetch = (): PrefetchService => {

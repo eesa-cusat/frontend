@@ -51,6 +51,15 @@ export default function Home() {
     const fetchFeaturedData = async () => {
       setLoading(true);
 
+      // Clear any cached invalid endpoints and stop future 404 requests
+      try {
+        const { clearInvalidEndpointsCache, stopInvalidEndpointRequests } = await import("@/lib/backgroundPrefetch");
+        clearInvalidEndpointsCache();
+        stopInvalidEndpointRequests();
+      } catch (error) {
+        console.warn("Failed to clear invalid endpoints cache:", error);
+      }
+
       // Check cache first for instant loading
       const cachedEvents = getData("events", "list", 1);
       const cachedProjects =
@@ -136,16 +145,24 @@ export default function Home() {
         setFeaturedEvents([]);
       }
       try {
-        // Fetch featured projects using optimized API client
-        const projectsResponse = await import("@/lib/api").then((m) =>
+        // Fetch featured projects with timeout and better error handling
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Featured projects request timeout')), 5000);
+        });
+        
+        const projectsPromise = import("@/lib/api").then((m) =>
           m.api.projects.featured()
         );
+        
+        const projectsResponse = await Promise.race([projectsPromise, timeoutPromise]) as any;
         const rawProjects = projectsResponse.data?.featured_projects || [];
+        
         // Map backend thumbnail_image field to frontend image field
         const featuredProjects = rawProjects.map((project: any) => ({
           ...project,
           image: project.thumbnail_image // Map backend field to frontend expected field
         }));
+        
         console.log(
           `🎯 Loaded ${featuredProjects.length} featured projects using optimized API client`
         );
@@ -154,8 +171,24 @@ export default function Home() {
         // Cache the featured projects data
         setData("projects", "featured", { results: featuredProjects }, 1);
       } catch (error) {
-        console.error("Failed to fetch featured projects:", error);
+        console.error("Failed to fetch featured projects:", error instanceof Error ? error.message : error);
         setFeaturedProjects([]);
+        
+        // Try to use any cached projects as fallback
+        const fallbackProjects = getData("projects", "list", 1);
+        if (fallbackProjects?.results) {
+          const featuredFallback = fallbackProjects.results
+            .filter((p: any) => p.is_featured)
+            .map((project: any) => ({
+              ...project,
+              image: project.thumbnail_image
+            }))
+            .slice(0, 6);
+          if (featuredFallback.length > 0) {
+            setFeaturedProjects(featuredFallback);
+            console.log(`📦 Using ${featuredFallback.length} cached projects as fallback`);
+          }
+        }
       }
 
       setLoading(false);
