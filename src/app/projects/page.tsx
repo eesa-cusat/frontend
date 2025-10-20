@@ -179,16 +179,17 @@ const ProjectsPage: React.FC = () => {
         if (searchTerm.trim()) {
           params.append("search", searchTerm.trim());
         }
+        // Only add category parameter if a specific category is selected (same logic as year filter)
         if (categoryFilter !== "all") {
           params.append("category", categoryFilter);
         }
+        // Only add year parameter if a specific year is selected (same logic as category filter)
         if (yearFilter !== "all") {
           params.append("year", yearFilter);
         }
         
-        // Use batch-data endpoint always to ensure we get available_years
-        // When yearFilter is "all", backend should return ALL projects regardless of year
-        const url = `${API_BASE_URL}/projects/batch-data/?${params.toString()}`;
+        // Use standard projects endpoint - it handles both filtered and unfiltered requests
+        const url = `${API_BASE_URL}/projects/?${params.toString()}`;
 
         const response = await fetch(url, {
           method: "GET",
@@ -222,9 +223,9 @@ const ProjectsPage: React.FC = () => {
               academic_year: project.academic_year || project.student_batch,
               team_count: project.team_count || 1,
               created_by_name: project.created_by_name,
-              // Use new thumbnail field with fallback chain
-              image: project.thumbnail || project.project_image || project.thumbnail_image || null,
+              // Use thumbnail field with proper fallback chain
               thumbnail: project.thumbnail || project.project_image || project.thumbnail_image || null,
+              image: project.thumbnail || project.project_image || project.thumbnail_image || null,
               status: project.status || "completed",
               technologies: project.technologies || [],
             }))
@@ -636,10 +637,10 @@ const ProjectsPage: React.FC = () => {
                     <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
                     <div className="relative h-64 bg-gray-200 overflow-hidden">
-                      {project.thumbnail ? (
+                      {(project.thumbnail || project.project_image) ? (
                         <div className="absolute inset-0">
                           <LazyImage
-                            src={getImageUrl(project.thumbnail) || ''}
+                            src={getImageUrl(project.thumbnail || project.project_image) || ''}
                             alt={`${project.title} thumbnail`}
                             fill
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
