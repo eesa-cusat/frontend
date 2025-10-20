@@ -621,57 +621,16 @@ export default function EventsPage() {
                       </div>
 
                       <div className="flex items-center justify-between pt-3 border-t border-gray-200">
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              window.location.href = `/events/${event.id}`;
-                            }}
-                            className="flex items-center text-[#191A23] hover:text-gray-700 bg-[#B9FF66]/20 hover:bg-[#B9FF66]/30 px-3 py-1.5 rounded-md transition-colors text-sm font-medium"
-                          >
-                            <Eye className="w-4 h-4 mr-1" />
-                            View Details
-                          </button>
-                          {eventStatus === 'upcoming' && event.registration_required && (
-                            <Button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (!registeredEvents.has(event.id)) {
-                                  handleRegister(event.id);
-                                }
-                              }}
-                              disabled={
-                                registeringEvents.has(event.id) ||
-                                registeredEvents.has(event.id)
-                              }
-                              size="sm"
-                              className={`transition-all duration-300 text-xs ${
-                                registeredEvents.has(event.id)
-                                  ? "bg-[#191A23] text-[#B9FF66] cursor-default"
-                                  : registeringEvents.has(event.id)
-                                  ? "bg-gray-400 text-white cursor-not-allowed"
-                                  : "bg-[#191A23] hover:bg-[#2A2B35] text-[#B9FF66]"
-                              }`}
-                            >
-                              {registeredEvents.has(event.id) ? (
-                                <>
-                                  <UserPlus className="w-3 h-3 mr-1" />
-                                  Registered
-                                </>
-                              ) : registeringEvents.has(event.id) ? (
-                                <>
-                                  <div className="w-3 h-3 mr-1 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                  Registering...
-                                </>
-                              ) : (
-                                <>
-                                  <UserPlus className="w-3 h-3 mr-1" />
-                                  Register
-                                </>
-                              )}
-                            </Button>
-                          )}
-                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.location.href = `/events/${event.id}`;
+                          }}
+                          className="flex items-center text-[#191A23] hover:text-gray-700 bg-[#B9FF66]/20 hover:bg-[#B9FF66]/30 px-3 py-1.5 rounded-md transition-colors text-sm font-medium"
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          View Details
+                        </button>
                         <span className="text-xs text-gray-500 font-medium">
                           {event.speakers ? `${event.speakers.length} speaker${event.speakers.length > 1 ? 's' : ''}` : ''}
                         </span>

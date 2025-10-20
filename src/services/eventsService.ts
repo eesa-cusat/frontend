@@ -47,14 +47,17 @@ export interface Event {
   max_participants?: number;
   registration_fee?: string;
   payment_required: boolean;
+  is_paid?: boolean;
   payment_qr_code?: string;
   payment_upi_id?: string;
+  upi_id?: string;
   payment_instructions?: string;
   contact_person?: string;
   contact_email?: string;
   contact_phone?: string;
   banner_image?: string;
   event_flyer?: string;
+  flyer_url?: string;
   is_active: boolean;
   is_featured: boolean;
   registration_count: number;
@@ -67,7 +70,8 @@ export interface Event {
   gallery_album_id?: number;
   photo_count?: number;
   album?: EventAlbum;  // Full album object when fetched from detail endpoint
-  speakers?: EventSpeaker[];
+  speaker_names?: string[];  // NEW: Array of speaker names from backend
+  speakers?: EventSpeaker[];  // OLD: For backwards compatibility
   schedule?: EventSchedule[];
 }
 
@@ -88,12 +92,14 @@ export interface EventSpeaker {
 // Event Schedule Interface
 export interface EventSchedule {
   id: number;
-  venue_details: string;
+  venue_details?: string;
   start_time: string;
   end_time: string;
+  schedule_date: string;  // NEW: Date field for multi-day events
   title: string;
   description?: string;
-  speaker?: EventSpeaker;
+  speaker_name: string;  // NEW: Plain text speaker name
+  speaker?: EventSpeaker;  // OLD: For backwards compatibility
 }
 
 // Event Registration Interface

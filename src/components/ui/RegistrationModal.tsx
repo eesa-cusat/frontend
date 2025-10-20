@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import {
   X,
   UserPlus,
@@ -10,6 +11,8 @@ import {
   Building,
   GraduationCap,
   Calendar,
+  CreditCard,
+  QrCode,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -19,6 +22,11 @@ interface RegistrationModalProps {
   onSubmit: (formData: RegistrationFormData) => Promise<void>;
   eventTitle: string;
   isRegistering: boolean;
+  isPaidEvent?: boolean;
+  paymentQrCode?: string;
+  paymentUpiId?: string;
+  registrationFee?: string;
+  paymentInstructions?: string;
 }
 
 export interface RegistrationFormData {
@@ -37,6 +45,7 @@ export interface RegistrationFormData {
   dietary_requirements?: string;
   special_needs?: string;
   payment_reference?: string;
+  upi_reference_id?: string;  // NEW: UPI reference for paid events
 }
 
 export default function RegistrationModal({
@@ -45,6 +54,11 @@ export default function RegistrationModal({
   onSubmit,
   eventTitle,
   isRegistering,
+  isPaidEvent = false,
+  paymentQrCode,
+  paymentUpiId,
+  registrationFee,
+  paymentInstructions,
 }: RegistrationModalProps) {
   const [formData, setFormData] = useState<RegistrationFormData>({
     name: "",
@@ -59,6 +73,7 @@ export default function RegistrationModal({
     dietary_requirements: "",
     special_needs: "",
     payment_reference: "",
+    upi_reference_id: "",  // NEW: For paid events
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof RegistrationFormData, string>>>({});
@@ -100,6 +115,11 @@ export default function RegistrationModal({
       if (!formData.designation?.trim()) {
         newErrors.designation = "Job designation is required";
       }
+    }
+
+    // NEW: UPI reference required for paid events
+    if (isPaidEvent && !formData.upi_reference_id?.trim()) {
+      newErrors.upi_reference_id = "UPI Reference ID is required for paid events";
     }
 
     setErrors(newErrors);
@@ -438,6 +458,100 @@ export default function RegistrationModal({
                 placeholder="Any accessibility requirements or special assistance needed (optional)"
               />
             </div>
+
+            {/* Payment Section for Paid Events */}
+            {isPaidEvent && (
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6 space-y-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <CreditCard className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="text-lg font-bold text-[#191A23]">Payment Required</h3>
+                </div>
+                
+                {registrationFee && (
+                  <div className="bg-white rounded-lg p-4">
+                    <p className="text-sm text-gray-600 mb-1">Registration Fee</p>
+                    <p className="text-2xl font-bold text-[#191A23]">{registrationFee}</p>
+                  </div>
+                )}
+
+                {paymentQrCode && (
+                  <div className="bg-white rounded-lg p-4 text-center">
+                    <p className="text-sm font-semibold text-gray-700 mb-3 flex items-center justify-center gap-2">
+                      <QrCode className="w-4 h-4" />
+                      Scan QR Code to Pay
+                    </p>
+                    <div className="relative w-48 h-48 mx-auto mb-3 border-2 border-gray-200 rounded-lg overflow-hidden">
+                      <Image
+                        src={paymentQrCode}
+                        alt="Payment QR Code"
+                        fill
+                        className="object-contain"
+                      />
+                    </div>
+                    {paymentUpiId && (
+                      <p className="text-xs text-gray-600 mb-3">
+                        UPI ID: <span className="font-mono font-semibold">{paymentUpiId}</span>
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {paymentUpiId && (
+                  <div className="flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const amount = registrationFee?.replace(/[^0-9.]/g, '') || '';
+                        const upiUrl = `upi://pay?pa=${paymentUpiId}&pn=Event Registration&am=${amount}&cu=INR&tn=${encodeURIComponent(eventTitle)}`;
+                        window.location.href = upiUrl;
+                      }}
+                      className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-colors shadow-md"
+                    >
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M21.5 5h-19C1.67 5 1 5.67 1 6.5v11c0 .83.67 1.5 1.5 1.5h19c.83 0 1.5-.67 1.5-1.5v-11c0-.83-.67-1.5-1.5-1.5zm-1 11.5h-17v-9h17v9z"/>
+                      </svg>
+                      Pay via UPI (Google Pay / PhonePe)
+                    </button>
+                  </div>
+                )}
+
+                {paymentInstructions && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                    <p className="text-xs text-gray-700">{paymentInstructions}</p>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-bold text-[#191A23] mb-2">
+                    <CreditCard className="w-4 h-4 inline mr-2" />
+                    UPI Reference ID *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.upi_reference_id || ''}
+                    onChange={(e) =>
+                      handleInputChange("upi_reference_id", e.target.value)
+                    }
+                    disabled={isRegistering}
+                    required={isPaidEvent}
+                    className={`w-full px-4 py-3 border rounded-lg bg-white text-[#191A23] placeholder-[#191A23]/50 focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all ${
+                      errors.upi_reference_id ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="Enter UPI Reference/Transaction ID"
+                  />
+                  {errors.upi_reference_id && (
+                    <p className="text-red-500 text-xs mt-1 font-semibold">
+                      {errors.upi_reference_id}
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-600 mt-2">
+                    After making payment, enter the UPI Reference ID or Transaction ID from your payment app
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-[#191A23] mb-2">
