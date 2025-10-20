@@ -41,6 +41,7 @@ interface Event {
   registration_required: boolean;
   banner_image?: string;
   event_flyer?: string;
+  flyer_url?: string;
   is_featured?: boolean;
   max_participants?: number;
   registration_count?: number;
@@ -422,20 +423,20 @@ export default function EventsPage() {
                   />
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-2 md:gap-3">
                   <button
                     onClick={() => setShowFilters(!showFilters)}
-                    className="flex items-center gap-2 px-6 py-4 bg-[#191A23] hover:bg-[#2A2B35] text-[#B9FF66] rounded-xl transition-all duration-300 shadow-lg font-medium"
+                    className="flex items-center gap-1 md:gap-2 px-3 py-2 md:px-6 md:py-4 bg-[#191A23] hover:bg-[#2A2B35] text-[#B9FF66] rounded-xl transition-all duration-300 shadow-lg font-medium text-sm md:text-base"
                   >
-                    <Filter className="w-4 h-4" />
-                    Filters
-                    <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${showFilters ? 'rotate-180' : ''}`} />
+                    <Filter className="w-3 h-3 md:w-4 md:h-4" />
+                    <span className="hidden sm:inline">Filters</span>
+                    <ChevronDown className={`w-3 h-3 md:w-4 md:h-4 transition-transform duration-300 ${showFilters ? 'rotate-180' : ''}`} />
                   </button>
 
                   <div className="flex bg-gray-100 border border-gray-200 rounded-xl overflow-hidden shadow-md">
                     <button
                       onClick={() => setShowPastEvents(false)}
-                      className={`px-6 py-4 font-semibold transition-all duration-300 ${
+                      className={`px-3 py-2 md:px-6 md:py-4 font-semibold transition-all duration-300 text-sm md:text-base ${
                         !showPastEvents
                           ? "bg-[#191A23] text-[#B9FF66] shadow-lg"
                           : "text-gray-600 hover:bg-gray-200"
@@ -445,13 +446,13 @@ export default function EventsPage() {
                     </button>
                     <button
                       onClick={() => setShowPastEvents(true)}
-                      className={`px-6 py-4 font-semibold transition-all duration-300 ${
+                      className={`px-3 py-2 md:px-6 md:py-4 font-semibold transition-all duration-300 text-sm md:text-base ${
                         showPastEvents
                           ? "bg-[#191A23] text-[#B9FF66] shadow-lg"
                           : "text-gray-600 hover:bg-gray-200"
                       }`}
                     >
-                      Past Events
+                      Past
                     </button>
                   </div>
                 </div>
@@ -544,9 +545,9 @@ export default function EventsPage() {
                   >
                     {/* Cover Photo - Optimized with lazy loading */}
                     <div className={`relative h-32 md:h-36 bg-gradient-to-r ${getCoverGradient(event.event_type || 'default')} overflow-hidden`}>
-                      {event.event_flyer || event.banner_image ? (
+                      {(event.flyer_url || event.event_flyer || event.banner_image) ? (
                         <LazyImage
-                          src={getImageUrl(event.event_flyer || event.banner_image) || ""}
+                          src={getImageUrl(event.flyer_url || event.event_flyer || event.banner_image) || ""}
                           alt={event.title}
                           fill
                           objectFit="cover"
