@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import {
   Calendar,
   Users,
@@ -18,10 +19,6 @@ import {
 import LazyImage from "@/components/ui/LazyImage";
 import { getImageUrl } from "@/utils/api";
 import { useSeamlessNavigation } from "@/lib/seamlessNavigation";
-
-// API Configuration
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
 
 // Project interface matching updated backend schema
 interface Project {
@@ -125,22 +122,16 @@ const ProjectsPage: React.FC = () => {
     { value: "other", label: "Other" },
   ];
 
-  // Fetch available years separately
+  // Fetch available years from the projects list response
   const fetchAvailableYears = useCallback(async () => {
     try {
-      const url = `${API_BASE_URL}/projects/batch-data/`;
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.available_years && Array.isArray(data.available_years)) {
-          setAvailableYears(data.available_years);
-        }
+      // Fetch first page to get available years
+      const { api } = await import("@/lib/api");
+      const response = await api.projects.list({ page: "1", page_size: "1" });
+      const data = response.data;
+      
+      if (data.available_years && Array.isArray(data.available_years)) {
+        setAvailableYears(data.available_years);
       }
     } catch (err) {
       console.error("Error fetching available years:", err);
@@ -170,37 +161,37 @@ const ProjectsPage: React.FC = () => {
       setError(null);
       
       try {
-        const params = new URLSearchParams();
-        params.append("page", page.toString());
-        params.append("page_size", "12");
+        // Build params object
+        const params: any = {
+          page: page.toString(),
+          page_size: "12",
+        };
+        
         if (searchTerm.trim()) {
-          params.append("search", searchTerm.trim());
+          params.search = searchTerm.trim();
         }
-        // Only add category parameter if a specific category is selected (same logic as year filter)
+        // Only add category parameter if a specific category is selected
         if (categoryFilter !== "all") {
-          params.append("category", categoryFilter);
+          params.category = categoryFilter;
         }
-        // Only add year parameter if a specific year is selected (same logic as category filter)
+        // Only add year parameter if a specific year is selected
         if (yearFilter !== "all") {
-          params.append("year", yearFilter);
+          params.year = yearFilter;
         }
         
-        // Use standard projects endpoint - it handles both filtered and unfiltered requests
-        const url = `${API_BASE_URL}/projects/?${params.toString()}`;
-
-        const response = await fetch(url, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
+        // Use API client (same as homepage) for consistent data format
+        const { api } = await import("@/lib/api");
+        const response = await api.projects.list(params);
+        const data = response.data;
         const projectsData = data.projects || data.results || [];
+        
+        console.log('📦 API Response:', { 
+          count: projectsData.length, 
+          firstProject: projectsData[0] ? {
+            id: projectsData[0].id,
+            thumbnail: projectsData[0].thumbnail
+          } : null
+        });
         
         // Extract available years from response (in case they change)
         if (data.available_years && Array.isArray(data.available_years)) {
@@ -245,7 +236,7 @@ const ProjectsPage: React.FC = () => {
         setLoading(false);
       }
     },
-    []
+    [getGlobalCacheData, storeInGlobalCache]
   );
 
   const debouncedSearch = useCallback(
@@ -627,46 +618,59 @@ const ProjectsPage: React.FC = () => {
                     className="group relative bg-white rounded-3xl border border-gray-100 shadow-lg hover:shadow-2xl overflow-hidden transition-all duration-500 transform hover:-translate-y-2 cursor-pointer"
                     onClick={() => handleProjectClick(project.id)}
                   >
-                    <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-
-                    <div className="relative h-64 bg-gray-200 overflow-hidden">
+                    {/* Image Section - Rebuilt exactly like homepage */}
+                    <div className="relative h-64 overflow-hidden">
                       {project.thumbnail ? (
                         <div className="absolute inset-0">
-                          <LazyImage
-                            src={getImageUrl(project.thumbnail) || ''}
-                            alt={`${project.title} thumbnail`}
+                          <Image
+                            src={getImageUrl(project.thumbnail) || project.thumbnail}
+                            alt={project.title}
                             fill
+                            className="object-cover transition-transform duration-500 group-hover:scale-110"
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                            objectFit="cover"
-                            className="transition-transform duration-500 group-hover:scale-110"
-                            priority={false}
-                            loading="lazy"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
                         </div>
                       ) : (
-                        <div className="flex items-center justify-center h-full relative z-10 bg-gradient-to-br from-[#191A23] to-[#2A2B35]">
-                          <div className="absolute inset-0 opacity-10">
-                            <div
-                              className="h-full w-full"
-                              style={{
-                                backgroundImage: `
-                                  radial-gradient(circle at 25% 25%, rgba(185, 255, 102, 0.3) 0%, transparent 50%),
-                                  radial-gradient(circle at 75% 75%, rgba(185, 255, 102, 0.2) 0%, transparent 50%)
-                                `,
-                              }}
-                            ></div>
-                          </div>
-                          <div className="text-center transform group-hover:scale-110 transition-transform duration-300">
-                            <div className="w-20 h-20 bg-[#B9FF66] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg transform rotate-3 group-hover:rotate-0 transition-transform duration-300">
-                              <Code2 className="w-10 h-10 text-[#191A23]" />
-                            </div>
-                            <div className="bg-white/10 backdrop-blur-sm text-[#B9FF66] px-4 py-2 rounded-full text-sm font-medium">
-                              {project.category}
-                            </div>
-                          </div>
-                        </div>
+                        <>
+                          {/* Electrical circuit background pattern as fallback */}
+                          <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-blue-100"></div>
+                          <svg
+                            className="absolute inset-0 w-full h-full opacity-10"
+                            viewBox="0 0 200 150"
+                            fill="none"
+                          >
+                            <path
+                              d="M20 30 L180 30 M20 60 L100 60 L100 90 L180 90 M20 120 L60 120 L60 60"
+                              stroke="#191A23"
+                              strokeWidth="1"
+                            />
+                            <circle cx="60" cy="30" r="3" fill="#191A23" />
+                            <circle cx="100" cy="60" r="3" fill="#191A23" />
+                            <circle cx="180" cy="90" r="3" fill="#191A23" />
+                            <rect
+                              x="140"
+                              y="25"
+                              width="10"
+                              height="10"
+                              fill="none"
+                              stroke="#191A23"
+                              strokeWidth="1"
+                            />
+                            <rect
+                              x="80"
+                              y="85"
+                              width="10"
+                              height="10"
+                              fill="none"
+                              stroke="#191A23"
+                              strokeWidth="1"
+                            />
+                          </svg>
+                        </>
                       )}
+
+                      {/* Badges Overlay */}
                       <div className="absolute top-4 right-4 flex flex-col gap-2 z-20">
                         {/* Academic Year Badge - Top Priority */}
                         {(project.academic_year || project.student_batch) && (
