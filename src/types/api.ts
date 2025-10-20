@@ -67,12 +67,18 @@ export interface Project {
   description: string;
   abstract?: string;
   category: string;
+  academic_year?: string; // New: Year-based grouping (e.g., "2023-2024")
   github_url: string | null;
   demo_url: string | null;
   project_report: string | null;
+  thumbnail?: string | null; // New: Optimized thumbnail for cards
+  project_image?: string | null; // New: Main project cover image
   created_by_name: string;
   team_count: number;
   created_at: string;
+  // Legacy fields for backward compatibility
+  thumbnail_image?: string | null;
+  student_batch?: string;
 }
 
 export interface ProjectImage {
@@ -98,9 +104,13 @@ export interface ProjectDetail {
   description: string;
   abstract: string | null;
   category: string;
+  academic_year?: string | null; // New: Year-based grouping
   github_url: string | null;
   demo_url: string | null;
   project_report: string | null;
+  thumbnail?: string | null; // New: Optimized thumbnail
+  project_image?: string | null; // New: Main project image
+  gallery_images?: ProjectImage[]; // Renamed from images
   created_by: {
     id: number;
     username: string;
@@ -109,12 +119,14 @@ export interface ProjectDetail {
     email: string;
   };
   team_members: TeamMember[];
-  images: ProjectImage[];
+  images: ProjectImage[]; // Keep for backward compatibility
   videos: ProjectVideo[];
   featured_image: ProjectImage | null;
   featured_video: ProjectVideo | null;
   created_at: string;
   updated_at: string;
+  // Legacy fields
+  thumbnail_image?: string | null;
 }
 
 export interface TeamMember {

@@ -43,13 +43,16 @@ interface Project {
   description: string;
   abstract?: string;
   category: string;
-  student_batch?: string;
+  academic_year?: string; // New: e.g., "2023-2024"
+  student_batch?: string; // Legacy field
   created_at: string;
   updated_at?: string;
   github_url?: string;
   demo_url?: string;
   project_report?: string;
-  thumbnail_image?: string | null; // Main project image
+  thumbnail?: string | null; // New: Optimized thumbnail
+  project_image?: string | null; // New: Main project cover image
+  thumbnail_image?: string | null; // Legacy field
   featured_video?: string | null;
   is_featured?: boolean;
   created_by?: {
@@ -184,6 +187,11 @@ const ProjectDetailPage: React.FC = () => {
         status: data.status || "completed",
         tags: data.tags || [],
         updated_at: data.updated_at || data.created_at,
+        academic_year: data.academic_year || data.student_batch,
+        student_batch: data.student_batch || data.academic_year,
+        // Map thumbnail fields with proper fallback chain
+        thumbnail: data.thumbnail || data.project_image || data.thumbnail_image,
+        project_image: data.project_image || data.thumbnail || data.thumbnail_image,
       };
 
       setProject(transformed);
@@ -351,10 +359,10 @@ const ProjectDetailPage: React.FC = () => {
                       <Calendar className="w-7 h-7 text-[#191A23]" />
                     </div>
                     <div className="text-[#191A23] font-medium text-sm mb-1">
-                      Student Batch
+                      Academic Year
                     </div>
                     <div className="text-[#191A23] font-bold text-lg">
-                      {project.student_batch || "2020-2024"}
+                      {project.academic_year || project.student_batch || "2020-2024"}
                     </div>
                   </div>
 
@@ -423,14 +431,61 @@ const ProjectDetailPage: React.FC = () => {
         </div>
       </section>
 
+      {/* Project Thumbnail - Placed immediately after hero */}
+      {(project.thumbnail || project.project_image) && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl overflow-hidden">
+            <div className="relative h-96 bg-gray-200">
+              <Image
+                src={getImageUrl(project.thumbnail || project.project_image || '') || ''}
+                alt={`${project.title} thumbnail`}
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
+                style={{ objectFit: 'cover' }}
+                className="cursor-pointer"
+                onClick={() => window.open(getImageUrl(project.thumbnail || project.project_image || '') || '', '_blank')}
+              />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Abstract Section */}
+      {project.abstract && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-6 md:p-8">
+            <h2 className="text-xl md:text-2xl font-bold text-[#191A23] mb-4 flex items-center">
+              <div className="w-7 h-7 bg-[#B9FF66] rounded-lg flex items-center justify-center mr-2">
+                <Code2 className="w-4 h-4 text-[#191A23]" />
+              </div>
+              Abstract
+            </h2>
+            <div className="text-[#191A23]/80 text-base md:text-lg leading-relaxed break-words overflow-wrap-break-word hyphens-auto mb-4">
+              {project.abstract}
+            </div>
+            
+            {/* View Report Button */}
+            {project.project_report && (
+              <button
+                onClick={() => window.open(`${API_BASE_URL}/projects/${project.id}/report/`, '_blank')}
+                className="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium text-sm md:text-base transition-all duration-300 transform hover:scale-105 shadow-lg"
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                📄 View Report
+              </button>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Project Images Gallery */}
       {project.gallery_images && project.gallery_images.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-8">
-            <h2 className="text-2xl font-bold text-[#191A23] mb-6 text-center">Project Gallery</h2>
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-6 md:p-8">
+            <h2 className="text-xl md:text-2xl font-bold text-[#191A23] mb-4 text-center">Project Gallery</h2>
             
             <div>
-              <h3 className="text-lg font-semibold text-[#191A23] mb-4">
+              <h3 className="text-base md:text-lg font-semibold text-[#191A23] mb-4">
                 Gallery Images ({project.gallery_images.length})
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -495,7 +550,7 @@ const ProjectDetailPage: React.FC = () => {
             
             {project.videos && project.videos.length > 0 && (
               <div>
-                <h3 className="text-lg font-semibold text-[#191A23] mb-4">
+                <h3 className="text-base md:text-lg font-semibold text-[#191A23] mb-4">
                   Project Videos ({project.videos.length})
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -529,14 +584,14 @@ const ProjectDetailPage: React.FC = () => {
                           ) : (
                             // Fallback for missing video
                             <div className="flex items-center justify-center h-full">
-                              <p className="text-gray-500">Video not available</p>
+                              <p className="text-gray-500 text-sm">Video not available</p>
                             </div>
                           )}
                         </div>
                         {(video.title || video.description || video.caption) && (
                           <div className="mt-2 text-center">
                             {video.title && (
-                              <h4 className="font-semibold text-[#191A23] text-sm">{video.title}</h4>
+                              <h4 className="font-medium text-[#191A23] text-sm">{video.title}</h4>
                             )}
                             {video.description && (
                               <p className="text-xs text-gray-600 mt-1">{video.description}</p>
@@ -557,48 +612,20 @@ const ProjectDetailPage: React.FC = () => {
       )}
 
       {/* Project Details */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Description */}
-            <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-8">
-              <h2 className="text-2xl font-bold text-[#191A23] mb-6 flex items-center">
-                <div className="w-8 h-8 bg-[#B9FF66] rounded-lg flex items-center justify-center mr-3">
-                  <Eye className="w-4 h-4 text-[#191A23]" />
-                </div>
-                Project Overview
-              </h2>
-              <p className="text-[#191A23]/80 text-lg leading-relaxed">
-                {project.description}
-              </p>
-            </div>
-
-            {/* Abstract */}
-            {project.abstract && (
-              <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-8">
-                <h2 className="text-2xl font-bold text-[#191A23] mb-6 flex items-center">
-                  <div className="w-8 h-8 bg-[#B9FF66] rounded-lg flex items-center justify-center mr-3">
-                    <Code2 className="w-4 h-4 text-[#191A23]" />
-                  </div>
-                  Abstract
-                </h2>
-                <div className="text-[#191A23]/80 text-lg leading-relaxed break-words overflow-wrap-break-word hyphens-auto">
-                  {project.abstract}
-                </div>
-              </div>
-            )}
-
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid lg:grid-cols-4 gap-6">
+          {/* Main Content - Takes 3 columns */}
+          <div className="lg:col-span-3 space-y-6">
             {/* Challenges */}
             {project.challenges && (
-              <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-8">
-                <h2 className="text-2xl font-bold text-[#191A23] mb-6 flex items-center">
-                  <div className="w-8 h-8 bg-[#B9FF66] rounded-lg flex items-center justify-center mr-3">
+              <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-6 md:p-8">
+                <h2 className="text-xl md:text-2xl font-bold text-[#191A23] mb-4 flex items-center">
+                  <div className="w-7 h-7 bg-[#B9FF66] rounded-lg flex items-center justify-center mr-2">
                     <Code2 className="w-4 h-4 text-[#191A23]" />
                   </div>
                   Challenges & Solutions
                 </h2>
-                <p className="text-[#191A23]/80 text-lg leading-relaxed">
+                <p className="text-[#191A23]/80 text-base md:text-lg leading-relaxed">
                   {project.challenges}
                 </p>
               </div>
@@ -606,27 +633,27 @@ const ProjectDetailPage: React.FC = () => {
 
             {/* Learnings */}
             {project.learnings && (
-              <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-8">
-                <h2 className="text-2xl font-bold text-[#191A23] mb-6 flex items-center">
-                  <div className="w-8 h-8 bg-[#B9FF66] rounded-lg flex items-center justify-center mr-3">
+              <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-6 md:p-8">
+                <h2 className="text-xl md:text-2xl font-bold text-[#191A23] mb-4 flex items-center">
+                  <div className="w-7 h-7 bg-[#B9FF66] rounded-lg flex items-center justify-center mr-2">
                     <Star className="w-4 h-4 text-[#191A23]" />
                   </div>
                   Key Learnings
                 </h2>
-                <p className="text-[#191A23]/80 text-lg leading-relaxed">
+                <p className="text-[#191A23]/80 text-base md:text-lg leading-relaxed">
                   {project.learnings}
                 </p>
               </div>
             )}
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-8">
+          {/* Sidebar - Takes 1 column */}
+          <div className="space-y-6">
             {/* Tech Stack */}
             {project.tech_stack && project.tech_stack.length > 0 && (
               <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-6">
-                <h3 className="text-xl font-bold text-[#191A23] mb-4 flex items-center">
-                  <div className="w-6 h-6 bg-[#B9FF66] rounded-lg flex items-center justify-center mr-2">
+                <h3 className="text-base md:text-lg font-semibold text-[#191A23] mb-3 flex items-center">
+                  <div className="w-5 h-5 bg-[#B9FF66] rounded-lg flex items-center justify-center mr-2">
                     <Code2 className="w-3 h-3 text-[#191A23]" />
                   </div>
                   Tech Stack
@@ -635,7 +662,7 @@ const ProjectDetailPage: React.FC = () => {
                   {project.tech_stack.map((tech, index) => (
                     <span
                       key={index}
-                      className="bg-white/80 border border-white/60 text-[#191A23] px-3 py-1 rounded-full text-sm font-medium shadow-sm hover:shadow-md transition-shadow"
+                      className="bg-white/80 border border-white/60 text-[#191A23] px-2.5 py-1 rounded-full text-xs md:text-sm font-medium shadow-sm hover:shadow-md transition-shadow"
                     >
                       {tech}
                     </span>
@@ -647,8 +674,8 @@ const ProjectDetailPage: React.FC = () => {
             {/* Tags */}
             {project.tags && project.tags.length > 0 && (
               <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-6">
-                <h3 className="text-xl font-bold text-[#191A23] mb-4 flex items-center">
-                  <div className="w-6 h-6 bg-[#B9FF66] rounded-lg flex items-center justify-center mr-2">
+                <h3 className="text-base md:text-lg font-semibold text-[#191A23] mb-3 flex items-center">
+                  <div className="w-5 h-5 bg-[#B9FF66] rounded-lg flex items-center justify-center mr-2">
                     <Tag className="w-3 h-3 text-[#191A23]" />
                   </div>
                   Tags
@@ -657,7 +684,7 @@ const ProjectDetailPage: React.FC = () => {
                   {project.tags.map((tag, index) => (
                     <span
                       key={index}
-                      className="bg-[#B9FF66]/20 border border-[#B9FF66]/40 text-[#191A23] px-3 py-1 rounded-full text-sm font-medium shadow-sm"
+                      className="bg-[#B9FF66]/20 border border-[#B9FF66]/40 text-[#191A23] px-2.5 py-1 rounded-full text-xs md:text-sm font-medium shadow-sm"
                     >
                       #{tag}
                     </span>
@@ -669,23 +696,23 @@ const ProjectDetailPage: React.FC = () => {
             {/* Team Members */}
             {project.team_members && project.team_members.length > 0 && (
               <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-6">
-                <h3 className="text-xl font-bold text-[#191A23] mb-4 flex items-center">
-                  <div className="w-6 h-6 bg-[#B9FF66] rounded-lg flex items-center justify-center mr-2">
+                <h3 className="text-base md:text-lg font-semibold text-[#191A23] mb-3 flex items-center">
+                  <div className="w-5 h-5 bg-[#B9FF66] rounded-lg flex items-center justify-center mr-2">
                     <Users className="w-3 h-3 text-[#191A23]" />
                   </div>
                   Team Members
                 </h3>
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   {project.team_members.map((member, index) => (
                     <div
                       key={index}
-                      className="bg-white/80 border border-white/60 px-4 py-3 rounded-xl"
+                      className="bg-white/80 border border-white/60 px-3 py-2.5 rounded-xl"
                     >
-                      <div className="font-semibold text-[#191A23]">
+                      <div className="font-medium text-sm md:text-base text-[#191A23]">
                         {member.name}
                       </div>
                       {member.role && (
-                        <div className="text-sm text-[#191A23]/70">
+                        <div className="text-xs md:text-sm text-[#191A23]/70">
                           {member.role}
                         </div>
                       )}
@@ -697,14 +724,14 @@ const ProjectDetailPage: React.FC = () => {
 
             {/* Project Actions */}
             <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-6">
-              <h3 className="text-xl font-bold text-[#191A23] mb-4">
+              <h3 className="text-base md:text-lg font-semibold text-[#191A23] mb-3">
                 Quick Actions
               </h3>
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {project.demo_url && (
                   <button
                     onClick={() => openLink(project.demo_url!)}
-                    className="w-full h-12 bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66] px-4 py-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center shadow-lg"
+                    className="w-full bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66] px-4 py-2.5 rounded-xl text-sm md:text-base font-medium transition-all duration-300 flex items-center justify-center shadow-lg"
                   >
                     <Play className="w-4 h-4 mr-2" />
                     Live Demo
@@ -713,28 +740,10 @@ const ProjectDetailPage: React.FC = () => {
                 {project.github_url && (
                   <button
                     onClick={() => openLink(project.github_url!)}
-                    className="w-full h-12 bg-white/80 hover:bg-white border border-white/80 hover:border-gray-200 text-[#191A23] px-4 py-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center shadow-lg"
+                    className="w-full bg-white/80 hover:bg-white border border-white/80 hover:border-gray-200 text-[#191A23] px-4 py-2.5 rounded-xl text-sm md:text-base font-medium transition-all duration-300 flex items-center justify-center shadow-lg"
                   >
                     <Github className="w-4 h-4 mr-2" />
                     GitHub Repository
-                  </button>
-                )}
-                {project.project_report && (
-                  <button
-                    onClick={() => openLink(project.project_report!)}
-                    className="w-full h-12 bg-blue-100 hover:bg-blue-200 border border-blue-200 text-blue-800 px-4 py-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center"
-                  >
-                    <Eye className="w-4 h-4 mr-2" />
-                    Project Report PDF
-                  </button>
-                )}
-                {project.featured_video && (
-                  <button
-                    onClick={() => openLink(project.featured_video!)}
-                    className="w-full h-12 bg-red-100 hover:bg-red-200 border border-red-200 text-red-800 px-4 py-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center"
-                  >
-                    <Play className="w-4 h-4 mr-2" />
-                    Project Video
                   </button>
                 )}
               </div>

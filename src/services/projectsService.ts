@@ -18,6 +18,7 @@ export interface ProjectFilters {
   is_featured?: boolean;
   technologies?: string[];
   category?: string;
+  year?: string; // New: Academic year filter
   difficulty_level?: string;
   created_by?: string;
   date_created_start?: string;
@@ -50,7 +51,7 @@ export const projectsService = {
   // ===== CORE PROJECT RETRIEVAL =====
   
   /**
-   * Retrieves projects with comprehensive filtering
+   * Retrieves projects with comprehensive filtering using batch-data endpoint
    * @description Leverages database indexes: idx_projects_project_search, idx_projects_project_status_featured, idx_projects_project_created
    * @param filters Optional filter parameters
    * @returns Promise<Project[]> Filtered array of projects
@@ -69,6 +70,7 @@ export const projectsService = {
       
       // Category and difficulty filtering
       if (filters?.category) params.category = filters.category;
+      if (filters?.year) params.year = filters.year; // New: Year filter
       if (filters?.difficulty_level) params.difficulty_level = filters.difficulty_level;
       if (filters?.created_by) params.created_by = filters.created_by;
       
@@ -88,8 +90,23 @@ export const projectsService = {
       // Optimized ordering (leverages date indexes)
       params.ordering = filters?.ordering || '-date_created';
 
-      const response = await api.projects.list(params);
-      return response.data.results || response.data;
+      // Use batch-data endpoint for comprehensive filtering when year filter is present
+      // Otherwise use standard list endpoint
+      let response;
+      if (filters?.year || filters?.category || filters?.search) {
+        // For filtered queries, make direct API call to batch-data endpoint
+        const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
+        const queryString = new URLSearchParams(params).toString();
+        const fetchResponse = await fetch(`${apiUrl}/projects/batch-data/?${queryString}`);
+        const data = await fetchResponse.json();
+        response = { data };
+      } else {
+        response = await api.projects.list(params);
+      }
+      
+      // Handle both response formats
+      const data = response.data;
+      return data.projects || data.results || data;
     } catch (error) {
       console.error('Error fetching projects:', error);
       throw error;
@@ -285,6 +302,25 @@ export const projectsService = {
       return categories.sort();
     } catch (error) {
       console.error('Error fetching project categories:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Retrieves available academic years from projects
+   * @description Extracts unique academic years from project data
+   * @returns Promise<string[]> Array of academic years
+   */
+  async getAvailableYears(): Promise<string[]> {
+    try {
+      // Make direct API call to batch-data endpoint to get available years
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
+      const fetchResponse = await fetch(`${apiUrl}/projects/batch-data/`);
+      const data = await fetchResponse.json();
+      
+      return data.available_years || [];
+    } catch (error) {
+      console.error('Error fetching available years:', error);
       throw error;
     }
   },

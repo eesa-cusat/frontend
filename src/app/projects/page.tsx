@@ -23,21 +23,24 @@ import { useSeamlessNavigation } from "@/lib/seamlessNavigation";
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
 
-// Simple Project interface matching backend response
+// Project interface matching updated backend schema
 interface Project {
   id: number;
   title: string;
   description: string;
   abstract?: string;
   category: string;
-  student_batch?: string;
+  academic_year?: string; // New: e.g., "2023-2024"
+  student_batch?: string; // Legacy field
   created_at: string;
   updated_at?: string;
   github_url?: string;
   demo_url?: string;
   project_report?: string;
-  thumbnail_image?: string | null;
-  image?: string | null; // Mapped from thumbnail_image for consistency
+  thumbnail?: string | null; // New: Optimized thumbnail
+  project_image?: string | null; // New: Main cover image
+  thumbnail_image?: string | null; // Legacy field
+  image?: string | null; // Mapped field for consistency
   featured_video?: string;
   is_featured?: boolean;
   created_by?: {
@@ -94,7 +97,10 @@ const ProjectsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedYear, setSelectedYear] = useState<string>("all"); // New: Year filter
+  const [availableYears, setAvailableYears] = useState<string[]>([]); // New: Years from API
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false); // New: Year dropdown
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
   
   // Pagination state
@@ -122,11 +128,33 @@ const ProjectsPage: React.FC = () => {
     { value: "other", label: "Other" },
   ];
 
+  // Fetch available years separately
+  const fetchAvailableYears = useCallback(async () => {
+    try {
+      const url = `${API_BASE_URL}/projects/batch-data/`;
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.available_years && Array.isArray(data.available_years)) {
+          setAvailableYears(data.available_years);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching available years:", err);
+    }
+  }, []);
+
   // Optimized fetch with caching and progressive loading
   const fetchProjects = useCallback(
-    async (searchTerm = "", categoryFilter = "all", page = 1, useCache = true) => {
+    async (searchTerm = "", categoryFilter = "all", yearFilter = "all", page = 1, useCache = true) => {
       // Check cache first for instant loading
-      if (useCache && searchTerm === "" && categoryFilter === "all") {
+      if (useCache && searchTerm === "" && categoryFilter === "all" && yearFilter === "all") {
         const cacheKey = `projects_list_${page}`;
         const cachedData = getGlobalCacheData('projects', 'list', page);
         
@@ -154,8 +182,13 @@ const ProjectsPage: React.FC = () => {
         if (categoryFilter !== "all") {
           params.append("category", categoryFilter);
         }
+        if (yearFilter !== "all") {
+          params.append("year", yearFilter);
+        }
         
-        const url = `${API_BASE_URL}/projects/?${params.toString()}`;
+        // Use batch-data endpoint always to ensure we get available_years
+        // When yearFilter is "all", backend should return ALL projects regardless of year
+        const url = `${API_BASE_URL}/projects/batch-data/?${params.toString()}`;
 
         const response = await fetch(url, {
           method: "GET",
@@ -169,22 +202,29 @@ const ProjectsPage: React.FC = () => {
         }
 
         const data = await response.json();
-        const projectsData = data.results || [];
+        const projectsData = data.projects || data.results || [];
+        
+        // Extract available years from response (in case they change)
+        if (data.available_years && Array.isArray(data.available_years)) {
+          setAvailableYears(data.available_years);
+        }
 
         // Update pagination info
-        setTotalCount(data.count || 0);
-        setTotalPages(Math.ceil((data.count || 0) / 12));
+        setTotalCount(data.count || projectsData.length);
+        setTotalPages(Math.ceil((data.count || projectsData.length) / 12));
         setHasNextPage(!!data.next);
         setHasPrevPage(!!data.previous);
 
         const transformedProjects = Array.isArray(projectsData)
           ? projectsData.map((project: Project) => ({
               ...project,
-              student_batch: project.student_batch || "2024",
+              student_batch: project.student_batch || project.academic_year || "2024",
+              academic_year: project.academic_year || project.student_batch,
               team_count: project.team_count || 1,
               created_by_name: project.created_by_name,
-              thumbnail_image: project.thumbnail_image || null,
-              image: project.thumbnail_image || null, // Map thumbnail_image to image field for consistency with homepage
+              // Use new thumbnail field with fallback chain
+              image: project.thumbnail || project.project_image || project.thumbnail_image || null,
+              thumbnail: project.thumbnail || project.project_image || project.thumbnail_image || null,
               status: project.status || "completed",
               technologies: project.technologies || [],
             }))
@@ -193,7 +233,7 @@ const ProjectsPage: React.FC = () => {
         setProjects(transformedProjects);
 
         // Cache data for future use (only cache basic list pages, not filtered/searched results)
-        if (searchTerm === "" && categoryFilter === "all") {
+        if (searchTerm === "" && categoryFilter === "all" && yearFilter === "all") {
           storeInGlobalCache('projects', 'list', data, page);
         }
       } catch (err) {
@@ -207,13 +247,13 @@ const ProjectsPage: React.FC = () => {
   );
 
   const debouncedSearch = useCallback(
-    (searchTerm: string, categoryFilter: string, page = 1) => {
+    (searchTerm: string, categoryFilter: string, yearFilter: string, page = 1) => {
       if (searchTimeout) {
         clearTimeout(searchTimeout);
       }
       const timeout = setTimeout(() => {
         setCurrentPage(page);
-        fetchProjects(searchTerm, categoryFilter, page);
+        fetchProjects(searchTerm, categoryFilter, yearFilter, page);
       }, 500);
       setSearchTimeout(timeout);
     },
@@ -222,17 +262,22 @@ const ProjectsPage: React.FC = () => {
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
-    debouncedSearch(value, selectedCategory, 1);
+    debouncedSearch(value, selectedCategory, selectedYear, 1);
   };
 
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
-    debouncedSearch(searchQuery, category, 1);
+    debouncedSearch(searchQuery, category, selectedYear, 1);
+  };
+
+  const handleYearChange = (year: string) => {
+    setSelectedYear(year);
+    debouncedSearch(searchQuery, selectedCategory, year, 1);
   };
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    fetchProjects(searchQuery, selectedCategory, page);
+    fetchProjects(searchQuery, selectedCategory, selectedYear, page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -253,6 +298,9 @@ const ProjectsPage: React.FC = () => {
     // Start prefetch if not done
     ensurePrefetch();
     
+    // Fetch available years first (always, to get all years including 2026)
+    fetchAvailableYears();
+    
     // Load data - first check cache, then fetch if needed
     const cachedData = getCachedData();
     if (cachedData) {
@@ -261,9 +309,9 @@ const ProjectsPage: React.FC = () => {
       setSelectedCategory(cachedData.selectedCategory || "all");
       setSearchQuery(cachedData.searchQuery || "");
     } else {
-      fetchProjects("", "all", 1);
+      fetchProjects("", "all", "all", 1);
     }
-  }, [fetchProjects, markVisited, ensurePrefetch, getCachedData]);
+  }, [fetchProjects, fetchAvailableYears, markVisited, ensurePrefetch, getCachedData]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -274,7 +322,7 @@ const ProjectsPage: React.FC = () => {
   };
 
   const handleRetry = () => {
-    fetchProjects(searchQuery, selectedCategory, currentPage);
+    fetchProjects(searchQuery, selectedCategory, selectedYear, currentPage);
   };
 
   // Cache page state when projects change
@@ -367,57 +415,122 @@ const ProjectsPage: React.FC = () => {
                 )}
               </div>
 
-              <div className="relative w-full max-w-md mx-auto lg:mx-0">
-                <button
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="w-full flex items-center justify-between bg-[#191A23] text-[#B9FF66] px-6 py-4 rounded-xl hover:bg-[#2A2B35] transition-colors font-medium shadow-lg"
-                >
-                  <span className="flex items-center">
-                    <Code2 className="w-5 h-5 mr-2" />
-                    {
-                      categories.find(
-                        (category) => category.value === selectedCategory
-                      )?.label
-                    }
-                  </span>
-                  <ChevronDown
-                    className={`w-5 h-5 transition-transform duration-300 ${
-                      isDropdownOpen ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Category Dropdown */}
+                <div className="relative w-full">
+                  <button
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="w-full flex items-center justify-between bg-[#191A23] text-[#B9FF66] px-6 py-4 rounded-xl hover:bg-[#2A2B35] transition-colors font-medium shadow-lg"
+                  >
+                    <span className="flex items-center">
+                      <Code2 className="w-5 h-5 mr-2" />
+                      {
+                        categories.find(
+                          (category) => category.value === selectedCategory
+                        )?.label
+                      }
+                    </span>
+                    <ChevronDown
+                      className={`w-5 h-5 transition-transform duration-300 ${
+                        isDropdownOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
 
-                {isDropdownOpen && (
-                  <div className="absolute top-full left-0 mt-2 w-full bg-white border border-gray-100 rounded-xl shadow-xl z-20 overflow-hidden">
-                    <div className="py-2">
-                      {categories.map((category) => (
+                  {isDropdownOpen && (
+                    <div className="absolute top-full left-0 mt-2 w-full bg-white border border-gray-100 rounded-xl shadow-xl z-20 overflow-hidden">
+                      <div className="py-2">
+                        {categories.map((category) => (
+                          <button
+                            key={category.value}
+                            onClick={() => {
+                              handleCategoryChange(category.value);
+                              setIsDropdownOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center ${
+                              selectedCategory === category.value
+                                ? "bg-[#B9FF66]/10 text-[#191A23] font-medium border-r-4 border-[#B9FF66]"
+                                : "text-gray-700"
+                            }`}
+                          >
+                            <Code2 className="w-4 h-4 mr-3 text-gray-400" />
+                            {category.label}
+                            {selectedCategory === category.value && (
+                              <div className="ml-auto w-2 h-2 bg-[#B9FF66] rounded-full"></div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Year Dropdown */}
+                <div className="relative w-full">
+                  <button
+                    onClick={() => setIsYearDropdownOpen(!isYearDropdownOpen)}
+                    className="w-full flex items-center justify-between bg-white border-2 border-[#191A23] text-[#191A23] px-6 py-4 rounded-xl hover:bg-gray-50 transition-colors font-medium shadow-lg"
+                  >
+                    <span className="flex items-center">
+                      <Calendar className="w-5 h-5 mr-2" />
+                      {selectedYear === "all" ? "All Years" : selectedYear}
+                    </span>
+                    <ChevronDown
+                      className={`w-5 h-5 transition-transform duration-300 ${
+                        isYearDropdownOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {isYearDropdownOpen && (
+                    <div className="absolute top-full left-0 mt-2 w-full bg-white border border-gray-100 rounded-xl shadow-xl z-20 overflow-hidden max-h-64 overflow-y-auto">
+                      <div className="py-2">
                         <button
-                          key={category.value}
                           onClick={() => {
-                            handleCategoryChange(category.value);
-                            setIsDropdownOpen(false);
+                            handleYearChange("all");
+                            setIsYearDropdownOpen(false);
                           }}
                           className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center ${
-                            selectedCategory === category.value
+                            selectedYear === "all"
                               ? "bg-[#B9FF66]/10 text-[#191A23] font-medium border-r-4 border-[#B9FF66]"
                               : "text-gray-700"
                           }`}
                         >
-                          <Code2 className="w-4 h-4 mr-3 text-gray-400" />
-                          {category.label}
-                          {selectedCategory === category.value && (
+                          <Calendar className="w-4 h-4 mr-3 text-gray-400" />
+                          All Years
+                          {selectedYear === "all" && (
                             <div className="ml-auto w-2 h-2 bg-[#B9FF66] rounded-full"></div>
                           )}
                         </button>
-                      ))}
+                        {availableYears.map((year) => (
+                          <button
+                            key={year}
+                            onClick={() => {
+                              handleYearChange(year);
+                              setIsYearDropdownOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center ${
+                              selectedYear === year
+                                ? "bg-[#B9FF66]/10 text-[#191A23] font-medium border-r-4 border-[#B9FF66]"
+                                : "text-gray-700"
+                            }`}
+                          >
+                            <Calendar className="w-4 h-4 mr-3 text-gray-400" />
+                            {year}
+                            {selectedYear === year && (
+                              <div className="ml-auto w-2 h-2 bg-[#B9FF66] rounded-full"></div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
 
             {/* Active filters display */}
-            {(searchQuery || selectedCategory !== "all") && (
+            {(searchQuery || selectedCategory !== "all" || selectedYear !== "all") && (
               <div className="mt-6 pt-6 border-t border-gray-100">
                 <div className="flex flex-wrap items-center gap-3">
                   <span className="text-sm font-medium text-gray-600">
@@ -449,13 +562,25 @@ const ProjectsPage: React.FC = () => {
                       </button>
                     </div>
                   )}
+                  {selectedYear !== "all" && (
+                    <div className="flex items-center bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+                      <Calendar className="w-3 h-3 mr-2" />
+                      {selectedYear}
+                      <button
+                        onClick={() => handleYearChange("all")}
+                        className="ml-2 hover:text-red-600 transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
           </div>
 
           {/* Results summary */}
-          {(searchQuery || selectedCategory !== "all") && (
+          {(searchQuery || selectedCategory !== "all" || selectedYear !== "all") && (
             <div className="mb-8 text-center">
               <p className="text-gray-600 text-lg">
                 Found{" "}
@@ -485,6 +610,15 @@ const ProjectsPage: React.FC = () => {
                     </span>
                   </span>
                 )}
+                {selectedYear !== "all" && (
+                  <span>
+                    {" "}
+                    for{" "}
+                    <span className="font-medium">
+                      {selectedYear}
+                    </span>
+                  </span>
+                )}
               </p>
             </div>
           )}
@@ -502,11 +636,11 @@ const ProjectsPage: React.FC = () => {
                     <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
                     <div className="relative h-64 bg-gray-200 overflow-hidden">
-                      {project.image ? (
+                      {project.thumbnail ? (
                         <div className="absolute inset-0">
                           <LazyImage
-                            src={getImageUrl(project.image) || ''}
-                            alt={`${project.title} cover image`}
+                            src={getImageUrl(project.thumbnail) || ''}
+                            alt={`${project.title} thumbnail`}
                             fill
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             objectFit="cover"
@@ -540,6 +674,13 @@ const ProjectsPage: React.FC = () => {
                         </div>
                       )}
                       <div className="absolute top-4 right-4 flex flex-col gap-2 z-20">
+                        {/* Academic Year Badge - Top Priority */}
+                        {(project.academic_year || project.student_batch) && (
+                          <div className="bg-blue-500 text-white px-3 py-1 text-xs font-bold rounded-full flex items-center shadow-lg">
+                            <Calendar className="w-3 h-3 mr-1" />
+                            {project.academic_year || project.student_batch}
+                          </div>
+                        )}
                         {project.is_featured && (
                           <div className="bg-[#B9FF66] text-[#191A23] px-3 py-1 text-xs font-bold rounded-full flex items-center shadow-lg">
                             <Star className="w-3 h-3 mr-1" />
@@ -567,8 +708,9 @@ const ProjectsPage: React.FC = () => {
                         {project.title}
                       </h3>
 
-                      <p className="text-gray-600 text-sm md:text-base leading-relaxed line-clamp-3 mb-4">
-                        {project.description}
+                      {/* Shortened description - show first 2 lines of abstract or description */}
+                      <p className="text-gray-600 text-sm md:text-base leading-relaxed line-clamp-2 mb-4">
+                        {project.abstract || project.description}
                       </p>
 
                       <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
@@ -583,20 +725,6 @@ const ProjectsPage: React.FC = () => {
                           </div>
                         )}
                       </div>
-
-                      {project.student_batch && (
-                        <div className="flex items-center bg-gray-50 px-4 py-3 rounded-xl mb-4">
-                          <div className="w-8 h-8 bg-[#191A23] rounded-full flex items-center justify-center mr-3">
-                            <Calendar className="w-4 h-4 text-[#B9FF66]" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-[#191A23]">
-                              {project.student_batch}
-                            </p>
-                            <p className="text-xs text-gray-500">Student Batch</p>
-                          </div>
-                        </div>
-                      )}
 
                       {project.technologies && project.technologies.length > 0 && (
                         <div className="flex flex-wrap gap-2 mb-6">
@@ -698,7 +826,7 @@ const ProjectsPage: React.FC = () => {
                 <Code2 className="w-12 h-12 text-gray-400" />
               </div>
               <h3 className="text-2xl font-bold text-[#191A23] mb-4">
-                {searchQuery || selectedCategory !== "all"
+                {searchQuery || selectedCategory !== "all" || selectedYear !== "all"
                   ? `No projects found${
                       searchQuery ? ` matching "${searchQuery}"` : ""
                     }${
@@ -708,11 +836,15 @@ const ProjectsPage: React.FC = () => {
                               ?.label
                           }`
                         : ""
+                    }${
+                      selectedYear !== "all"
+                        ? ` for ${selectedYear}`
+                        : ""
                     }`
                   : "No projects available at the moment"}
               </h3>
 
-              {(searchQuery || selectedCategory !== "all") && (
+              {(searchQuery || selectedCategory !== "all" || selectedYear !== "all") && (
                 <div className="flex gap-2 justify-center">
                   {searchQuery && (
                     <button
@@ -730,6 +862,14 @@ const ProjectsPage: React.FC = () => {
                       Show All Categories
                     </button>
                   )}
+                  {selectedYear !== "all" && (
+                    <button
+                      onClick={() => handleYearChange("all")}
+                      className="bg-white border border-[#191A23]/20 text-[#191A23] hover:bg-[#B9FF66]/10 px-4 py-2 rounded-lg font-medium transition-colors"
+                    >
+                      Show All Years
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -737,10 +877,13 @@ const ProjectsPage: React.FC = () => {
         </div>
       </section>
 
-      {isDropdownOpen && (
+      {(isDropdownOpen || isYearDropdownOpen) && (
         <div
           className="fixed inset-0 z-10"
-          onClick={() => setIsDropdownOpen(false)}
+          onClick={() => {
+            setIsDropdownOpen(false);
+            setIsYearDropdownOpen(false);
+          }}
         />
       )}
     </div>
