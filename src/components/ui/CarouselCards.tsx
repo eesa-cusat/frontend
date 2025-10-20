@@ -31,10 +31,7 @@ interface ProjectCardProps {
     description: string;
     technologies: string[];
     is_featured: boolean;
-    image?: string;
-    thumbnail?: string;
-    project_image?: string;
-    thumbnail_image?: string;
+    thumbnail?: string; // Primary image field
     github_url?: string;
     project_report?: string;
     demo_url?: string;
@@ -164,8 +161,8 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   const truncatedTechnologies = project.technologies?.slice(0, 3) || [];
   const additionalTechnologiesCount = (project.technologies?.length || 0) - 3;
 
-  // Get the best available image (prioritize thumbnail, then project_image, then fallback to image)
-  const projectImage = project.thumbnail || project.project_image || project.thumbnail_image || project.image;
+  // Use thumbnail field only
+  const projectImage = project.thumbnail;
 
   return (
     <div
@@ -231,35 +228,6 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           }`}>
             {project.title}
           </h3>
-          <p className={`text-sm line-clamp-2 mb-3 ${
-            projectImage ? 'text-white/90' : 'text-gray-600'
-          }`}>
-            {project.description?.slice(0, 100) || "No description available."}
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-1">
-          {truncatedTechnologies.map((tech, index) => (
-            <span
-              key={index}
-              className={`px-2 py-1 text-xs rounded-full font-medium ${
-                projectImage 
-                  ? 'bg-[#B9FF66]/90 text-black' 
-                  : 'bg-[#B9FF66] text-black'
-              }`}
-            >
-              {tech}
-            </span>
-          ))}
-          {additionalTechnologiesCount > 0 && (
-            <span className={`px-2 py-1 text-xs rounded-full ${
-              project.image 
-                ? 'bg-white/20 text-white' 
-                : 'bg-gray-200 text-gray-700'
-            }`}>
-              +{additionalTechnologiesCount}
-            </span>
-          )}
         </div>
       </div>
     </div>

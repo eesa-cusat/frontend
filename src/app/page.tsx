@@ -157,10 +157,10 @@ export default function Home() {
         const projectsResponse = await Promise.race([projectsPromise, timeoutPromise]) as any;
         const rawProjects = projectsResponse.data?.featured_projects || [];
         
-        // Map backend thumbnail fields to frontend image field
+        // Preserve all image fields from backend - don't override
         const featuredProjects = rawProjects.map((project: any) => ({
           ...project,
-          image: project.thumbnail || project.project_image || project.thumbnail_image || project.image
+          // Keep all original fields, no overriding
         }));
         
         console.log(
@@ -179,10 +179,6 @@ export default function Home() {
         if (fallbackProjects?.results) {
           const featuredFallback = fallbackProjects.results
             .filter((p: any) => p.is_featured)
-            .map((project: any) => ({
-              ...project,
-              image: project.thumbnail || project.project_image || project.thumbnail_image || project.image
-            }))
             .slice(0, 6);
           if (featuredFallback.length > 0) {
             setFeaturedProjects(featuredFallback);

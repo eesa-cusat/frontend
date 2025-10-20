@@ -37,10 +37,7 @@ interface Project {
   github_url?: string;
   demo_url?: string;
   project_report?: string;
-  thumbnail?: string | null; // New: Optimized thumbnail
-  project_image?: string | null; // New: Main cover image
-  thumbnail_image?: string | null; // Legacy field
-  image?: string | null; // Mapped field for consistency
+  thumbnail?: string | null; // Primary image field
   featured_video?: string;
   is_featured?: boolean;
   created_by?: {
@@ -223,13 +220,17 @@ const ProjectsPage: React.FC = () => {
               academic_year: project.academic_year || project.student_batch,
               team_count: project.team_count || 1,
               created_by_name: project.created_by_name,
-              // Use thumbnail field with proper fallback chain
-              thumbnail: project.thumbnail || project.project_image || project.thumbnail_image || null,
-              image: project.thumbnail || project.project_image || project.thumbnail_image || null,
               status: project.status || "completed",
               technologies: project.technologies || [],
             }))
           : [];
+
+        console.log('🖼️ Projects with thumbnails:', transformedProjects.map(p => ({ 
+          id: p.id, 
+          title: p.title.substring(0, 30), 
+          thumbnail: p.thumbnail ? 'HAS THUMBNAIL' : 'NO THUMBNAIL',
+          thumbnailUrl: p.thumbnail 
+        })));
 
         setProjects(transformedProjects);
 
@@ -302,17 +303,9 @@ const ProjectsPage: React.FC = () => {
     // Fetch available years first (always, to get all years including 2026)
     fetchAvailableYears();
     
-    // Load data - first check cache, then fetch if needed
-    const cachedData = getCachedData();
-    if (cachedData) {
-      setProjects(cachedData.projects || []);
-      setCurrentPage(cachedData.currentPage || 1);
-      setSelectedCategory(cachedData.selectedCategory || "all");
-      setSearchQuery(cachedData.searchQuery || "");
-    } else {
-      fetchProjects("", "all", "all", 1);
-    }
-  }, [fetchProjects, fetchAvailableYears, markVisited, ensurePrefetch, getCachedData]);
+    // Force fresh fetch to ensure we get thumbnail data
+    fetchProjects("", "all", "all", 1, false);
+  }, [fetchProjects, fetchAvailableYears, markVisited, ensurePrefetch]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -637,10 +630,10 @@ const ProjectsPage: React.FC = () => {
                     <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
                     <div className="relative h-64 bg-gray-200 overflow-hidden">
-                      {(project.thumbnail || project.project_image || project.thumbnail_image || project.image) ? (
+                      {project.thumbnail ? (
                         <div className="absolute inset-0">
                           <LazyImage
-                            src={getImageUrl(project.thumbnail || project.project_image || project.thumbnail_image || project.image || '') || ''}
+                            src={getImageUrl(project.thumbnail) || ''}
                             alt={`${project.title} thumbnail`}
                             fill
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"

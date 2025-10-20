@@ -50,9 +50,7 @@ interface Project {
   github_url?: string;
   demo_url?: string;
   project_report?: string;
-  thumbnail?: string | null; // New: Optimized thumbnail
-  project_image?: string | null; // New: Main project cover image
-  thumbnail_image?: string | null; // Legacy field
+  thumbnail?: string | null; // Primary image field
   featured_video?: string | null;
   is_featured?: boolean;
   created_by?: {
@@ -432,18 +430,18 @@ const ProjectDetailPage: React.FC = () => {
       </section>
 
       {/* Project Thumbnail - Placed immediately after hero */}
-      {(project.thumbnail || project.project_image) && (
+      {project.thumbnail && (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl overflow-hidden">
             <div className="relative h-96 bg-gray-200">
               <Image
-                src={getImageUrl(project.thumbnail || project.project_image || '') || ''}
+                src={getImageUrl(project.thumbnail) || ''}
                 alt={`${project.title} thumbnail`}
                 fill
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
                 style={{ objectFit: 'cover' }}
                 className="cursor-pointer"
-                onClick={() => window.open(getImageUrl(project.thumbnail || project.project_image || '') || '', '_blank')}
+                onClick={() => window.open(getImageUrl(project.thumbnail || '') || '', '_blank')}
               />
             </div>
           </div>

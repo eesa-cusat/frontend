@@ -101,7 +101,10 @@ export default function RootLayout({
           `}
         </Script>
       </head>
-      <body className={`${spaceGrotesk.variable} font-sans antialiased`}>
+      <body 
+        className={`${spaceGrotesk.variable} font-sans antialiased`}
+        suppressHydrationWarning
+      >
         <PrefetchProvider>
           <LayoutWrapper>{children}</LayoutWrapper>
         </PrefetchProvider>
