@@ -637,10 +637,10 @@ const ProjectsPage: React.FC = () => {
                     <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
                     <div className="relative h-64 bg-gray-200 overflow-hidden">
-                      {(project.thumbnail || project.project_image) ? (
+                      {(project.thumbnail || project.project_image || project.thumbnail_image || project.image) ? (
                         <div className="absolute inset-0">
                           <LazyImage
-                            src={getImageUrl(project.thumbnail || project.project_image) || ''}
+                            src={getImageUrl(project.thumbnail || project.project_image || project.thumbnail_image || project.image || '') || ''}
                             alt={`${project.title} thumbnail`}
                             fill
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"

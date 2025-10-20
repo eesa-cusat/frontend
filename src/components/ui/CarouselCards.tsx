@@ -32,6 +32,9 @@ interface ProjectCardProps {
     technologies: string[];
     is_featured: boolean;
     image?: string;
+    thumbnail?: string;
+    project_image?: string;
+    thumbnail_image?: string;
     github_url?: string;
     project_report?: string;
     demo_url?: string;
@@ -161,16 +164,19 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   const truncatedTechnologies = project.technologies?.slice(0, 3) || [];
   const additionalTechnologiesCount = (project.technologies?.length || 0) - 3;
 
+  // Get the best available image (prioritize thumbnail, then project_image, then fallback to image)
+  const projectImage = project.thumbnail || project.project_image || project.thumbnail_image || project.image;
+
   return (
     <div
       onClick={handleClick}
       className="w-full h-48 bg-white border border-gray-200 rounded-2xl shadow-lg hover:shadow-xl overflow-hidden cursor-pointer transition-all duration-300 transform hover:-translate-y-1 group relative"
     >
       {/* Project Image or Fallback Background */}
-      {project.image ? (
+      {projectImage ? (
         <div className="absolute inset-0">
           <Image
-            src={getImageUrl(project.image) || project.image}
+            src={getImageUrl(projectImage) || projectImage}
             alt={project.title}
             fill
             className="object-cover"
@@ -221,12 +227,12 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
       <div className="relative z-10 h-full flex flex-col justify-between p-6">
         <div>
           <h3 className={`text-lg font-semibold mb-2 transition-colors ${
-            project.image ? 'text-white group-hover:text-[#B9FF66]' : 'text-black group-hover:text-[#B9FF66]'
+            projectImage ? 'text-white group-hover:text-[#B9FF66]' : 'text-black group-hover:text-[#B9FF66]'
           }`}>
             {project.title}
           </h3>
           <p className={`text-sm line-clamp-2 mb-3 ${
-            project.image ? 'text-white/90' : 'text-gray-600'
+            projectImage ? 'text-white/90' : 'text-gray-600'
           }`}>
             {project.description?.slice(0, 100) || "No description available."}
           </p>
@@ -237,7 +243,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
             <span
               key={index}
               className={`px-2 py-1 text-xs rounded-full font-medium ${
-                project.image 
+                projectImage 
                   ? 'bg-[#B9FF66]/90 text-black' 
                   : 'bg-[#B9FF66] text-black'
               }`}

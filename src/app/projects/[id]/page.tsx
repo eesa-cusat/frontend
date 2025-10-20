@@ -613,9 +613,73 @@ const ProjectDetailPage: React.FC = () => {
 
       {/* Project Details */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid lg:grid-cols-4 gap-6">
-          {/* Main Content - Takes 3 columns */}
-          <div className="lg:col-span-3 space-y-6">
+        <div className="space-y-6">
+          {/* Quick Actions and Team Members - Center Aligned in One Line for Desktop */}
+          <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-6 md:p-8">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-center gap-6 lg:gap-12">
+              {/* Quick Actions */}
+              <div className="flex-shrink-0">
+                <h3 className="text-base md:text-lg font-semibold text-[#191A23] mb-3 text-center lg:text-left">
+                  Quick Actions
+                </h3>
+                <div className="flex flex-col sm:flex-row gap-2.5 justify-center lg:justify-start">
+                  {project.demo_url && (
+                    <button
+                      onClick={() => openLink(project.demo_url!)}
+                      className="bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66] px-4 py-2.5 rounded-xl text-sm md:text-base font-medium transition-all duration-300 flex items-center justify-center shadow-lg whitespace-nowrap"
+                    >
+                      <Play className="w-4 h-4 mr-2" />
+                      Live Demo
+                    </button>
+                  )}
+                  {project.github_url && (
+                    <button
+                      onClick={() => openLink(project.github_url!)}
+                      className="bg-white/80 hover:bg-white border border-white/80 hover:border-gray-200 text-[#191A23] px-4 py-2.5 rounded-xl text-sm md:text-base font-medium transition-all duration-300 flex items-center justify-center shadow-lg whitespace-nowrap"
+                    >
+                      <Github className="w-4 h-4 mr-2" />
+                      GitHub Repository
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Divider for Desktop */}
+              <div className="hidden lg:block h-24 w-px bg-gray-300"></div>
+
+              {/* Team Members */}
+              {project.team_members && project.team_members.length > 0 && (
+                <div className="flex-shrink-0">
+                  <h3 className="text-base md:text-lg font-semibold text-[#191A23] mb-3 text-center lg:text-left flex items-center justify-center lg:justify-start">
+                    <div className="w-5 h-5 bg-[#B9FF66] rounded-lg flex items-center justify-center mr-2">
+                      <Users className="w-3 h-3 text-[#191A23]" />
+                    </div>
+                    Team Members
+                  </h3>
+                  <div className="flex flex-wrap gap-2.5 justify-center lg:justify-start">
+                    {project.team_members.map((member, index) => (
+                      <div
+                        key={index}
+                        className="bg-white/80 border border-white/60 px-3 py-2.5 rounded-xl"
+                      >
+                        <div className="font-medium text-sm md:text-base text-[#191A23]">
+                          {member.name}
+                        </div>
+                        {member.role && (
+                          <div className="text-xs md:text-sm text-[#191A23]/70">
+                            {member.role}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="space-y-6">
             {/* Challenges */}
             {project.challenges && (
               <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-6 md:p-8">
@@ -647,8 +711,8 @@ const ProjectDetailPage: React.FC = () => {
             )}
           </div>
 
-          {/* Sidebar - Takes 1 column */}
-          <div className="space-y-6">
+          {/* Tech Stack and Tags - Side by Side on Desktop */}
+          <div className="grid lg:grid-cols-2 gap-6">
             {/* Tech Stack */}
             {project.tech_stack && project.tech_stack.length > 0 && (
               <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-6">
@@ -692,62 +756,6 @@ const ProjectDetailPage: React.FC = () => {
                 </div>
               </div>
             )}
-
-            {/* Team Members */}
-            {project.team_members && project.team_members.length > 0 && (
-              <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-6">
-                <h3 className="text-base md:text-lg font-semibold text-[#191A23] mb-3 flex items-center">
-                  <div className="w-5 h-5 bg-[#B9FF66] rounded-lg flex items-center justify-center mr-2">
-                    <Users className="w-3 h-3 text-[#191A23]" />
-                  </div>
-                  Team Members
-                </h3>
-                <div className="space-y-2.5">
-                  {project.team_members.map((member, index) => (
-                    <div
-                      key={index}
-                      className="bg-white/80 border border-white/60 px-3 py-2.5 rounded-xl"
-                    >
-                      <div className="font-medium text-sm md:text-base text-[#191A23]">
-                        {member.name}
-                      </div>
-                      {member.role && (
-                        <div className="text-xs md:text-sm text-[#191A23]/70">
-                          {member.role}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Project Actions */}
-            <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-6">
-              <h3 className="text-base md:text-lg font-semibold text-[#191A23] mb-3">
-                Quick Actions
-              </h3>
-              <div className="space-y-2.5">
-                {project.demo_url && (
-                  <button
-                    onClick={() => openLink(project.demo_url!)}
-                    className="w-full bg-[#191A23] hover:bg-[#191A23]/90 text-[#B9FF66] px-4 py-2.5 rounded-xl text-sm md:text-base font-medium transition-all duration-300 flex items-center justify-center shadow-lg"
-                  >
-                    <Play className="w-4 h-4 mr-2" />
-                    Live Demo
-                  </button>
-                )}
-                {project.github_url && (
-                  <button
-                    onClick={() => openLink(project.github_url!)}
-                    className="w-full bg-white/80 hover:bg-white border border-white/80 hover:border-gray-200 text-[#191A23] px-4 py-2.5 rounded-xl text-sm md:text-base font-medium transition-all duration-300 flex items-center justify-center shadow-lg"
-                  >
-                    <Github className="w-4 h-4 mr-2" />
-                    GitHub Repository
-                  </button>
-                )}
-              </div>
-            </div>
           </div>
         </div>
       </section>
