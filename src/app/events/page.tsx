@@ -244,12 +244,19 @@ export default function EventsPage() {
       event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       event.description.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const eventDate = new Date(event.start_date);
+    const eventStartDate = new Date(event.start_date);
+    const eventEndDate = event.end_date ? new Date(event.end_date) : eventStartDate;
     const today = new Date();
-    const isUpcoming = eventDate >= today;
     
-    // Determine event status
-    const eventStatus = isUpcoming ? 'upcoming' : 'completed';
+    // Determine event status more accurately
+    const isOngoing = eventStartDate <= today && eventEndDate >= today;
+    const isUpcoming = eventStartDate > today;
+    const isCompleted = eventEndDate < today;
+    
+    // For status badge and filter matching
+    let eventStatus = 'completed';
+    if (isOngoing) eventStatus = 'ongoing';
+    else if (isUpcoming) eventStatus = 'upcoming';
     
     const matchesType = filterType === "all" || 
       (event.event_type && event.event_type.toLowerCase() === filterType.toLowerCase());
@@ -267,9 +274,10 @@ export default function EventsPage() {
       (filterOrganization === "external" && !isEESAEvent);
 
     if (showPastEvents) {
-      return matchesSearch && !isUpcoming && matchesType && matchesStatus && matchesOrganization;
+      return matchesSearch && isCompleted && matchesType && matchesStatus && matchesOrganization;
     } else {
-      return matchesSearch && isUpcoming && matchesType && matchesStatus && matchesOrganization;
+      // Show both ongoing and upcoming events
+      return matchesSearch && (isOngoing || isUpcoming) && matchesType && matchesStatus && matchesOrganization;
     }
   });
 
@@ -442,7 +450,7 @@ export default function EventsPage() {
                           : "text-gray-600 hover:bg-gray-200"
                       }`}
                     >
-                      Upcoming
+                      Ongoing & Upcoming
                     </button>
                     <button
                       onClick={() => setShowPastEvents(true)}
@@ -484,6 +492,7 @@ export default function EventsPage() {
                         className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-white text-[#191A23] focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all duration-300"
                       >
                         <option value="all">All Events</option>
+                        <option value="ongoing">Ongoing</option>
                         <option value="upcoming">Upcoming</option>
                         <option value="completed">Completed</option>
                       </select>
@@ -533,9 +542,14 @@ export default function EventsPage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredEvents.map((event) => {
-                const eventDate = new Date(event.start_date);
+                const eventStartDate = new Date(event.start_date);
+                const eventEndDate = event.end_date ? new Date(event.end_date) : eventStartDate;
                 const today = new Date();
-                const eventStatus = eventDate >= today ? 'upcoming' : 'completed';
+                
+                // Determine event status
+                const isOngoing = eventStartDate <= today && eventEndDate >= today;
+                const isUpcoming = eventStartDate > today;
+                const eventStatus = isOngoing ? 'ongoing' : (isUpcoming ? 'upcoming' : 'completed');
                 
                 return (
                   <div
