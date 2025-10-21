@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Calendar,
   Search,
@@ -56,6 +57,15 @@ interface Photo {
 }
 
 const GalleryPage: React.FC = () => {
+  // Get URL search parameters
+  const searchParams = useSearchParams();
+  const albumIdFromUrl = searchParams.get('album');
+  
+  // Debug: Log URL parameters
+  if (albumIdFromUrl) {
+    console.log("🎯 Gallery page loaded with album ID from URL:", albumIdFromUrl);
+  }
+
   // Seamless navigation and caching
   const {
     isPageCached,
@@ -364,6 +374,108 @@ const GalleryPage: React.FC = () => {
       fetchAlbums("", "all", 1);
     }
   }, [fetchAlbums, markVisited, ensurePrefetch, getCachedData]);
+
+  // Handle album ID from URL parameter - run independently of albums loading
+  useEffect(() => {
+    const loadAlbumFromUrl = async () => {
+      if (!albumIdFromUrl) return;
+      
+      const albumId = parseInt(albumIdFromUrl, 10);
+      
+      // Check if we have a valid album ID
+      if (isNaN(albumId)) {
+        console.error("Invalid album ID from URL:", albumIdFromUrl);
+        return;
+      }
+      
+      console.log("🔍 Loading album from URL parameter:", albumId);
+      
+      // First, try to find in current albums list if available
+      if (albums.length > 0) {
+        const album = albums.find(a => a.id === albumId);
+        if (album) {
+          console.log("✅ Album found in current list:", album.name);
+          setSelectedAlbum(album);
+          setViewMode("photos");
+          // Fetch photos for this album
+          setPhotosLoading(true);
+          setPhotosError(null);
+          const params = new URLSearchParams();
+          params.append("album", album.id.toString());
+          params.append("page", "1");
+          params.append("page_size", "24");
+          
+          fetch(`${API_BASE_URL}/gallery/photos/public/?${params.toString()}`, {
+            headers: { Accept: "application/json" },
+          })
+            .then(response => response.json())
+            .then(data => {
+              setPhotos(data.results || []);
+              setPhotosTotalCount(data.count || 0);
+              setPhotosTotalPages(Math.ceil((data.count || 0) / 24));
+              setPhotosHasNextPage(!!data.next);
+              setPhotosHasPrevPage(!!data.previous);
+              setPhotosCurrentPage(1);
+              setPhotosLoading(false);
+            })
+            .catch(error => {
+              console.error("Error loading photos:", error);
+              setPhotosError("Failed to load photos");
+              setPhotosLoading(false);
+            });
+          return;
+        }
+      }
+      
+      // Album not in current list or albums not loaded yet, fetch it directly from API
+      try {
+        console.log("📡 Fetching album from API:", albumId);
+        const response = await fetch(`${API_BASE_URL}/gallery/albums/${albumId}/`);
+        
+        if (response.ok) {
+          const albumData = await response.json();
+          console.log("✅ Album fetched successfully:", albumData.name);
+          setSelectedAlbum(albumData);
+          setViewMode("photos");
+          
+          // Fetch photos for this album
+          setPhotosLoading(true);
+          setPhotosError(null);
+          const params = new URLSearchParams();
+          params.append("album", albumId.toString());
+          params.append("page", "1");
+          params.append("page_size", "24");
+          
+          fetch(`${API_BASE_URL}/gallery/photos/public/?${params.toString()}`, {
+            headers: { Accept: "application/json" },
+          })
+            .then(response => response.json())
+            .then(data => {
+              setPhotos(data.results || []);
+              setPhotosTotalCount(data.count || 0);
+              setPhotosTotalPages(Math.ceil((data.count || 0) / 24));
+              setPhotosHasNextPage(!!data.next);
+              setPhotosHasPrevPage(!!data.previous);
+              setPhotosCurrentPage(1);
+              setPhotosLoading(false);
+            })
+            .catch(error => {
+              console.error("Error loading photos:", error);
+              setPhotosError("Failed to load photos");
+              setPhotosLoading(false);
+            });
+        } else {
+          console.error("❌ Album not found (HTTP", response.status, "):", albumIdFromUrl);
+          alert(`Album not found. It may have been deleted or you may not have permission to view it.`);
+        }
+      } catch (error) {
+        console.error("❌ Error fetching album from URL:", error);
+        alert(`Failed to load album. Please try again later.`);
+      }
+    };
+
+    loadAlbumFromUrl();
+  }, [albumIdFromUrl, albums]);
 
   // Cache page state when data changes
   useEffect(() => {

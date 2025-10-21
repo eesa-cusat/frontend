@@ -347,7 +347,7 @@ function EventDetailPage() {
           {/* Gallery Backlink */}
           {event.album && event.album.photo_count > 0 && (
             <div className="mb-6">
-              <a
+              <Link
                 href={`/gallery?album=${event.album.id}`}
                 className="inline-flex items-center text-[#191A23] hover:text-white bg-[#B9FF66] hover:bg-[#191A23] px-5 py-3 rounded-xl font-medium transition-all shadow-md hover:shadow-lg"
               >
@@ -355,7 +355,7 @@ function EventDetailPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 View Event Gallery ({event.album.photo_count} Photos)
-              </a>
+              </Link>
             </div>
           )}
 
