@@ -71,95 +71,62 @@ interface EntrepreneurshipStats {
   success_stories_count: number;
 }
 
-// Reusable Team Member Card component
+// Reusable Team Member Card component - Larger round design
 const TeamMemberCard = ({
   member,
   index,
-  onClick,
 }: {
   member: TeamMember;
   index: number;
-  onClick: () => void;
-}) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    transition={{ delay: index * 0.1 }}
-    viewport={{ once: true }}
-    onClick={onClick}
-    className="group bg-white rounded-2xl border border-gray-200 shadow-lg hover:shadow-xl overflow-hidden transition-all duration-300 transform hover:-translate-y-1 w-full cursor-pointer"
-  >
-    <div className="relative h-48 bg-gradient-to-br from-[#B9FF66]/10 to-[#B9FF66]/5 overflow-hidden">
-      {member.image ? (
-        <Image
-          src={member.image}
-          alt={member.name}
-          fill
-          className="object-cover group-hover:scale-105 transition-transform duration-300"
-          sizes="320px"
-        />
-      ) : (
-        <div className="w-full h-full flex items-center justify-center">
-          <div className="w-16 h-16 bg-[#B9FF66] rounded-2xl flex items-center justify-center shadow-lg">
-            <Users className="w-8 h-8 text-[#191A23]" />
+}) => {
+  const API_BASE_URL =
+    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+  const getImageUrl = (imagePath: string | null | undefined) => {
+    if (!imagePath) return null;
+    if (imagePath.startsWith("http")) return imagePath;
+    return `${API_BASE_URL}${imagePath.startsWith("/") ? "" : "/"}${imagePath}`;
+  };
+
+  const handleClick = () => {
+    if (member.linkedin_url) {
+      window.open(member.linkedin_url, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      whileInView={{ opacity: 1, scale: 1 }}
+      transition={{ delay: index * 0.03 }}
+      viewport={{ once: true }}
+      onClick={handleClick}
+      className={`group flex flex-col items-center ${member.linkedin_url ? 'cursor-pointer' : ''}`}
+    >
+      {/* Larger round profile image */}
+      <div className="relative w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 mb-3 rounded-full overflow-hidden border-4 border-white shadow-lg group-hover:shadow-2xl transition-all duration-300 group-hover:border-[#B9FF66] group-hover:scale-105">
+        {member.image ? (
+          <img
+            src={getImageUrl(member.image) || undefined}
+            alt={member.name}
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#B9FF66]/20 to-[#B9FF66]/10">
+            <Users className="w-14 h-14 sm:w-16 sm:h-16 text-[#B9FF66]" />
           </div>
-        </div>
-      )}
-    </div>
-    <div className="p-6 space-y-3">
-      <h3 className="text-xl font-semibold text-black mb-2 group-hover:text-[#B9FF66] transition-colors">
+        )}
+      </div>
+
+      {/* Name and position */}
+      <h3 className="text-base sm:text-lg font-bold text-black text-center group-hover:text-[#B9FF66] transition-colors mb-1 px-2">
         {member.name}
       </h3>
-      <div className="inline-block bg-lime-400 text-black px-3 py-1 rounded-full text-sm font-medium">
+      <p className="text-sm text-gray-600 text-center px-2 line-clamp-2">
         {member.position}
-      </div>
-      <p className="text-gray-600 leading-relaxed line-clamp-2 text-sm">
-        {member.bio}
       </p>
-      <div className="flex gap-2 pt-2">
-        {member.email && (
-          <a
-            href={`mailto:${member.email}`}
-            onClick={(e) => e.stopPropagation()}
-            className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-[#B9FF66] hover:text-black transition-all duration-300"
-            title={`Email ${member.name}`}
-          >
-            <Mail className="w-4 h-4" />
-          </a>
-        )}
-        {member.linkedin_url && (
-          <a
-            href={member.linkedin_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-[#B9FF66] hover:text-black transition-all duration-300"
-            title={`${member.name} on LinkedIn`}
-          >
-            <Linkedin className="w-4 h-4" />
-          </a>
-        )}
-        {member.github_url && (
-          <a
-            href={member.github_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-[#B9FF66] hover:text-black transition-all duration-300"
-            title={`${member.name} on GitHub`}
-          >
-            <Github className="w-4 h-4" />
-          </a>
-        )}
-        {!member.email && !member.linkedin_url && !member.github_url && (
-          <span className="text-xs text-gray-400 italic px-2 py-1 bg-gray-50 rounded">
-            Contact details coming soon
-          </span>
-        )}
-      </div>
-    </div>
-  </motion.div>
-);
+    </motion.div>
+  );
+};
 
 // Reusable Stat Card component
 const StatCard = ({
@@ -192,19 +159,66 @@ const StatCard = ({
   </div>
 );
 
-// Reusable component for team sections
-const TeamSection = ({
+// EESA Team Section - First 3 centered, then full rows
+const EESATeamSection = ({
   title,
   description,
   teamMembers,
-  autoplayDelay,
-  setSelectedMember,
 }: {
   title: string;
   description: string;
   teamMembers: TeamMember[];
-  autoplayDelay: number;
-  setSelectedMember: (member: TeamMember) => void;
+}) => {
+  const firstThree = teamMembers.slice(0, 3);
+  const remaining = teamMembers.slice(3);
+
+  return (
+    <div>
+      <div className="text-center mb-10 sm:mb-12 lg:mb-16">
+        <h2 className="text-3xl md:text-4xl font-medium text-black mb-4 sm:mb-6">
+          {title}
+        </h2>
+        <p className="text-lg text-gray-600 max-w-4xl mx-auto">{description}</p>
+      </div>
+      
+      {/* First 3 members centered */}
+      {firstThree.length > 0 && (
+        <div className="flex justify-center gap-6 sm:gap-8 md:gap-12 mb-8 sm:mb-12">
+          {firstThree.map((member, index) => (
+            <TeamMemberCard
+              key={member.id}
+              member={member}
+              index={index}
+            />
+          ))}
+        </div>
+      )}
+      
+      {/* Remaining members in grid */}
+      {remaining.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 sm:gap-8 md:gap-10">
+          {remaining.map((member, index) => (
+            <TeamMemberCard
+              key={member.id}
+              member={member}
+              index={index + 3}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Tech Team Section - Full rows from start
+const TechTeamSection = ({
+  title,
+  description,
+  teamMembers,
+}: {
+  title: string;
+  description: string;
+  teamMembers: TeamMember[];
 }) => (
   <div>
     <div className="text-center mb-10 sm:mb-12 lg:mb-16">
@@ -213,26 +227,16 @@ const TeamSection = ({
       </h2>
       <p className="text-lg text-gray-600 max-w-4xl mx-auto">{description}</p>
     </div>
-    <div className="px-2 sm:px-0">
-      <AutoScrollCarousel
-        autoplayDelay={autoplayDelay}
-        spaceBetween={16}
-        slidesPerView={{
-          mobile: 1.1,
-          tablet: 1.8,
-          desktop: 3,
-          large: 3.5,
-        }}
-      >
-        {teamMembers.map((member, index) => (
-          <TeamMemberCard
-            key={member.id}
-            member={member}
-            index={index}
-            onClick={() => setSelectedMember(member)}
-          />
-        ))}
-      </AutoScrollCarousel>
+    
+    {/* All members in grid */}
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 sm:gap-8 md:gap-10">
+      {teamMembers.map((member, index) => (
+        <TeamMemberCard
+          key={member.id}
+          member={member}
+          index={index}
+        />
+      ))}
     </div>
   </div>
 );
@@ -241,7 +245,8 @@ export default function AboutPage() {
   const [eesaTeam, setEesaTeam] = useState<TeamMember[]>([]);
   const [techTeam, setTechTeam] = useState<TeamMember[]>([]);
   const [alumniStats, setAlumniStats] = useState<AlumniStats | null>(null);
-  const [entrepreneurshipStats, setEntrepreneurshipStats] = useState<EntrepreneurshipStats | null>(null);
+  const [entrepreneurshipStats, setEntrepreneurshipStats] =
+    useState<EntrepreneurshipStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
@@ -255,11 +260,12 @@ export default function AboutPage() {
       setError(null);
       try {
         // Consolidated API call for team members, alumni stats, and entrepreneurship stats
-        const [teamResponse, statsResponse, entrepreneurshipResponse] = await Promise.all([
-          fetch(`${API_BASE_URL}/accounts/team-members/`),
-          fetch(`${API_BASE_URL}/alumni/alumni/stats/`),
-          fetch(`${API_BASE_URL}/alumni/entrepreneurship-stats/`),
-        ]);
+        const [teamResponse, statsResponse, entrepreneurshipResponse] =
+          await Promise.all([
+            fetch(`${API_BASE_URL}/accounts/team-members/`),
+            fetch(`${API_BASE_URL}/alumni/alumni/stats/`),
+            fetch(`${API_BASE_URL}/alumni/entrepreneurship-stats/`),
+          ]);
 
         if (teamResponse.ok) {
           const teamData = await teamResponse.json();
@@ -436,57 +442,6 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Stats Section */}
-      {alumniStats && (
-        <section className="py-12 sm:py-16 lg:py-20 bg-gradient-to-br from-[#B9FF66]/5 to-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-10 sm:mb-12 lg:mb-16">
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-medium text-black mb-3 sm:mb-4">
-                Our Impact
-              </h2>
-              <p className="text-lg text-gray-600 max-w-4xl mx-auto">
-                Numbers that speak to our community&apos;s success and growth
-              </p>
-            </div>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
-              <StatCard
-                icon={GraduationCap}
-                label="Total Alumni"
-                value={alumniStats.total_alumni?.toLocaleString() || "N/A"}
-                color="bg-[#191A23]"
-                bgColor="bg-gradient-to-br from-blue-50 to-blue-100"
-              />
-              <StatCard
-                icon={Briefcase}
-                label="Employed"
-                value={alumniStats.employed_count?.toLocaleString() || "N/A"}
-                color="bg-green-500"
-                bgColor="bg-gradient-to-br from-green-50 to-green-100"
-              />
-              <StatCard
-                icon={BookOpen}
-                label="Higher Studies"
-                value={
-                  alumniStats.higher_studies_count?.toLocaleString() || "N/A"
-                }
-                color="bg-blue-500"
-                bgColor="bg-gradient-to-br from-purple-50 to-purple-100"
-              />
-              <StatCard
-                icon={Rocket}
-                label="Entrepreneurs"
-                value={
-                  entrepreneurshipStats?.total_entrepreneurs?.toLocaleString() || 
-                  "N/A"
-                }
-                color="bg-purple-500"
-                bgColor="bg-gradient-to-br from-orange-50 to-orange-100"
-              />
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* What We Offer */}
       <section className="py-12 sm:py-16 lg:py-20 bg-gradient-to-br from-[#F3F3F3] to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -559,21 +514,17 @@ export default function AboutPage() {
       <section className="py-12 sm:py-16 lg:py-20 bg-gradient-to-br from-[#F3F3F3] to-[#B9FF66]/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16 sm:space-y-20 lg:space-y-24">
           {eesaTeam.length > 0 && (
-            <TeamSection
+            <EESATeamSection
               title="EESA Team"
               description="Meet the dedicated leaders driving our organization forward"
               teamMembers={eesaTeam}
-              autoplayDelay={3000}
-              setSelectedMember={setSelectedMember}
             />
           )}
           {techTeam.length > 0 && (
-            <TeamSection
+            <TechTeamSection
               title="Tech Team"
               description="The technical minds behind our digital infrastructure"
               teamMembers={techTeam}
-              autoplayDelay={3500}
-              setSelectedMember={setSelectedMember}
             />
           )}
           {eesaTeam.length === 0 && techTeam.length === 0 && (
@@ -667,12 +618,17 @@ export default function AboutPage() {
                     <span className="text-sm">GitHub</span>
                   </a>
                 )}
-                {!selectedMember.email && !selectedMember.linkedin_url && !selectedMember.github_url && (
-                  <div className="text-sm text-gray-400 italic bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
-                    <span className="block font-medium text-gray-500 mb-1">Contact Information</span>
-                    Contact details will be updated soon. Please check back later or contact the team directly.
-                  </div>
-                )}
+                {!selectedMember.email &&
+                  !selectedMember.linkedin_url &&
+                  !selectedMember.github_url && (
+                    <div className="text-sm text-gray-400 italic bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+                      <span className="block font-medium text-gray-500 mb-1">
+                        Contact Information
+                      </span>
+                      Contact details will be updated soon. Please check back
+                      later or contact the team directly.
+                    </div>
+                  )}
               </div>
             </div>
           </motion.div>

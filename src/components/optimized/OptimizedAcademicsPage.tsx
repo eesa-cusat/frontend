@@ -88,11 +88,11 @@ interface AcademicData {
 
 // Cache keys for localStorage
 const CACHE_KEYS = {
-  FILTERS: 'academics_filters_v2',
-  RESOURCES: 'academics_resources_v2',
-  TIMESTAMP: 'academics_timestamp_v2',
-  VIEW_STATE: 'academics_view_state_v2',
-  ACADEMIC_DATA: 'academic_data_v2'
+  FILTERS: "academics_filters_v2",
+  RESOURCES: "academics_resources_v2",
+  TIMESTAMP: "academics_timestamp_v2",
+  VIEW_STATE: "academics_view_state_v2",
+  ACADEMIC_DATA: "academic_data_v2",
 };
 
 // Cache duration in milliseconds (5 minutes for data, 30 minutes for filters)
@@ -101,7 +101,7 @@ const FILTER_CACHE_DURATION = 30 * 60 * 1000;
 
 // Cache management functions
 const getCachedData = (key: string, duration = FILTER_CACHE_DURATION) => {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === "undefined") return null;
   try {
     const cached = localStorage.getItem(key);
     if (!cached) return null;
@@ -119,7 +119,7 @@ const getCachedData = (key: string, duration = FILTER_CACHE_DURATION) => {
 };
 
 const setCachedData = (key: string, data: unknown) => {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   try {
     localStorage.setItem(key, JSON.stringify(data));
     localStorage.setItem(`${key}_timestamp`, Date.now().toString());
@@ -149,7 +149,7 @@ const OptimizedAcademicsPage = () => {
     schemes: [],
     categories: [],
     departments: [],
-    subjects: {}
+    subjects: {},
   });
 
   // Memoized filtered subjects based on current filters
@@ -157,12 +157,19 @@ const OptimizedAcademicsPage = () => {
     if (!filters.scheme_id || !filters.semester || !filters.department) {
       return [];
     }
-    
+
     const schemeId = parseInt(filters.scheme_id);
     const semester = parseInt(filters.semester);
-    
-    return academicData.subjects[schemeId]?.[semester]?.[filters.department] || [];
-  }, [academicData.subjects, filters.scheme_id, filters.semester, filters.department]);
+
+    return (
+      academicData.subjects[schemeId]?.[semester]?.[filters.department] || []
+    );
+  }, [
+    academicData.subjects,
+    filters.scheme_id,
+    filters.semester,
+    filters.department,
+  ]);
 
   useEffect(() => {
     fetchOptimizedData();
@@ -171,21 +178,24 @@ const OptimizedAcademicsPage = () => {
   // Load cached data after hydration to prevent hydration mismatch
   useEffect(() => {
     setIsHydrated(true);
-    
+
     // Load cached data only on client side
     const cachedFilters = getCachedData(CACHE_KEYS.FILTERS);
     const cachedResources = getCachedData(CACHE_KEYS.RESOURCES);
     const cachedViewState = getCachedData(CACHE_KEYS.VIEW_STATE);
-    const cachedAcademicData = getCachedData(CACHE_KEYS.ACADEMIC_DATA, DATA_CACHE_DURATION);
-    
+    const cachedAcademicData = getCachedData(
+      CACHE_KEYS.ACADEMIC_DATA,
+      DATA_CACHE_DURATION
+    );
+
     if (cachedFilters) {
       setFilters(cachedFilters);
     }
-    
+
     if (cachedResources) {
       setResources(cachedResources);
     }
-    
+
     if (cachedViewState?.showFilters === false) {
       setShowFilters(false);
     }
@@ -204,19 +214,18 @@ const OptimizedAcademicsPage = () => {
       // Use the new optimized endpoint that fetches all data in one call
       const response = await api.academics.data();
       const data = response.data;
-      
+
       const optimizedData: AcademicData = {
         schemes: data.schemes || [],
         categories: data.categories || [],
         departments: data.departments || [],
-        subjects: data.subjects || {}
+        subjects: data.subjects || {},
       };
-      
+
       setAcademicData(optimizedData);
-      
+
       // Cache the academic data
       setCachedData(CACHE_KEYS.ACADEMIC_DATA, optimizedData);
-      
     } catch (error) {
       console.error("Error in fetchOptimizedData:", error);
       setBackendError(true);
@@ -232,7 +241,7 @@ const OptimizedAcademicsPage = () => {
   const handleFilterChange = (field: keyof FilterState, value: string) => {
     const updatedFilters = { ...filters, [field]: value };
     setFilters(updatedFilters);
-    
+
     // Cache the updated filters
     setCachedData(CACHE_KEYS.FILTERS, updatedFilters);
 
@@ -251,7 +260,7 @@ const OptimizedAcademicsPage = () => {
       const resetFilters = {
         ...updatedFilters,
         semester: "",
-        subject_id: ""
+        subject_id: "",
       };
       setFilters(resetFilters);
       setCachedData(CACHE_KEYS.FILTERS, resetFilters);
@@ -259,7 +268,7 @@ const OptimizedAcademicsPage = () => {
     if (field === "semester") {
       const resetFilters = {
         ...updatedFilters,
-        subject_id: ""
+        subject_id: "",
       };
       setFilters(resetFilters);
       setCachedData(CACHE_KEYS.FILTERS, resetFilters);
@@ -294,30 +303,33 @@ const OptimizedAcademicsPage = () => {
       if (filters.scheme_id) queryParams.append("scheme", filters.scheme_id);
       if (filters.subject_id) queryParams.append("subject", filters.subject_id);
       if (filters.semester) queryParams.append("semester", filters.semester);
-      if (filters.department) queryParams.append("department", filters.department);
+      if (filters.department)
+        queryParams.append("department", filters.department);
       if (filters.module) queryParams.append("module_number", filters.module);
 
       // Use the optimized API call
-      const response = await api.academics.resources({ 
+      const response = await api.academics.resources({
         category: filters.category,
         scheme: filters.scheme_id,
         subject: filters.subject_id,
         semester: filters.semester,
         department: filters.department,
-        ...(filters.module && { module_number: filters.module })
+        ...(filters.module && { module_number: filters.module }),
       });
 
       // Handle different response formats (results array or direct array)
       const resourcesArray = response.data.results || response.data || [];
-      const transformedResources = Array.isArray(resourcesArray) ? resourcesArray : [];
-      
+      const transformedResources = Array.isArray(resourcesArray)
+        ? resourcesArray
+        : [];
+
       setResources(transformedResources);
-      
+
       // Cache the filters, resources, and view state
       setCachedData(CACHE_KEYS.FILTERS, filters);
       setCachedData(CACHE_KEYS.RESOURCES, transformedResources);
       setCachedData(CACHE_KEYS.VIEW_STATE, { showFilters: false });
-      
+
       setShowFilters(false);
     } catch (error) {
       console.error("Error fetching resources:", error);
@@ -337,7 +349,7 @@ const OptimizedAcademicsPage = () => {
 
   const handleNewSearch = () => {
     // Clear all cache and reset state
-    Object.values(CACHE_KEYS).forEach(key => {
+    Object.values(CACHE_KEYS).forEach((key) => {
       localStorage.removeItem(key);
       localStorage.removeItem(`${key}_timestamp`);
     });
@@ -354,11 +366,15 @@ const OptimizedAcademicsPage = () => {
   };
 
   const getSelectedScheme = () => {
-    return academicData.schemes.find((s) => s.id.toString() === filters.scheme_id);
+    return academicData.schemes.find(
+      (s) => s.id.toString() === filters.scheme_id
+    );
   };
 
   const getSelectedSubject = () => {
-    return availableSubjects.find((s) => s.id.toString() === filters.subject_id);
+    return availableSubjects.find(
+      (s) => s.id.toString() === filters.subject_id
+    );
   };
 
   const getSelectedCategory = () => {
@@ -443,7 +459,11 @@ const OptimizedAcademicsPage = () => {
                 <div className="w-64 h-48 bg-lime-400 rounded-3xl flex items-center justify-center relative overflow-hidden">
                   <FileText className="w-24 h-24 text-black relative z-10" />
                   <div className="absolute -top-4 -right-4 w-16 h-16 bg-black rounded-full flex items-center justify-center">
-                    <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <svg
+                      className="w-8 h-8 text-white"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
                       <path d="M13 2L3 14h6l-1 8 10-12h-6l1-8z" />
                     </svg>
                   </div>
@@ -456,10 +476,6 @@ const OptimizedAcademicsPage = () => {
             <p className="text-black text-lg max-w-2xl mx-auto">
               Access comprehensive study materials, notes, and resources
               organized by department, semester, and subject.
-              <br />
-              <span className="text-sm text-gray-600 mt-2 block">
-                ⚡ Optimized with single API call - Faster loading!
-              </span>
             </p>
           </div>
 
@@ -468,7 +484,9 @@ const OptimizedAcademicsPage = () => {
             <div className="bg-gray-50 rounded-3xl p-8 min-h-[500px] flex items-center justify-center">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
-                <p className="text-gray-600">Loading academic data (optimized)...</p>
+                <p className="text-gray-600">
+                  Loading academic data (optimized)...
+                </p>
               </div>
             </div>
           ) : backendError ? (
@@ -497,7 +515,10 @@ const OptimizedAcademicsPage = () => {
                 <FilterInput
                   label="Department"
                   field="department"
-                  options={academicData.departments.map((d) => ({ value: d, label: d }))}
+                  options={academicData.departments.map((d) => ({
+                    value: d,
+                    label: d,
+                  }))}
                   required
                 />
                 <FilterInput
@@ -662,7 +683,7 @@ const OptimizedAcademicsPage = () => {
                         );
                       }}
                     />
-                    
+
                     <LikeButton
                       resourceId={resource.id}
                       initialCount={resource.likes_count}
