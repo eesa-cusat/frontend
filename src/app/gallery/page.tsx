@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Calendar,
@@ -1171,4 +1171,18 @@ const GalleryPage: React.FC = () => {
   );
 };
 
-export default GalleryPage;
+// Wrap with Suspense boundary for useSearchParams
+export default function GalleryPageWrapper() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#F3F3F3] flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-[#191A23] animate-spin mx-auto mb-4" />
+          <p className="text-[#191A23] font-medium">Loading gallery...</p>
+        </div>
+      </div>
+    }>
+      <GalleryPage />
+    </Suspense>
+  );
+}
