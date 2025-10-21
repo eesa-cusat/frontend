@@ -123,7 +123,6 @@ const GalleryPage: React.FC = () => {
     { value: "all", label: "All Types" },
     { value: "eesa", label: "EESA Programs" },
     { value: "general", label: "General Programs" },
-    { value: "alumni", label: "Alumni Batches" },
   ];
 
   // Debounced search
@@ -766,18 +765,37 @@ const GalleryPage: React.FC = () => {
                       >
                         <div className="relative h-64 bg-gray-200 overflow-hidden">
                           {album.cover_image ? (
-                            <Image
+                            <img
                               src={getImageUrl(album.cover_image) || album.cover_image}
                               alt={`${album.name} cover`}
-                              fill
-                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                              className="object-cover transition-transform duration-500 group-hover:scale-110"
+                              className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                              loading="lazy"
                             />
                           ) : (
-                            <div className="flex items-center justify-center h-full bg-gradient-to-br from-[#191A23] to-[#2A2B35] text-[#B9FF66]">
+                            <div className={`flex items-center justify-center h-full ${
+                              album.type === 'eesa' 
+                                ? 'bg-gradient-to-br from-[#B9FF66]/20 via-[#B9FF66]/30 to-[#B9FF66]/40' 
+                                : album.type === 'alumni'
+                                ? 'bg-gradient-to-br from-purple-100 via-purple-200 to-purple-300'
+                                : 'bg-gradient-to-br from-green-50 via-green-100 to-green-200'
+                            }`}>
                               <div className="text-center">
-                                <ImageIcon className="w-16 h-16 mx-auto mb-3 opacity-70" />
-                                <p className="text-sm font-medium">No Cover Image</p>
+                                <ImageIcon className={`w-16 h-16 mx-auto mb-3 ${
+                                  album.type === 'eesa' 
+                                    ? 'text-[#B9FF66]' 
+                                    : album.type === 'alumni'
+                                    ? 'text-purple-400'
+                                    : 'text-green-400'
+                                }`} />
+                                <p className={`text-sm font-medium ${
+                                  album.type === 'eesa' 
+                                    ? 'text-[#191A23]' 
+                                    : album.type === 'alumni'
+                                    ? 'text-purple-600'
+                                    : 'text-green-600'
+                                }`}>
+                                  {album.photo_count} {album.photo_count === 1 ? 'Photo' : 'Photos'}
+                                </p>
                               </div>
                             </div>
                           )}
@@ -814,12 +832,6 @@ const GalleryPage: React.FC = () => {
                                 <span>{formatDate(album.created_at)}</span>
                               </div>
                             </div>
-
-                            {album.event_title && (
-                              <div className="text-xs text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
-                                Event: {album.event_title}
-                              </div>
-                            )}
 
                             {album.batch_info && (
                               <div className="text-xs text-purple-600 bg-purple-50 px-3 py-1 rounded-full">
@@ -973,25 +985,36 @@ const GalleryPage: React.FC = () => {
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                    {photos.map((photo, index) => (
-                      <div
-                        key={photo.id}
-                        className="cursor-pointer group relative overflow-hidden rounded-lg bg-gray-200 aspect-square"
-                        onClick={() => handlePhotoClick(photo, index)}
-                      >
-                        <Image
-                          src={getImageUrl(photo.image) || photo.image}
-                          alt={photo.caption || "Photo"}
-                          fill
-                          sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 16vw"
-                          className="object-cover transition-transform duration-300 group-hover:scale-110"
-                        />
-                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center">
-                          <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-6 h-6" />
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                    {photos.map((photo, index) => {
+                      const imageUrl = getImageUrl(photo.image) || photo.image;
+                      return (
+                        <div
+                          key={photo.id}
+                          onClick={() => handlePhotoClick(photo, index)}
+                          className="relative cursor-pointer rounded-xl overflow-hidden bg-gray-100 hover:shadow-2xl transition-all duration-300 hover:scale-105"
+                          style={{ 
+                            paddingBottom: '100%',
+                            position: 'relative'
+                          }}
+                        >
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              backgroundImage: `url(${imageUrl})`,
+                              backgroundSize: 'cover',
+                              backgroundPosition: 'center',
+                              transition: 'transform 0.3s ease'
+                            }}
+                            className="hover:scale-110"
+                          />
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   {/* Photos Pagination */}
