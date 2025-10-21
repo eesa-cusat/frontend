@@ -215,7 +215,8 @@ function EventDetailPage() {
     );
   }
 
-  const flyerUrl = event.flyer_url || event.event_flyer || event.banner_image;
+  const flyerUrl = event.flyer_url || event.event_flyer;
+  const bannerUrl = event.banner_image;
   const upiId = event.upi_id || event.payment_upi_id;
 
   return (
@@ -233,18 +234,18 @@ function EventDetailPage() {
         </div>
       </div>
 
-      {/* Event Flyer */}
-      {flyerUrl && (
+      {/* Event Banner - Show First */}
+      {bannerUrl && (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl overflow-hidden">
             <div className="relative h-96 bg-gradient-to-br from-[#191A23] to-[#2A2B35]">
               <Image
-                src={getImageUrl(flyerUrl) || flyerUrl}
-                alt={event.title}
+                src={getImageUrl(bannerUrl) || bannerUrl}
+                alt={`${event.title} Banner`}
                 fill
                 className="object-cover cursor-pointer"
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
-                onClick={() => window.open(getImageUrl(flyerUrl) || flyerUrl, "_blank")}
+                onClick={() => window.open(getImageUrl(bannerUrl) || bannerUrl, "_blank")}
               />
               {event.is_paid && (
                 <div className="absolute top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-full font-bold flex items-center gap-2 shadow-lg">
@@ -358,26 +359,46 @@ function EventDetailPage() {
               </Link>
             </div>
           )}
-
-          {/* Registration Button */}
-          {event.registration_required && event.is_registration_open && (
-            <div className="mb-6">
-              <button
-                onClick={handleRegister}
-                disabled={isRegistered || isRegistering}
-                className={`inline-flex items-center px-6 py-3 rounded-xl font-medium transition-all ${
-                  isRegistered
-                    ? "bg-green-600 text-white cursor-not-allowed"
-                    : "bg-[#191A23] text-[#B9FF66] hover:bg-[#2A2B35]"
-                }`}
-              >
-                <UserPlus className="w-5 h-5 mr-2" />
-                {isRegistered ? "Registered" : "Register Now"}
-              </button>
-            </div>
-          )}
         </div>
       </section>
+
+      {/* Event Flyer - Show Before Register Button */}
+      {flyerUrl && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl overflow-hidden">
+            <div className="relative h-auto bg-gradient-to-br from-[#191A23] to-[#2A2B35]">
+              <Image
+                src={getImageUrl(flyerUrl) || flyerUrl}
+                alt={`${event.title} Flyer`}
+                width={1200}
+                height={1600}
+                className="w-full h-auto object-contain cursor-pointer"
+                onClick={() => window.open(getImageUrl(flyerUrl) || flyerUrl, "_blank")}
+              />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Registration Button - Centered at Bottom After Flyer */}
+      {event.registration_required && event.is_registration_open && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex justify-center">
+            <button
+              onClick={handleRegister}
+              disabled={isRegistered || isRegistering}
+              className={`inline-flex items-center px-8 py-4 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl ${
+                isRegistered
+                  ? "bg-green-600 text-white cursor-not-allowed"
+                  : "bg-[#191A23] text-[#B9FF66] hover:bg-[#2A2B35] hover:scale-105"
+              }`}
+            >
+              <UserPlus className="w-6 h-6 mr-2" />
+              {isRegistered ? "Already Registered" : "Register Now"}
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* Speakers Section - Using speakers array from API */}
       {event.speakers && event.speakers.length > 0 && (
