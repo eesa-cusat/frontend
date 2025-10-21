@@ -104,7 +104,6 @@ function EventDetailPage() {
         dietary_requirements: formData.dietary_requirements?.trim() || '',
         special_needs: formData.special_needs?.trim() || '',
         payment_reference: formData.payment_reference?.trim() || '',
-        upi_reference_id: formData.upi_reference_id?.trim() || '',
       };
 
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
@@ -294,6 +293,21 @@ function EventDetailPage() {
             </p>
           </div>
 
+          {/* Gallery Backlink */}
+          {event.gallery_album_id && (
+            <div className="mb-6">
+              <a
+                href={`/gallery?album=${event.gallery_album_id}`}
+                className="inline-flex items-center text-[#191A23] hover:text-white bg-[#B9FF66] hover:bg-[#191A23] px-5 py-3 rounded-xl font-medium transition-all shadow-md hover:shadow-lg"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                View Event Gallery
+              </a>
+            </div>
+          )}
+
           {/* Registration Button */}
           {event.registration_required && event.is_registration_open && (
             <div className="mb-6">
@@ -322,22 +336,55 @@ function EventDetailPage() {
               <Users className="w-6 h-6 mr-3 text-[#B9FF66]" />
               Speakers
             </h2>
-            <div className="space-y-3">
-              {event.speaker_names.map((speaker, index) => (
-                <div
-                  key={index}
-                  className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-[#B9FF66] rounded-full flex items-center justify-center flex-shrink-0">
-                      <User className="w-5 h-5 text-[#191A23]" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-[#191A23] text-base">{speaker}</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {event.speaker_names.map((speaker, index) => {
+                // Check if we have detailed speaker info
+                const speakerDetail = event.speakers?.[index];
+                
+                return (
+                  <div
+                    key={index}
+                    className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-lg transition-all hover:border-[#B9FF66]"
+                  >
+                    <div className="flex items-start gap-4">
+                      {/* Speaker Photo */}
+                      <div className="w-16 h-16 bg-gradient-to-br from-[#B9FF66] to-[#9DE052] rounded-full flex items-center justify-center flex-shrink-0 shadow-md">
+                        {speakerDetail?.profile_image ? (
+                          <img
+                            src={speakerDetail.profile_image}
+                            alt={speaker}
+                            className="w-full h-full rounded-full object-cover"
+                          />
+                        ) : (
+                          <User className="w-8 h-8 text-[#191A23]" />
+                        )}
+                      </div>
+                      
+                      {/* Speaker Info */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-[#191A23] text-base mb-1 line-clamp-2">
+                          {speaker}
+                        </h3>
+                        {speakerDetail?.title && (
+                          <p className="text-sm text-gray-600 font-medium mb-0.5">
+                            {speakerDetail.title}
+                          </p>
+                        )}
+                        {speakerDetail?.organization && (
+                          <p className="text-xs text-gray-500 line-clamp-1">
+                            {speakerDetail.organization}
+                          </p>
+                        )}
+                        {!speakerDetail?.title && !speakerDetail?.organization && (
+                          <p className="text-sm text-gray-500 italic">
+                            Speaker details coming soon
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </section>

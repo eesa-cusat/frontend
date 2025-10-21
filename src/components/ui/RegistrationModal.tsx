@@ -45,7 +45,6 @@ export interface RegistrationFormData {
   dietary_requirements?: string;
   special_needs?: string;
   payment_reference?: string;
-  upi_reference_id?: string;  // NEW: UPI reference for paid events
 }
 
 export default function RegistrationModal({
@@ -73,7 +72,6 @@ export default function RegistrationModal({
     dietary_requirements: "",
     special_needs: "",
     payment_reference: "",
-    upi_reference_id: "",  // NEW: For paid events
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof RegistrationFormData, string>>>({});
@@ -117,9 +115,9 @@ export default function RegistrationModal({
       }
     }
 
-    // NEW: UPI reference required for paid events
-    if (isPaidEvent && !formData.upi_reference_id?.trim()) {
-      newErrors.upi_reference_id = "UPI Reference ID is required for paid events";
+    // Payment Reference required for paid events
+    if (isPaidEvent && !formData.payment_reference?.trim()) {
+      newErrors.payment_reference = "Payment Reference ID is required for paid events";
     }
 
     setErrors(newErrors);
@@ -526,48 +524,34 @@ export default function RegistrationModal({
                 <div>
                   <label className="block text-sm font-bold text-[#191A23] mb-2">
                     <CreditCard className="w-4 h-4 inline mr-2" />
-                    UPI Reference ID *
+                    Payment Reference ID {isPaidEvent && '*'}
                   </label>
                   <input
                     type="text"
-                    value={formData.upi_reference_id || ''}
+                    value={formData.payment_reference || ''}
                     onChange={(e) =>
-                      handleInputChange("upi_reference_id", e.target.value)
+                      handleInputChange("payment_reference", e.target.value)
                     }
                     disabled={isRegistering}
                     required={isPaidEvent}
                     className={`w-full px-4 py-3 border rounded-lg bg-white text-[#191A23] placeholder-[#191A23]/50 focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all ${
-                      errors.upi_reference_id ? "border-red-500" : "border-gray-300"
+                      errors.payment_reference ? "border-red-500" : "border-gray-300"
                     }`}
-                    placeholder="Enter UPI Reference/Transaction ID"
+                    placeholder={isPaidEvent ? "Enter UPI Reference/Transaction ID" : "Payment reference ID (if payment was made)"}
                   />
-                  {errors.upi_reference_id && (
+                  {errors.payment_reference && (
                     <p className="text-red-500 text-xs mt-1 font-semibold">
-                      {errors.upi_reference_id}
+                      {errors.payment_reference}
                     </p>
                   )}
-                  <p className="text-xs text-gray-600 mt-2">
-                    After making payment, enter the UPI Reference ID or Transaction ID from your payment app
-                  </p>
+                  {isPaidEvent && (
+                    <p className="text-xs text-gray-600 mt-2">
+                      After making payment, enter the UPI Reference ID or Transaction ID from your payment app
+                    </p>
+                  )}
                 </div>
               </div>
             )}
-
-            <div>
-              <label className="block text-sm font-medium text-[#191A23] mb-2">
-                Payment Reference
-              </label>
-              <input
-                type="text"
-                value={formData.payment_reference || ''}
-                onChange={(e) =>
-                  handleInputChange("payment_reference", e.target.value)
-                }
-                disabled={isRegistering}
-                className="w-full px-4 py-3 border rounded-lg bg-white text-[#191A23] placeholder-[#191A23]/50 focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all border-gray-300"
-                placeholder="Payment reference ID (if payment was made)"
-              />
-            </div>
 
             {/* Form Actions */}
             <div className="flex gap-3 pt-4">

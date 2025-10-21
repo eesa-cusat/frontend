@@ -543,34 +543,59 @@ export default function EventsPage() {
                     className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-200 hover:border-[#B9FF66] cursor-pointer"
                     onClick={() => window.location.href = `/events/${event.id}`}
                   >
-                    {/* Cover Photo - Optimized with lazy loading */}
-                    <div className={`relative h-32 md:h-36 bg-gradient-to-r ${getCoverGradient(event.event_type || 'default')} overflow-hidden`}>
-                      {(event.flyer_url || event.event_flyer || event.banner_image) ? (
-                        <LazyImage
-                          src={getImageUrl(event.flyer_url || event.event_flyer || event.banner_image) || ""}
-                          alt={event.title}
-                          fill
-                          objectFit="cover"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                          className={`transition-all duration-500 hover:scale-105 ${
-                            isImageLoaded(`event-${event.id}`) ? 'opacity-100' : 'opacity-0'
-                          }`}
-                          priority={false} // Enable lazy loading for better performance
-                          onLoad={() => markImageLoaded(`event-${event.id}`)}
-                        />
+                    {/* Cover Photo - Using Image component like homepage EventCard */}
+                    <div className="relative h-32 md:h-36 overflow-hidden">
+                      {(event.event_flyer || event.banner_image || event.flyer_url) ? (
+                        <>
+                          <Image
+                            src={getImageUrl(event.event_flyer || event.banner_image || event.flyer_url) || ""}
+                            alt={event.title}
+                            fill
+                            className="object-cover transition-all duration-500 hover:scale-105"
+                            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
+                        </>
                       ) : (
                         <>
-                          <div className="absolute inset-0 bg-black/20"></div>
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="text-center text-white">
-                              <Calendar className="w-8 h-8 mx-auto mb-1 opacity-80" />
-                              <p className="text-xs font-medium opacity-90">Event Cover</p>
-                            </div>
-                          </div>
+                          {/* Electrical circuit background pattern as fallback */}
+                          <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-blue-100"></div>
+                          <svg
+                            className="absolute inset-0 w-full h-full opacity-10"
+                            viewBox="0 0 200 150"
+                            fill="none"
+                          >
+                            <path
+                              d="M20 30 L180 30 M20 60 L100 60 L100 90 L180 90 M20 120 L60 120 L60 60"
+                              stroke="#191A23"
+                              strokeWidth="1"
+                            />
+                            <circle cx="60" cy="30" r="3" fill="#191A23" />
+                            <circle cx="100" cy="60" r="3" fill="#191A23" />
+                            <circle cx="180" cy="90" r="3" fill="#191A23" />
+                            <rect
+                              x="140"
+                              y="25"
+                              width="10"
+                              height="10"
+                              fill="none"
+                              stroke="#191A23"
+                              strokeWidth="1"
+                            />
+                            <rect
+                              x="80"
+                              y="85"
+                              width="10"
+                              height="10"
+                              fill="none"
+                              stroke="#191A23"
+                              strokeWidth="1"
+                            />
+                          </svg>
                         </>
                       )}
                       {/* Status badges overlay */}
-                      <div className="absolute top-2 left-2 flex items-center gap-1">
+                      <div className="absolute top-2 left-2 flex items-center gap-1 z-10">
                         <span className={`px-2 py-1 rounded-md text-xs font-semibold ${getStatusColor(eventStatus)}`}>
                           {eventStatus.charAt(0).toUpperCase() + eventStatus.slice(1)}
                         </span>
