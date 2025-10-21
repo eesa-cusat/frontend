@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import Image from "next/image";
 import {
   Calendar,
   Search,
@@ -17,6 +18,7 @@ import {
   ArrowLeft,
   User,
   Loader2,
+  Share2,
 } from "lucide-react";
 import LazyImage from "@/components/ui/LazyImage";
 import { getImageUrl } from "@/utils/api";
@@ -497,13 +499,33 @@ const GalleryPage: React.FC = () => {
   const PhotoModal = () => {
     if (!showPhotoModal || !selectedPhoto) return null;
 
+    const handleShare = async () => {
+      const imageUrl = getImageUrl(selectedPhoto.image) || selectedPhoto.image;
+      
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: selectedPhoto.caption || 'Photo from Gallery',
+            text: `Check out this photo: ${selectedPhoto.caption || ''}`,
+            url: imageUrl,
+          });
+        } catch (err) {
+          console.log('Error sharing:', err);
+        }
+      } else {
+        // Fallback: Copy to clipboard
+        navigator.clipboard.writeText(imageUrl);
+        alert('Link copied to clipboard!');
+      }
+    };
+
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-95 flex items-center justify-center z-50">
-        <div className="relative w-full h-full flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-50 p-4">
+        <div className="relative w-full h-full max-w-7xl flex flex-col items-center justify-center">
           {/* Close button */}
           <button
             onClick={() => setShowPhotoModal(false)}
-            className="absolute top-6 right-6 text-white hover:text-gray-300 z-20 bg-black/50 p-3 rounded-full backdrop-blur-sm transition-colors"
+            className="absolute top-4 right-4 text-white hover:text-gray-300 z-20 bg-black/50 p-3 rounded-full backdrop-blur-sm transition-colors"
           >
             <X size={24} />
           </button>
@@ -512,7 +534,7 @@ const GalleryPage: React.FC = () => {
           {currentPhotoIndex > 0 && (
             <button
               onClick={() => navigatePhoto("prev")}
-              className="absolute left-6 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 z-20 bg-black/50 p-4 rounded-full backdrop-blur-sm transition-colors"
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 z-20 bg-black/50 p-4 rounded-full backdrop-blur-sm transition-colors"
             >
               <ChevronLeft size={32} />
             </button>
@@ -521,60 +543,42 @@ const GalleryPage: React.FC = () => {
           {currentPhotoIndex < photos.length - 1 && (
             <button
               onClick={() => navigatePhoto("next")}
-              className="absolute right-6 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 z-20 bg-black/50 p-4 rounded-full backdrop-blur-sm transition-colors"
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 z-20 bg-black/50 p-4 rounded-full backdrop-blur-sm transition-colors"
             >
               <ChevronRight size={32} />
             </button>
           )}
 
-          {/* Main image */}
-          <div className="relative max-w-6xl max-h-full flex items-center justify-center">
-            <LazyImage
-              src={getImageUrl(selectedPhoto.image) || selectedPhoto.image}
-              alt={selectedPhoto.caption || "Photo"}
-              className={`max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl transition-all duration-500 ${
-                isImageLoaded(`photo-${selectedPhoto.id}`) ? 'opacity-100' : 'opacity-0'
-              }`}
-              width={1200}
-              height={800}
-              priority={true}
-              onLoad={() => markImageLoaded(`photo-${selectedPhoto.id}`)}
-            />
+          {/* Main image with proper proportions */}
+          <div className="relative w-full h-full flex items-center justify-center">
+            <div className="relative max-w-full max-h-full">
+              <Image
+                src={getImageUrl(selectedPhoto.image) || selectedPhoto.image}
+                alt={selectedPhoto.caption || "Photo"}
+                width={1920}
+                height={1080}
+                className="max-w-full max-h-[calc(100vh-120px)] w-auto h-auto object-contain rounded-lg"
+                priority
+              />
+            </div>
           </div>
 
-          {/* Photo info overlay */}
-          <div className="absolute bottom-6 left-6 right-6 bg-black/70 text-white p-6 rounded-xl backdrop-blur-sm border border-white/20">
-            <div className="flex justify-between items-start">
-              <div className="flex-1">
-                <h3 className="text-xl font-semibold mb-3">
-                  {selectedPhoto.caption || `Photo ${selectedPhoto.id}`}
-                </h3>
-                <div className="flex items-center gap-6 text-sm text-gray-300">
-                  <span className="flex items-center gap-2">
-                    <Calendar size={16} />
-                    {formatDate(selectedPhoto.uploaded_at)}
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <User size={16} />
-                    By{" "}
-                    {selectedPhoto.uploaded_by_name ||
-                      `${selectedPhoto.uploaded_by.first_name} ${selectedPhoto.uploaded_by.last_name}`}
-                  </span>
-                  <span className="text-gray-400">
-                    Photo {currentPhotoIndex + 1} of {photos.length}
-                  </span>
-                </div>
-              </div>
-              <div className="flex gap-3 ml-6">
-                <button
-                  onClick={() => handleDownloadPhoto(selectedPhoto)}
-                  className="bg-[#191A23] hover:bg-[#2A2B35] text-[#B9FF66] px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
-                >
-                  <Download size={16} />
-                  Download
-                </button>
-              </div>
-            </div>
+          {/* Action buttons - Simple, minimal */}
+          <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex gap-3">
+            <button
+              onClick={handleShare}
+              className="bg-white/10 hover:bg-white/20 backdrop-blur-md text-white px-6 py-3 rounded-full font-medium transition-all flex items-center gap-2 border border-white/20"
+            >
+              <Share2 size={20} />
+              Share
+            </button>
+            <button
+              onClick={() => handleDownloadPhoto(selectedPhoto)}
+              className="bg-[#B9FF66] hover:bg-[#A8EE55] text-[#191A23] px-6 py-3 rounded-full font-medium transition-all flex items-center gap-2 shadow-lg"
+            >
+              <Download size={20} />
+              Download
+            </button>
           </div>
         </div>
       </div>
@@ -619,68 +623,30 @@ const GalleryPage: React.FC = () => {
             </p>
           </div>
 
-          {/* Search and Filters */}
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 mb-12">
-            <div className="flex flex-col gap-6">
-              {viewMode === "photos" && (
-                <div className="flex items-center justify-between pb-6 border-b border-gray-100">
-                  <button
-                    onClick={handleBackToAlbums}
-                    className="flex items-center text-[#191A23] hover:text-[#2A2B35] font-medium transition-colors"
-                  >
-                    <ArrowLeft className="w-5 h-5 mr-2" />
-                    Back to Albums
-                  </button>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => setPhotoViewMode("grid")}
-                      className={`p-2 rounded-lg transition-colors ${
-                        photoViewMode === "grid"
-                          ? "bg-[#191A23] text-[#B9FF66]"
-                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                      }`}
-                    >
-                      <Grid3X3 size={16} />
-                    </button>
-                    <button
-                      onClick={() => setPhotoViewMode("list")}
-                      className={`p-2 rounded-lg transition-colors ${
-                        photoViewMode === "list"
-                          ? "bg-[#191A23] text-[#B9FF66]"
-                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                      }`}
-                    >
-                      <List size={16} />
-                    </button>
+          {/* Search and Filters - Only show in albums view */}
+          {viewMode === "albums" && (
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 mb-12">
+              <div className="flex flex-col gap-6">
+                <div className="flex flex-col lg:flex-row gap-4">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
+                      type="text"
+                      placeholder="Search albums, events, descriptions..."
+                      value={searchQuery}
+                      onChange={(e) => handleSearchChange(e.target.value)}
+                      className="w-full pl-12 pr-12 py-4 border border-gray-200 rounded-xl bg-gray-50 text-[#191A23] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent focus:bg-white transition-all duration-300"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => handleSearchChange("")}
+                        className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-[#191A23] transition-colors"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    )}
                   </div>
-                </div>
-              )}
 
-              <div className="flex flex-col lg:flex-row gap-4">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="text"
-                    placeholder={
-                      viewMode === "albums"
-                        ? "Search albums, events, descriptions..."
-                        : "Search photos, captions, photographers..."
-                    }
-                    value={searchQuery}
-                    onChange={(e) => handleSearchChange(e.target.value)}
-                    className="w-full pl-12 pr-12 py-4 border border-gray-200 rounded-xl bg-gray-50 text-[#191A23] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent focus:bg-white transition-all duration-300"
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={() => handleSearchChange("")}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-[#191A23] transition-colors"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  )}
-                </div>
-
-                {viewMode === "albums" && (
                   <div className="flex gap-2">
                     <select
                       value={selectedAlbumType}
@@ -694,10 +660,23 @@ const GalleryPage: React.FC = () => {
                       ))}
                     </select>
                   </div>
-                )}
+                </div>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Back button for photo view */}
+          {viewMode === "photos" && selectedAlbum && (
+            <div className="mb-8">
+              <button
+                onClick={handleBackToAlbums}
+                className="inline-flex items-center gap-2 text-[#191A23] hover:text-[#2A2B35] bg-white px-6 py-3 rounded-xl font-medium transition-all shadow-md hover:shadow-lg border border-gray-200"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                Back to Albums
+              </button>
+            </div>
+          )}
 
           {/* Results summary */}
           {viewMode === "albums" && albumsTotalCount > 0 && (
@@ -787,15 +766,12 @@ const GalleryPage: React.FC = () => {
                       >
                         <div className="relative h-64 bg-gray-200 overflow-hidden">
                           {album.cover_image ? (
-                            <LazyImage
-                              src={getImageUrl(album.cover_image) || ''}
+                            <Image
+                              src={getImageUrl(album.cover_image) || album.cover_image}
                               alt={`${album.name} cover`}
                               fill
                               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                              objectFit="cover"
-                              className="transition-transform duration-500 group-hover:scale-110"
-                              priority={false}
-                              loading="lazy"
+                              className="object-cover transition-transform duration-500 group-hover:scale-110"
                             />
                           ) : (
                             <div className="flex items-center justify-center h-full bg-gradient-to-br from-[#191A23] to-[#2A2B35] text-[#B9FF66]">
@@ -997,91 +973,23 @@ const GalleryPage: React.FC = () => {
                     </div>
                   )}
 
-                  <div
-                    className={
-                      photoViewMode === "grid"
-                        ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4"
-                        : "space-y-4"
-                    }
-                  >
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                     {photos.map((photo, index) => (
                       <div
                         key={photo.id}
-                        className={
-                          photoViewMode === "grid"
-                            ? "cursor-pointer group aspect-square"
-                            : "cursor-pointer bg-white rounded-xl shadow-sm hover:shadow-lg transition-shadow p-4"
-                        }
+                        className="cursor-pointer group relative overflow-hidden rounded-lg bg-gray-200 aspect-square"
                         onClick={() => handlePhotoClick(photo, index)}
                       >
-                        {photoViewMode === "grid" ? (
-                          <div className="relative w-full h-full overflow-hidden rounded-xl bg-gray-200">
-                            <LazyImage
-                              src={getImageUrl(photo.image) || photo.image}
-                              alt={photo.caption || "Photo"}
-                              fill
-                              sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 16vw"
-                              objectFit="cover"
-                              className="transition-transform duration-300 group-hover:scale-110"
-                              priority={false}
-                              loading="lazy"
-                            />
-                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center">
-                              <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-6 h-6" />
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-start gap-4">
-                            <div className="flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden bg-gray-200">
-                              <LazyImage
-                                src={getImageUrl(photo.image) || photo.image}
-                                alt={photo.caption || "Photo"}
-                                width={96}
-                                height={96}
-                                objectFit="cover"
-                                className="w-full h-full"
-                                priority={false}
-                                loading="lazy"
-                              />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h3 className="text-lg font-semibold text-[#191A23] mb-2 line-clamp-1">
-                                {photo.caption || `Photo ${photo.id}`}
-                              </h3>
-                              <div className="flex items-center gap-4 text-sm text-gray-500">
-                                <span className="flex items-center gap-1">
-                                  <Calendar className="w-4 h-4" />
-                                  {formatDate(photo.uploaded_at)}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <User className="w-4 h-4" />
-                                  {photo.uploaded_by_name ||
-                                    `${photo.uploaded_by.first_name} ${photo.uploaded_by.last_name}`}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="flex flex-col gap-2">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handlePhotoClick(photo, index);
-                                }}
-                                className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                              >
-                                <ZoomIn className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDownloadPhoto(photo);
-                                }}
-                                className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                              >
-                                <Download className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        )}
+                        <Image
+                          src={getImageUrl(photo.image) || photo.image}
+                          alt={photo.caption || "Photo"}
+                          fill
+                          sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 16vw"
+                          className="object-cover transition-transform duration-300 group-hover:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center">
+                          <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-6 h-6" />
+                        </div>
                       </div>
                     ))}
                   </div>
