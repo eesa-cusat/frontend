@@ -716,10 +716,10 @@ const ProjectsPage: React.FC = () => {
                           <Calendar className="w-4 h-4 mr-2" />
                           <span>{formatDate(project.created_at)}</span>
                         </div>
-                        {project.team_count && project.team_count > 1 && (
+                        {project.team_count && (
                           <div className="flex items-center">
                             <Users className="w-4 h-4 mr-2" />
-                            <span>Team of {project.team_count}</span>
+                            <span>{project.team_count} {project.team_count === 1 ? "Member" : "Members"}</span>
                           </div>
                         )}
                       </div>

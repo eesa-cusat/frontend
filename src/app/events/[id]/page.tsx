@@ -39,19 +39,12 @@ const formatDateTime = (dateString: string) => {
   if (!dateString) return { date: dateString, time: '' };
   try {
     const dateObj = new Date(dateString);
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
     
-    const date = isMobile 
-      ? dateObj.toLocaleDateString("en-US", {
-          month: "long",
-          day: "numeric",
-        })
-      : dateObj.toLocaleDateString("en-US", {
-          weekday: "long",
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        });
+    // Always use simplified format (no weekday, no year)
+    const date = dateObj.toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+    });
     
     const time = dateObj.toLocaleTimeString("en-US", {
       hour: "numeric",
@@ -276,7 +269,7 @@ function EventDetailPage() {
       {bannerUrl && (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl overflow-hidden">
-            <div className="relative h-[100px] sm:h-80 md:h-96 bg-gradient-to-br from-[#191A23] to-[#2A2B35]">
+            <div className="relative h-[100px] sm:h-48 md:h-56 lg:h-64 bg-gradient-to-br from-[#191A23] to-[#2A2B35]">
               <Image
                 src={getImageUrl(bannerUrl) || bannerUrl}
                 alt={`${event.title} Banner`}
@@ -298,9 +291,9 @@ function EventDetailPage() {
 
       {/* Event Flyer - Show After Banner, Before Details */}
       {flyerUrl && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
           <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl overflow-hidden">
-            <div className="relative h-auto bg-gradient-to-br from-[#191A23] to-[#2A2B35]">
+            <div className="relative bg-gradient-to-br from-[#191A23] to-[#2A2B35]">
               <Image
                 src={getImageUrl(flyerUrl) || flyerUrl}
                 alt={`${event.title} Flyer`}
@@ -333,12 +326,20 @@ function EventDetailPage() {
                     : null;
                   
                   return (
-                    <>
-                      {startDateTime.date}
-                      {startDateTime.time && ` at ${startDateTime.time}`}
-                      {endDateTime && ` - ${endDateTime.date}`}
-                      {endDateTime?.time && ` at ${endDateTime.time}`}
-                    </>
+                    <span className="flex flex-col sm:inline">
+                      <span>
+                        {startDateTime.date}
+                        {startDateTime.time && ` ${startDateTime.time}`}
+                      </span>
+                      {endDateTime && (
+                        <span className="sm:inline">
+                          <span className="hidden sm:inline"> - </span>
+                          <span className="sm:hidden">to </span>
+                          {endDateTime.date}
+                          {endDateTime?.time && ` ${endDateTime.time}`}
+                        </span>
+                      )}
+                    </span>
                   );
                 })()}
               </span>
@@ -432,7 +433,7 @@ function EventDetailPage() {
 
           {/* Gallery Backlink */}
           {event.album && event.album.photo_count > 0 && (
-            <div className="mb-6">
+            <div className="flex justify-center mb-6">
               <Link
                 href={`/gallery?album=${event.album.id}`}
                 className="inline-flex items-center text-[#191A23] hover:text-white bg-[#B9FF66] hover:bg-[#191A23] px-5 py-3 rounded-xl font-medium transition-all shadow-md hover:shadow-lg"
