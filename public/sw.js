@@ -1,13 +1,10 @@
-const CACHE_NAME = 'eesa-v1';
+const CACHE_NAME = 'eesa-v2';
 const urlsToCache = [
   '/',
-  '/static/js/bundle.js',
-  '/static/css/main.css',
-  '/_next/static/css/',
-  '/_next/static/js/',
   '/favicon.ico',
   '/eesa-logo.svg',
-  '/electrical-tower.svg'
+  '/electrical-tower.svg',
+  '/manifest.json'
 ];
 
 // Install event
@@ -15,21 +12,55 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        return cache.addAll(urlsToCache);
+        // Use addAll with error handling
+        return cache.addAll(urlsToCache).catch((err) => {
+          console.warn('Failed to cache some resources:', err);
+          // Cache files individually to prevent failure
+          return Promise.allSettled(
+            urlsToCache.map(url => 
+              cache.add(url).catch(e => console.warn(`Failed to cache ${url}:`, e))
+            )
+          );
+        });
       })
   );
+  // Force the waiting service worker to become the active service worker
+  self.skipWaiting();
 });
 
-// Fetch event
+// Fetch event - Network first, then cache
 self.addEventListener('fetch', (event) => {
+  // Skip non-GET requests
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  // Skip chrome extension requests
+  if (event.request.url.startsWith('chrome-extension://')) {
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request)
+    fetch(event.request)
       .then((response) => {
-        // Return cached version or fetch from network
-        if (response) {
+        // Check if valid response
+        if (!response || response.status !== 200 || response.type !== 'basic') {
           return response;
         }
-        return fetch(event.request);
+
+        // Clone the response
+        const responseToCache = response.clone();
+
+        caches.open(CACHE_NAME)
+          .then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+
+        return response;
+      })
+      .catch(() => {
+        // If network fails, try cache
+        return caches.match(event.request);
       })
   );
 });
@@ -41,10 +72,13 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
+            console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
     })
   );
+  // Claim all clients immediately
+  return self.clients.claim();
 });

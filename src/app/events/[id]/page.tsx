@@ -238,7 +238,7 @@ function EventDetailPage() {
       {bannerUrl && (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl overflow-hidden">
-            <div className="relative h-96 bg-gradient-to-br from-[#191A23] to-[#2A2B35]">
+            <div className="relative h-64 sm:h-80 md:h-96 bg-gradient-to-br from-[#191A23] to-[#2A2B35]">
               <Image
                 src={getImageUrl(bannerUrl) || bannerUrl}
                 alt={`${event.title} Banner`}
