@@ -176,7 +176,7 @@ const ProjectsPage: React.FC = () => {
         }
         // Only add year parameter if a specific year is selected
         if (yearFilter !== "all") {
-          params.year = yearFilter;
+          params.academic_year = yearFilter;  // Changed from 'year' to 'academic_year'
         }
         
         // Use API client (same as homepage) for consistent data format

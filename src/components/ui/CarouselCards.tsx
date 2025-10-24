@@ -115,17 +115,12 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onClick }) => {
           }`}>
             {event.title}
           </h3>
-          <p className={`text-sm line-clamp-2 mb-3 ${
-            eventImage ? 'text-white/90' : 'text-gray-600'
-          }`}>
-            {event.description}
-          </p>
         </div>
 
         <div className="space-y-2">
           <div className="flex items-center gap-1 text-sm">
             <Calendar className={`w-3 h-3 ${eventImage ? 'text-white/80' : 'text-gray-600'}`} />
-            <span className={`truncate ${eventImage ? 'text-white/90' : 'text-gray-600'}`}>
+            <span className={`truncate font-bold ${eventImage ? 'text-white' : 'text-gray-900'}`}>
               {new Date(event.start_date).toLocaleDateString("en-US", {
                 month: "short",
                 day: "numeric",
@@ -135,7 +130,7 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onClick }) => {
           {(event.venue || event.location) && (
             <div className="flex items-center gap-1 text-sm">
               <MapPin className={`w-3 h-3 ${eventImage ? 'text-white/80' : 'text-gray-600'}`} />
-              <span className={`truncate ${eventImage ? 'text-white/90' : 'text-gray-600'}`}>
+              <span className={`truncate font-bold ${eventImage ? 'text-white' : 'text-gray-900'}`}>
                 {event.venue || event.location}
               </span>
             </div>

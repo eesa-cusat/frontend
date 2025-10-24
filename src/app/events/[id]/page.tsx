@@ -34,6 +34,37 @@ const formatDate = (dateString: string) => {
   }
 };
 
+// Format date with time utility
+const formatDateTime = (dateString: string) => {
+  if (!dateString) return { date: dateString, time: '' };
+  try {
+    const dateObj = new Date(dateString);
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+    
+    const date = isMobile 
+      ? dateObj.toLocaleDateString("en-US", {
+          month: "long",
+          day: "numeric",
+        })
+      : dateObj.toLocaleDateString("en-US", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+    
+    const time = dateObj.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+    
+    return { date, time };
+  } catch {
+    return { date: dateString, time: '' };
+  }
+};
+
 // Format time utility
 const formatTime = (timeString: string) => {
   if (!timeString) return timeString;
@@ -265,6 +296,24 @@ function EventDetailPage() {
         </section>
       )}
 
+      {/* Event Flyer - Show After Banner, Before Details */}
+      {flyerUrl && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl overflow-hidden">
+            <div className="relative h-auto bg-gradient-to-br from-[#191A23] to-[#2A2B35]">
+              <Image
+                src={getImageUrl(flyerUrl) || flyerUrl}
+                alt={`${event.title} Flyer`}
+                width={1200}
+                height={1600}
+                className="w-full h-auto object-contain cursor-pointer"
+                onClick={() => window.open(getImageUrl(flyerUrl) || flyerUrl, "_blank")}
+              />
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Event Details */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-8">
@@ -272,21 +321,32 @@ function EventDetailPage() {
             {event.title}
           </h1>
 
-          {/* Date and Location */}
+          {/* Date, Time and Location */}
           <div className="flex flex-wrap gap-4 mb-6">
             <div className="flex items-center gap-2 text-gray-600">
               <Calendar className="w-5 h-5 text-[#B9FF66]" />
-              <span>
-                {formatDate(event.start_date)}
-                {event.end_date &&
-                  event.end_date !== event.start_date &&
-                  ` - ${formatDate(event.end_date)}`}
+              <span className="font-bold">
+                {(() => {
+                  const startDateTime = formatDateTime(event.start_date);
+                  const endDateTime = event.end_date && event.end_date !== event.start_date 
+                    ? formatDateTime(event.end_date) 
+                    : null;
+                  
+                  return (
+                    <>
+                      {startDateTime.date}
+                      {startDateTime.time && ` at ${startDateTime.time}`}
+                      {endDateTime && ` - ${endDateTime.date}`}
+                      {endDateTime?.time && ` at ${endDateTime.time}`}
+                    </>
+                  );
+                })()}
               </span>
             </div>
             {event.location && (
               <div className="flex items-center gap-2 text-gray-600">
                 <MapPin className="w-5 h-5 text-[#B9FF66]" />
-                <span>{event.location}</span>
+                <span className="font-bold">{event.location}</span>
               </div>
             )}
             {event.is_online && (
@@ -352,6 +412,24 @@ function EventDetailPage() {
             </p>
           </div>
 
+          {/* Registration Button - Show Before Gallery Button */}
+          {event.registration_required && event.is_registration_open && (
+            <div className="flex justify-center mb-6">
+              <button
+                onClick={handleRegister}
+                disabled={isRegistered || isRegistering}
+                className={`inline-flex items-center px-6 py-3 rounded-xl font-medium transition-all shadow-lg hover:shadow-xl ${
+                  isRegistered
+                    ? "bg-green-600 text-white cursor-not-allowed"
+                    : "bg-[#191A23] text-[#B9FF66] hover:bg-[#2A2B35] hover:scale-105"
+                }`}
+              >
+                <UserPlus className="w-5 h-5 mr-2" />
+                {isRegistered ? "Already Registered" : "Register Now"}
+              </button>
+            </div>
+          )}
+
           {/* Gallery Backlink */}
           {event.album && event.album.photo_count > 0 && (
             <div className="mb-6">
@@ -368,44 +446,6 @@ function EventDetailPage() {
           )}
         </div>
       </section>
-
-      {/* Event Flyer - Show Before Register Button */}
-      {flyerUrl && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl overflow-hidden">
-            <div className="relative h-auto bg-gradient-to-br from-[#191A23] to-[#2A2B35]">
-              <Image
-                src={getImageUrl(flyerUrl) || flyerUrl}
-                alt={`${event.title} Flyer`}
-                width={1200}
-                height={1600}
-                className="w-full h-auto object-contain cursor-pointer"
-                onClick={() => window.open(getImageUrl(flyerUrl) || flyerUrl, "_blank")}
-              />
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Registration Button - Centered at Bottom After Flyer */}
-      {event.registration_required && event.is_registration_open && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex justify-center">
-            <button
-              onClick={handleRegister}
-              disabled={isRegistered || isRegistering}
-              className={`inline-flex items-center px-6 py-3 rounded-xl font-medium transition-all shadow-lg hover:shadow-xl ${
-                isRegistered
-                  ? "bg-green-600 text-white cursor-not-allowed"
-                  : "bg-[#191A23] text-[#B9FF66] hover:bg-[#2A2B35] hover:scale-105"
-              }`}
-            >
-              <UserPlus className="w-5 h-5 mr-2" />
-              {isRegistered ? "Already Registered" : "Register Now"}
-            </button>
-          </div>
-        </section>
-      )}
 
       {/* Speakers Section - Using speakers array from API */}
       {event.speakers && event.speakers.length > 0 && (

@@ -53,7 +53,7 @@ const Footer = () => {
                 {/* Reduced horizontal spacing for mobile */}
                 <span className="text-sm text-gray-600">Follow us:</span>
                 <a
-                  href="#"
+                  href="https://www.instagram.com/eesa.cusat"
                   className="w-9 h-9 bg-gray-100 hover:bg-[#B9FF66] rounded-full flex items-center justify-center transition-all duration-300 group shadow-md"
                   aria-label="Instagram"
                 >
@@ -61,7 +61,7 @@ const Footer = () => {
                   {/* Slightly reduced icon size */}
                 </a>
                 <a
-                  href="#"
+                  href="https://www.facebook.com/p/EESA-CUSAT-100064166226427/"
                   className="w-9 h-9 bg-gray-100 hover:bg-[#B9FF66] rounded-full flex items-center justify-center transition-all duration-300 group shadow-md"
                   aria-label="Facebook"
                 >
@@ -69,7 +69,7 @@ const Footer = () => {
                   {/* Slightly reduced icon size */}
                 </a>
                 <a
-                  href="#"
+                  href="https://www.linkedin.com/company/88060018/"
                   className="w-9 h-9 bg-gray-100 hover:bg-[#B9FF66] rounded-full flex items-center justify-center transition-all duration-300 group shadow-md"
                   aria-label="LinkedIn"
                 >

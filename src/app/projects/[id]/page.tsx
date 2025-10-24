@@ -321,22 +321,22 @@ const ProjectDetailPage: React.FC = () => {
                   </div>
                 )}
 
-                <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-[#191A23] mb-6 leading-tight">
+                <h1 className="text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-[#191A23] mb-6 leading-tight">
                   {project.title}
                 </h1>
 
                 {/* Tags and Status */}
                 <div className="flex flex-wrap justify-center gap-4 mb-8">
-                  <div className="inline-flex items-center justify-center bg-[#191A23]/5 backdrop-blur-sm border border-[#191A23]/10 px-6 py-3 rounded-full w-48 h-12">
-                    <Tag className="w-5 h-5 text-[#191A23] mr-2" />
-                    <span className="text-[#191A23] font-semibold text-lg">
+                  <div className="inline-flex items-center justify-center bg-[#191A23]/5 backdrop-blur-sm border border-[#191A23]/10 px-4 py-2 rounded-full h-10 md:h-12">
+                    <Tag className="w-4 h-4 md:w-5 md:h-5 text-[#191A23] mr-2" />
+                    <span className="text-[#191A23] font-semibold text-sm md:text-base lg:text-lg">
                       {project.category}
                     </span>
                   </div>
 
                   {project.status && (
                     <div
-                      className={`inline-flex items-center justify-center px-4 py-2 rounded-full text-sm font-medium w-48 h-12 ${
+                      className={`inline-flex items-center justify-center px-3 py-2 rounded-full text-xs md:text-sm font-medium h-10 md:h-12 ${
                         project.status === "completed"
                           ? "bg-green-100 text-green-800 border border-green-200"
                           : "bg-orange-100 text-orange-800 border border-orange-200"
