@@ -16,6 +16,13 @@ const formatDate = (dateString: string) => {
   if (!dateString) return dateString;
   try {
     const date = new Date(dateString);
+    // Check if mobile view (window width < 640px)
+    if (typeof window !== 'undefined' && window.innerWidth < 640) {
+      return date.toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+      });
+    }
     return date.toLocaleDateString("en-US", {
       weekday: "long",
       year: "numeric",
@@ -238,7 +245,7 @@ function EventDetailPage() {
       {bannerUrl && (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl overflow-hidden">
-            <div className="relative h-64 sm:h-80 md:h-96 bg-gradient-to-br from-[#191A23] to-[#2A2B35]">
+            <div className="relative h-[100px] sm:h-80 md:h-96 bg-gradient-to-br from-[#191A23] to-[#2A2B35]">
               <Image
                 src={getImageUrl(bannerUrl) || bannerUrl}
                 alt={`${event.title} Banner`}
@@ -355,7 +362,7 @@ function EventDetailPage() {
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                View Event Gallery ({event.album.photo_count} Photos)
+                View Event Gallery
               </Link>
             </div>
           )}
@@ -387,13 +394,13 @@ function EventDetailPage() {
             <button
               onClick={handleRegister}
               disabled={isRegistered || isRegistering}
-              className={`inline-flex items-center px-8 py-4 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl ${
+              className={`inline-flex items-center px-6 py-3 rounded-xl font-medium transition-all shadow-lg hover:shadow-xl ${
                 isRegistered
                   ? "bg-green-600 text-white cursor-not-allowed"
                   : "bg-[#191A23] text-[#B9FF66] hover:bg-[#2A2B35] hover:scale-105"
               }`}
             >
-              <UserPlus className="w-6 h-6 mr-2" />
+              <UserPlus className="w-5 h-5 mr-2" />
               {isRegistered ? "Already Registered" : "Register Now"}
             </button>
           </div>

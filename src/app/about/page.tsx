@@ -259,13 +259,8 @@ export default function AboutPage() {
       setLoading(true);
       setError(null);
       try {
-        // Consolidated API call for team members, alumni stats, and entrepreneurship stats
-        const [teamResponse, statsResponse, entrepreneurshipResponse] =
-          await Promise.all([
-            fetch(`${API_BASE_URL}/accounts/team-members/`),
-            fetch(`${API_BASE_URL}/alumni/alumni/stats/`),
-            fetch(`${API_BASE_URL}/alumni/entrepreneurship-stats/`),
-          ]);
+        // Consolidated API call for team members only (removed alumni and entrepreneurship stats)
+        const teamResponse = await fetch(`${API_BASE_URL}/accounts/team-members/`);
 
         if (teamResponse.ok) {
           const teamData = await teamResponse.json();
@@ -281,21 +276,6 @@ export default function AboutPage() {
         } else {
           throw new Error("Failed to fetch team data.");
         }
-
-        if (statsResponse.ok) {
-          const statsData = await statsResponse.json();
-          setAlumniStats(statsData);
-        } else {
-          throw new Error("Failed to fetch alumni statistics.");
-        }
-
-        if (entrepreneurshipResponse.ok) {
-          const entrepreneurshipData = await entrepreneurshipResponse.json();
-          setEntrepreneurshipStats(entrepreneurshipData);
-        } else {
-          console.warn("Failed to fetch entrepreneurship statistics.");
-          setEntrepreneurshipStats(null);
-        }
       } catch (e: unknown) {
         console.error("Error fetching about page data:", e);
         setError(
@@ -304,8 +284,6 @@ export default function AboutPage() {
         // Ensure state is cleared on error
         setEesaTeam([]);
         setTechTeam([]);
-        setAlumniStats(null);
-        setEntrepreneurshipStats(null);
       } finally {
         setLoading(false);
       }

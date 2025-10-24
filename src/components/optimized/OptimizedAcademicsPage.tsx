@@ -402,7 +402,7 @@ const OptimizedAcademicsPage = () => {
         value={filters[field]}
         onChange={(e) => handleFilterChange(field, e.target.value)}
         disabled={disabled}
-        className="w-full p-4 border-3 border-black rounded-xl bg-white text-black font-medium text-base focus:outline-none focus:ring-0 hover:bg-gray-50 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
+        className="w-full p-4 border-3 border-black bg-white text-black font-medium text-base focus:outline-none focus:ring-0 hover:bg-gray-50 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
       >
         <option value="">Select {label}</option>
         {options.map((option) => (
