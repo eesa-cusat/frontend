@@ -5,11 +5,61 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Calendar, MapPin, Users, UserPlus, Clock, ArrowLeft, User } from "lucide-react";
 import Image from "next/image";
-import { eventsService, Event } from "@/services/eventsService";
 import { getImageUrl } from "@/utils/api";
 import RegistrationModal, {
   RegistrationFormData,
 } from "@/components/ui/RegistrationModal";
+import { api } from "@/lib/api";
+
+// Event type
+interface Event {
+  id: number;
+  title: string;
+  description: string;
+  start_date: string;
+  end_date: string;
+  location: string;
+  is_online: boolean;
+  meeting_link?: string;
+  registration_required: boolean;
+  is_registration_open: boolean;
+  max_capacity?: number;
+  current_registrations?: number;
+  is_paid: boolean;
+  payment_required: boolean;
+  registration_fee?: number;
+  payment_qr_code?: string;
+  payment_upi_id?: string;
+  upi_id?: string;
+  payment_instructions?: string;
+  flyer_url?: string;
+  event_flyer?: string;
+  banner_image?: string;
+  is_ongoing: boolean;
+  is_upcoming: boolean;
+  speakers?: Array<{
+    id: number;
+    name: string;
+    title?: string;
+    organization?: string;
+    bio?: string;
+    profile_image?: string;
+    linkedin_url?: string;
+    order: number;
+  }>;
+  schedule?: Array<{
+    title: string;
+    speaker_name?: string;
+    description?: string;
+    schedule_date?: string;
+    start_time: string;
+    end_time: string;
+  }>;
+  album?: {
+    id: number;
+    photo_count: number;
+  };
+}
 
 // Format date utility
 const formatDate = (dateString: string) => {
@@ -103,12 +153,12 @@ function EventDetailPage() {
       return;
     }
 
-    if (!eventsService.isRegistrationOpen(event)) {
+    if (!event.is_registration_open) {
       alert("Registration is closed for this event.");
       return;
     }
 
-    if (eventsService.isEventFull(event)) {
+    if (event.max_capacity && event.current_registrations && event.current_registrations >= event.max_capacity) {
       alert("This event has reached maximum capacity.");
       return;
     }
@@ -186,7 +236,8 @@ function EventDetailPage() {
       try {
         if (!id) return;
         
-        const eventData = await eventsService.getEvent(Number(id));
+        const response = await api.events.get(String(id));
+        const eventData = response.data;
         
         if (!eventData) {
           throw new Error("Event not found");
@@ -595,7 +646,7 @@ function EventDetailPage() {
         isPaidEvent={event.is_paid || event.payment_required}
         paymentQrCode={event.payment_qr_code ? getImageUrl(event.payment_qr_code) || event.payment_qr_code : undefined}
         paymentUpiId={upiId}
-        registrationFee={event.registration_fee}
+        registrationFee={event.registration_fee?.toString()}
         paymentInstructions={event.payment_instructions}
       />
     </div>
