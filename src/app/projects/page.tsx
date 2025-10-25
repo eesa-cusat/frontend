@@ -423,7 +423,7 @@ const ProjectsPage: React.FC = () => {
                   </button>
 
                   {isDropdownOpen && (
-                    <div className="absolute top-full left-0 mt-2 w-full bg-white border border-gray-100 rounded-xl shadow-xl z-20 overflow-hidden">
+                    <div className="absolute top-full left-0 mt-2 w-full bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden">
                       <div className="py-2">
                         {categories.map((category) => (
                           <button
@@ -450,67 +450,7 @@ const ProjectsPage: React.FC = () => {
                   )}
                 </div>
 
-                {/* Year Dropdown */}
-                <div className="relative w-full">
-                  <button
-                    onClick={() => setIsYearDropdownOpen(!isYearDropdownOpen)}
-                    className="w-full flex items-center justify-between bg-white border-2 border-[#191A23] text-[#191A23] px-6 py-4 rounded-xl hover:bg-gray-50 transition-colors font-medium shadow-lg"
-                  >
-                    <span className="flex items-center">
-                      <Calendar className="w-5 h-5 mr-2" />
-                      {selectedYear === "all" ? "All Years" : selectedYear}
-                    </span>
-                    <ChevronDown
-                      className={`w-5 h-5 transition-transform duration-300 ${
-                        isYearDropdownOpen ? "rotate-180" : ""
-                      }`}
-                    />
-                  </button>
-
-                  {isYearDropdownOpen && (
-                    <div className="absolute top-full left-0 mt-2 w-full bg-white border border-gray-100 rounded-xl shadow-xl z-20 overflow-hidden max-h-64 overflow-y-auto">
-                      <div className="py-2">
-                        <button
-                          onClick={() => {
-                            handleYearChange("all");
-                            setIsYearDropdownOpen(false);
-                          }}
-                          className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center ${
-                            selectedYear === "all"
-                              ? "bg-[#B9FF66]/10 text-[#191A23] font-medium border-r-4 border-[#B9FF66]"
-                              : "text-gray-700"
-                          }`}
-                        >
-                          <Calendar className="w-4 h-4 mr-3 text-gray-400" />
-                          All Years
-                          {selectedYear === "all" && (
-                            <div className="ml-auto w-2 h-2 bg-[#B9FF66] rounded-full"></div>
-                          )}
-                        </button>
-                        {availableYears.map((year) => (
-                          <button
-                            key={year}
-                            onClick={() => {
-                              handleYearChange(year);
-                              setIsYearDropdownOpen(false);
-                            }}
-                            className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center ${
-                              selectedYear === year
-                                ? "bg-[#B9FF66]/10 text-[#191A23] font-medium border-r-4 border-[#B9FF66]"
-                                : "text-gray-700"
-                            }`}
-                          >
-                            <Calendar className="w-4 h-4 mr-3 text-gray-400" />
-                            {year}
-                            {selectedYear === year && (
-                              <div className="ml-auto w-2 h-2 bg-[#B9FF66] rounded-full"></div>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                {/* Year filter removed per request */}
               </div>
             </div>
 
@@ -716,12 +656,6 @@ const ProjectsPage: React.FC = () => {
                           <Calendar className="w-4 h-4 mr-2" />
                           <span>{formatDate(project.created_at)}</span>
                         </div>
-                        {project.team_count && (
-                          <div className="flex items-center">
-                            <Users className="w-4 h-4 mr-2" />
-                            <span>{project.team_count} {project.team_count === 1 ? "Member" : "Members"}</span>
-                          </div>
-                        )}
                       </div>
 
                       {project.technologies && project.technologies.length > 0 && (
@@ -743,15 +677,16 @@ const ProjectsPage: React.FC = () => {
                       )}
 
                       <div className="flex gap-3 pt-4 border-t border-gray-100">
-                        {project.demo_url && (
-                          <button
-                            onClick={(e) => openLink(project.demo_url!, e)}
-                            className="flex-1 bg-[#191A23] hover:bg-[#2A2B35] text-[#B9FF66] px-4 py-3 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 flex items-center justify-center shadow-lg"
-                          >
-                            <ExternalLink className="w-4 h-4 mr-2" />
-                            Live Demo
-                          </button>
-                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.location.href = `/projects/${project.id}`;
+                          }}
+                          className="flex-1 bg-[#191A23] hover:bg-[#2A2B35] text-[#B9FF66] px-4 py-3 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 flex items-center justify-center shadow-lg"
+                        >
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          View Project
+                        </button>
                         {project.github_url && (
                           <button
                             onClick={(e) => openLink(project.github_url!, e)}

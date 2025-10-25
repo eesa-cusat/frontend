@@ -330,11 +330,11 @@ function EventDetailPage() {
                       <span>
                         {startDateTime.date}
                         {startDateTime.time && ` ${startDateTime.time}`}
+                        {endDateTime && <span className="sm:hidden"> -</span>}
                       </span>
                       {endDateTime && (
                         <span className="sm:inline">
                           <span className="hidden sm:inline"> - </span>
-                          <span className="sm:hidden">to </span>
                           {endDateTime.date}
                           {endDateTime?.time && ` ${endDateTime.time}`}
                         </span>
