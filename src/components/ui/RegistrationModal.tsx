@@ -511,16 +511,8 @@ export default function RegistrationModal({
                         // Proper UPI deep link format that works with Google Pay, PhonePe, Paytm, etc.
                         const upiUrl = `upi://pay?pa=${encodeURIComponent(paymentUpiId)}&pn=${encodeURIComponent('EESA Event')}&am=${amount}&cu=INR&tn=${encodeURIComponent(`Registration for ${eventTitle}`)}`;
                         
-                        // Try to open UPI apps
-                        const link = document.createElement('a');
-                        link.href = upiUrl;
-                        link.click();
-                        
-                        // Fallback: Open in new tab (for desktop users)
-                        setTimeout(() => {
-                          const googlePayUrl = `tez://upi/pay?pa=${encodeURIComponent(paymentUpiId)}&pn=${encodeURIComponent('EESA Event')}&am=${amount}&cu=INR&tn=${encodeURIComponent(`Registration for ${eventTitle}`)}`;
-                          window.open(googlePayUrl, '_blank');
-                        }, 500);
+                        // Open UPI payment app
+                        window.location.href = upiUrl;
                       }}
                       className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all shadow-md hover:shadow-lg"
                     >
