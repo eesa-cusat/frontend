@@ -6,8 +6,6 @@ import { Button } from "@/components/ui/button";
 import MarqueeNotifications from "@/components/ui/MarqueeNotifications";
 import AutoScrollCarousel from "@/components/ui/AutoScrollCarousel";
 import { EventCard, ProjectCard } from "@/components/ui/CarouselCards";
-import { useGlobalCache } from "@/lib/globalCache";
-import { useBackgroundPrefetch } from "@/lib/backgroundPrefetch";
 
 interface FeaturedEvent {
   id: number;
@@ -43,61 +41,12 @@ export default function Home() {
   );
   const [loading, setLoading] = useState(true);
 
-  // Cache and prefetch hooks
-  const { getData, setData } = useGlobalCache();
-  const { markHomepageLoaded } = useBackgroundPrefetch();
-
   useEffect(() => {
     const fetchFeaturedData = async () => {
       setLoading(true);
 
-      // Clear any cached invalid endpoints and stop future 404 requests
       try {
-        const { clearInvalidEndpointsCache, stopInvalidEndpointRequests } = await import("@/lib/backgroundPrefetch");
-        clearInvalidEndpointsCache();
-        stopInvalidEndpointRequests();
-      } catch (error) {
-        console.warn("Failed to clear invalid endpoints cache:", error);
-      }
-
-      // Check cache first for instant loading
-      const cachedEvents = getData("events", "list", 1);
-      const cachedProjects =
-        getData("projects", "featured", 1) || getData("projects", "list", 1);
-
-      if (cachedEvents?.results) {
-        const eventsWithFlyers = cachedEvents.results.filter(
-          (event: any) => event.is_featured
-        );
-        setFeaturedEvents(eventsWithFlyers.slice(0, 6));
-        console.log(`Loaded ${eventsWithFlyers.length} cached featured events`);
-      }
-
-      if (cachedProjects?.results) {
-        const rawFeaturedProjects = cachedProjects.results.filter(
-          (project: any) => project.is_featured === true
-        );
-        // Map thumbnail fields to image field for cached data
-        const featuredProjects = rawFeaturedProjects.map((project: any) => ({
-          ...project,
-          image: project.thumbnail || project.project_image || project.thumbnail_image || project.image
-        }));
-        setFeaturedProjects(featuredProjects.slice(0, 6));
-        console.log(
-          `Loaded ${featuredProjects.length} cached featured projects`
-        );
-      }
-
-      // If we have cached data, show it immediately and mark as loaded
-      if (cachedEvents && cachedProjects) {
-        setLoading(false);
-        // Mark homepage as loaded for background prefetch
-        markHomepageLoaded();
-        return;
-      }
-
-      try {
-        // Fetch featured events using api.events.featured()
+        // Fetch featured events - backend handles caching
         const eventsResponse = await import("@/lib/api").then((m) =>
           m.api.events.featured()
         );
@@ -132,20 +81,13 @@ export default function Home() {
         );
 
         setFeaturedEvents(eventsWithFlyers);
-
-        // Cache the events data
-        setData(
-          "events",
-          "list",
-          { results: eventsWithFlyers, count: eventsWithFlyers.length },
-          1
-        );
       } catch (error) {
         console.error("Error fetching featured events:", error);
         setFeaturedEvents([]);
       }
+
       try {
-        // Fetch featured projects with timeout and better error handling
+        // Fetch featured projects - backend handles caching
         const timeoutPromise = new Promise((_, reject) => {
           setTimeout(() => reject(new Error('Featured projects request timeout')), 5000);
         });
@@ -155,45 +97,21 @@ export default function Home() {
         );
         
         const projectsResponse = await Promise.race([projectsPromise, timeoutPromise]) as any;
-        const rawProjects = projectsResponse.data?.featured_projects || [];
-        
-        // Preserve all image fields from backend - don't override
-        const featuredProjects = rawProjects.map((project: any) => ({
-          ...project,
-          // Keep all original fields, no overriding
-        }));
+        const featuredProjects = projectsResponse.data?.featured_projects || [];
         
         console.log(
-          `🎯 Loaded ${featuredProjects.length} featured projects using optimized API client`
+          `🎯 Loaded ${featuredProjects.length} featured projects`
         );
         setFeaturedProjects(featuredProjects); // Backend already limits to 6
-
-        // Cache the featured projects data
-        setData("projects", "featured", { results: featuredProjects }, 1);
       } catch (error) {
         console.error("Failed to fetch featured projects:", error instanceof Error ? error.message : error);
         setFeaturedProjects([]);
-        
-        // Try to use any cached projects as fallback
-        const fallbackProjects = getData("projects", "list", 1);
-        if (fallbackProjects?.results) {
-          const featuredFallback = fallbackProjects.results
-            .filter((p: any) => p.is_featured)
-            .slice(0, 6);
-          if (featuredFallback.length > 0) {
-            setFeaturedProjects(featuredFallback);
-            console.log(`📦 Using ${featuredFallback.length} cached projects as fallback`);
-          }
-        }
       }
 
       setLoading(false);
-
-      // Mark homepage as loaded to trigger background prefetch
-      markHomepageLoaded();
     };
     fetchFeaturedData();
-  }, [getData, setData, markHomepageLoaded]);
+  }, []);
 
   return (
     <div className="min-h-screen bg-white font-sans">

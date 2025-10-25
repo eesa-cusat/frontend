@@ -26,7 +26,6 @@ import RegistrationModal, {
 import LazyImage from "@/components/ui/LazyImage";
 import { getImageUrl } from "@/utils/api";
 import { useToast } from "@/components/ui/Toast";
-import { useSeamlessNavigation, useProgressiveLoading } from "@/lib/seamlessNavigation";
 
 // Enhanced Event interface with gallery support
 interface Event {
@@ -55,21 +54,6 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
 
 export default function EventsPage() {
-  // Seamless navigation and caching
-  const {
-    isPageCached,
-    isDataLoaded,
-    markVisited,
-    cachePage,
-    getCachedData,
-    hasGlobalCacheData,
-    getGlobalCacheData,
-    storeInGlobalCache,
-    ensurePrefetch,
-    isPrefetching,
-    isInitialPrefetchDone
-  } = useSeamlessNavigation('events');
-
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -86,8 +70,6 @@ export default function EventsPage() {
     new Set()
   );
 
-  // Progressive loading for images
-  const { markImageLoaded, isImageLoaded, isImagesLoading } = useProgressiveLoading(events);
   const [registeredEvents, setRegisteredEvents] = useState<Set<number>>(
     new Set()
   );
@@ -146,27 +128,13 @@ export default function EventsPage() {
     }
   };
 
-  // Optimized fetch events from Django API with caching
+  // Fetch events from Django API - backend handles caching
   useEffect(() => {
-    const fetchEvents = async (useCache = true) => {
+    const fetchEvents = async () => {
       try {
-        // Check cache first for instant loading
-        if (useCache && searchQuery === "" && !showPastEvents && filterType === "all") {
-          const cachedData = getGlobalCacheData('events', 'list', currentPage);
-          
-          if (cachedData) {
-            const eventsArray = Array.isArray(cachedData.results) ? cachedData.results : [];
-            setEvents(eventsArray);
-            setTotalCount(cachedData.count || 0);
-            setTotalPages(Math.ceil((cachedData.count || 0) / 12));
-            setLoading(false);
-            return;
-          }
-        }
-
         setLoading(true);
 
-        // Fetch events with pagination - EventListSerializer now includes event_flyer
+        // Fetch events with pagination - EventListSerializer includes event_flyer
         const url = new URL(`${API_BASE_URL}/events/`);
         url.searchParams.append('page', currentPage.toString());
         url.searchParams.append('page_size', '12');
@@ -201,42 +169,6 @@ export default function EventsPage() {
 
     fetchEvents();
   }, [currentPage]);
-
-  // Initialize page with cache awareness
-  useEffect(() => {
-    // Mark page as visited for cache management
-    markVisited();
-    
-    // Start prefetch if not done
-    ensurePrefetch();
-    
-    // Load cached page state
-    const cachedData = getCachedData();
-    if (cachedData) {
-      setEvents(cachedData.events || []);
-      setCurrentPage(cachedData.currentPage || 1);
-      setSearchQuery(cachedData.searchQuery || "");
-      setShowPastEvents(cachedData.showPastEvents || false);
-      setFilterType(cachedData.filterType || "all");
-    }
-  }, [markVisited, ensurePrefetch, getCachedData]);
-
-  // Cache page state when events change
-  useEffect(() => {
-    if (events.length > 0) {
-      const pageState = {
-        events,
-        currentPage,
-        searchQuery,
-        showPastEvents,
-        filterType,
-        filterStatus,
-        totalCount,
-        totalPages
-      };
-      cachePage(() => null, pageState); // Use null as component since we're just caching data
-    }
-  }, [events, currentPage, searchQuery, showPastEvents, filterType, filterStatus, totalCount, totalPages, cachePage]);
 
   // Enhanced filtering with type and status filters
   const filteredEvents = events.filter((event) => {

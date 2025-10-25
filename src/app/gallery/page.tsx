@@ -22,7 +22,6 @@ import {
 } from "lucide-react";
 import LazyImage from "@/components/ui/LazyImage";
 import { getImageUrl } from "@/utils/api";
-import { useSeamlessNavigation, useProgressiveLoading } from "@/lib/seamlessNavigation";
 
 // API Configuration
 const API_BASE_URL =
@@ -67,24 +66,6 @@ const GalleryPage: React.FC = () => {
   if (albumIdFromUrl) {
     console.log("🎯 Gallery page loaded with album ID from URL:", albumIdFromUrl);
   }
-
-  // Seamless navigation and caching
-  const {
-    isPageCached,
-    isDataLoaded,
-    markVisited,
-    cachePage,
-    getCachedData,
-    hasGlobalCacheData,
-    getGlobalCacheData,
-    storeInGlobalCache,
-    ensurePrefetch,
-    isPrefetching,
-    isInitialPrefetchDone
-  } = useSeamlessNavigation('gallery');
-
-  // Progressive loading for images
-  const { markImageLoaded, isImageLoaded, isImagesLoading } = useProgressiveLoading([]);
 
   // Albums state
   const [albums, setAlbums] = useState<Album[]>([]);
@@ -143,25 +124,9 @@ const GalleryPage: React.FC = () => {
     [searchTimeout, viewMode, selectedAlbum]
   );
 
-  // Fetch albums with pagination
+  // Fetch albums with pagination - backend handles caching
   const fetchAlbums = useCallback(
-    async (searchTerm = "", albumType = "all", page = 1, useCache = true) => {
-      // Check cache first for instant loading
-      if (useCache && searchTerm === "" && albumType === "all") {
-        const cachedData = getGlobalCacheData('gallery', 'albums', page);
-        
-        if (cachedData) {
-          setAlbums(cachedData.results || []);
-          setAlbumsTotalCount(cachedData.count || 0);
-          setAlbumsTotalPages(Math.ceil((cachedData.count || 0) / 12));
-          setAlbumsHasNextPage(!!cachedData.next);
-          setAlbumsHasPrevPage(!!cachedData.previous);
-          setAlbumsCurrentPage(page);
-          setAlbumsLoading(false);
-          return;
-        }
-      }
-
+    async (searchTerm = "", albumType = "all", page = 1) => {
       setAlbumsLoading(true);
       setAlbumsError(null);
       try {
@@ -193,11 +158,6 @@ const GalleryPage: React.FC = () => {
         setAlbumsHasNextPage(!!data.next);
         setAlbumsHasPrevPage(!!data.previous);
         setAlbumsCurrentPage(page);
-
-        // Cache data for future use (only cache basic list pages)
-        if (searchTerm === "" && albumType === "all") {
-          storeInGlobalCache('gallery', 'albums', data, page);
-        }
       } catch (err) {
         console.error("Error fetching albums:", err);
         setAlbumsError("Failed to load albums. Please try again later.");
@@ -355,26 +315,10 @@ const GalleryPage: React.FC = () => {
     });
   };
 
-  // Initialize page with cache awareness
+  // Initialize page - fetch albums on mount
   useEffect(() => {
-    // Mark page as visited for cache management
-    markVisited();
-    
-    // Start prefetch if not done
-    ensurePrefetch();
-    
-    // Load cached page state
-    const cachedData = getCachedData();
-    if (cachedData) {
-      setAlbums(cachedData.albums || []);
-      setAlbumsCurrentPage(cachedData.albumsCurrentPage || 1);
-      setSearchQuery(cachedData.searchQuery || "");
-      setSelectedAlbumType(cachedData.selectedAlbumType || "all");
-      setViewMode(cachedData.viewMode || "albums");
-    } else {
-      fetchAlbums("", "all", 1);
-    }
-  }, [fetchAlbums, markVisited, ensurePrefetch, getCachedData]);
+    fetchAlbums("", "all", 1);
+  }, [fetchAlbums]);
 
   // Handle album ID from URL parameter - run independently of albums loading
   useEffect(() => {
@@ -477,22 +421,6 @@ const GalleryPage: React.FC = () => {
 
     loadAlbumFromUrl();
   }, [albumIdFromUrl, albums]);
-
-  // Cache page state when data changes
-  useEffect(() => {
-    if (albums.length > 0) {
-      const pageState = {
-        albums,
-        albumsCurrentPage,
-        searchQuery,
-        selectedAlbumType,
-        viewMode,
-        albumsTotalCount,
-        albumsTotalPages
-      };
-      cachePage(() => null, pageState);
-    }
-  }, [albums, albumsCurrentPage, searchQuery, selectedAlbumType, viewMode, albumsTotalCount, albumsTotalPages, cachePage]);
 
   // Photo Modal Component
   const PhotoModal = () => {

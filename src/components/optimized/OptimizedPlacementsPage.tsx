@@ -69,36 +69,6 @@ interface PlacementOverview {
   };
 }
 
-// Cache utilities
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-const getCachedData = (key: string) => {
-  if (typeof window === 'undefined') return null;
-  try {
-    const cached = localStorage.getItem(key);
-    if (!cached) return null;
-    const { data, timestamp } = JSON.parse(cached);
-    if (Date.now() - timestamp > CACHE_DURATION) {
-      localStorage.removeItem(key);
-      return null;
-    }
-    return data;
-  } catch {
-    return null;
-  }
-};
-
-const setCachedData = (key: string, data: any) => {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(key, JSON.stringify({
-      data,
-      timestamp: Date.now()
-    }));
-  } catch {
-    // Storage quota exceeded
-  }
-};
-
 const OptimizedPlacementsPage = () => {
   const [drives, setDrives] = useState<PlacementDrive[]>([]);
   const [placedStudents, setPlacedStudents] = useState<PlacedStudent[]>([]);
@@ -126,15 +96,6 @@ const OptimizedPlacementsPage = () => {
 
   const fetchDrives = useCallback(async (page: number = 1) => {
     try {
-      const cacheKey = `drives_p${page}_s${searchTerm}_jt${jobTypeFilter}`;
-      const cached = getCachedData(cacheKey);
-      if (cached) {
-        setDrives(cached.results);
-        setDrivesTotalPages(Math.ceil(cached.count / 12));
-        setDrivesTotal(cached.count);
-        return;
-      }
-
       const params = new URLSearchParams({
         page: page.toString(),
         page_size: '12'
@@ -155,8 +116,6 @@ const OptimizedPlacementsPage = () => {
       setDrives(results);
       setDrivesTotalPages(Math.ceil(data.count / 12));
       setDrivesTotal(data.count);
-      
-      setCachedData(cacheKey, data);
     } catch (error) {
       console.error("Error fetching drives:", error);
       setError("Failed to load placement drives");
@@ -165,14 +124,6 @@ const OptimizedPlacementsPage = () => {
 
   const fetchPlacedStudents = useCallback(async (page: number = 1) => {
     try {
-      const cacheKey = `placed_p${page}_s${searchTerm}_c${categoryFilter}_b${batchYearFilter}`;
-      const cached = getCachedData(cacheKey);
-      if (cached) {
-        setPlacedStudents(cached.results);
-        setPlacedTotalPages(Math.ceil(cached.count / 12));
-        setPlacedTotal(cached.count);
-        return;
-      }
 
       const params = new URLSearchParams({
         page: page.toString(),
@@ -195,8 +146,6 @@ const OptimizedPlacementsPage = () => {
       setPlacedStudents(results);
       setPlacedTotalPages(Math.ceil(data.count / 12));
       setPlacedTotal(data.count);
-      
-      setCachedData(cacheKey, data);
     } catch (error) {
       console.error("Error fetching placed students:", error);
       setError("Failed to load placed students");
@@ -205,12 +154,6 @@ const OptimizedPlacementsPage = () => {
 
   const fetchOverview = useCallback(async () => {
     try {
-      const cached = getCachedData('placement_overview');
-      if (cached) {
-        setOverview(cached.overview);
-        return;
-      }
-
       const response = await fetch(`${apiBaseUrl}/placements/overview/`);
       
       if (!response.ok) {
@@ -219,7 +162,6 @@ const OptimizedPlacementsPage = () => {
       
       const data = await response.json();
       setOverview(data.overview);
-      setCachedData('placement_overview', data);
     } catch (error) {
       console.error("Error fetching overview:", error);
       // Set fallback overview

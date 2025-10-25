@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import LazyImage from "@/components/ui/LazyImage";
 import { getImageUrl } from "@/utils/api";
-import { useSeamlessNavigation } from "@/lib/seamlessNavigation";
 
 // Project interface matching updated backend schema
 interface Project {
@@ -70,21 +69,6 @@ interface Project {
 }
 
 const ProjectsPage: React.FC = () => {
-  // Seamless navigation and caching
-  const {
-    isPageCached,
-    isDataLoaded,
-    markVisited,
-    cachePage,
-    getCachedData,
-    hasGlobalCacheData,
-    getGlobalCacheData,
-    storeInGlobalCache,
-    ensurePrefetch,
-    isPrefetching,
-    isInitialPrefetchDone
-  } = useSeamlessNavigation('projects');
-
   // State management
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
@@ -138,25 +122,9 @@ const ProjectsPage: React.FC = () => {
     }
   }, []);
 
-  // Optimized fetch with caching and progressive loading
+  // Fetch projects from API - backend handles caching
   const fetchProjects = useCallback(
-    async (searchTerm = "", categoryFilter = "all", yearFilter = "all", page = 1, useCache = true) => {
-      // Check cache first for instant loading
-      if (useCache && searchTerm === "" && categoryFilter === "all" && yearFilter === "all") {
-        const cacheKey = `projects_list_${page}`;
-        const cachedData = getGlobalCacheData('projects', 'list', page);
-        
-        if (cachedData) {
-          setProjects(cachedData.results || []);
-          setTotalCount(cachedData.count || 0);
-          setTotalPages(Math.ceil((cachedData.count || 0) / 12));
-          setHasNextPage(!!cachedData.next);
-          setHasPrevPage(!!cachedData.previous);
-          setLoading(false);
-          return;
-        }
-      }
-
+    async (searchTerm = "", categoryFilter = "all", yearFilter = "all", page = 1) => {
       setLoading(true);
       setError(null);
       
@@ -224,11 +192,6 @@ const ProjectsPage: React.FC = () => {
         })));
 
         setProjects(transformedProjects);
-
-        // Cache data for future use (only cache basic list pages, not filtered/searched results)
-        if (searchTerm === "" && categoryFilter === "all" && yearFilter === "all") {
-          storeInGlobalCache('projects', 'list', data, page);
-        }
       } catch (err) {
         console.error("Error fetching projects:", err);
         setError("Failed to load projects. Please try again later.");
@@ -236,7 +199,7 @@ const ProjectsPage: React.FC = () => {
         setLoading(false);
       }
     },
-    [getGlobalCacheData, storeInGlobalCache]
+    []
   );
 
   const debouncedSearch = useCallback(
@@ -283,20 +246,14 @@ const ProjectsPage: React.FC = () => {
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  // Initialize page with cache awareness
+  // Initialize page - fetch projects and years on mount
   useEffect(() => {
-    // Mark page as visited for cache management
-    markVisited();
-    
-    // Start prefetch if not done
-    ensurePrefetch();
-    
-    // Fetch available years first (always, to get all years including 2026)
+    // Fetch available years first
     fetchAvailableYears();
     
-    // Force fresh fetch to ensure we get thumbnail data
-    fetchProjects("", "all", "all", 1, false);
-  }, [fetchProjects, fetchAvailableYears, markVisited, ensurePrefetch]);
+    // Fetch projects
+    fetchProjects("", "all", "all", 1);
+  }, [fetchProjects, fetchAvailableYears]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -309,23 +266,6 @@ const ProjectsPage: React.FC = () => {
   const handleRetry = () => {
     fetchProjects(searchQuery, selectedCategory, selectedYear, currentPage);
   };
-
-  // Cache page state when projects change
-  useEffect(() => {
-    if (projects.length > 0) {
-      const pageState = {
-        projects,
-        currentPage,
-        selectedCategory,
-        searchQuery,
-        totalCount,
-        totalPages,
-        hasNextPage,
-        hasPrevPage
-      };
-      cachePage(ProjectsPage, pageState);
-    }
-  }, [projects, currentPage, selectedCategory, searchQuery, totalCount, totalPages, hasNextPage, hasPrevPage, cachePage]);
 
   if (loading && projects.length === 0) {
     return (

@@ -95,39 +95,6 @@ const CACHE_KEYS = {
   ACADEMIC_DATA: "academic_data_v2",
 };
 
-// Cache duration in milliseconds (5 minutes for data, 30 minutes for filters)
-const DATA_CACHE_DURATION = 5 * 60 * 1000;
-const FILTER_CACHE_DURATION = 30 * 60 * 1000;
-
-// Cache management functions
-const getCachedData = (key: string, duration = FILTER_CACHE_DURATION) => {
-  if (typeof window === "undefined") return null;
-  try {
-    const cached = localStorage.getItem(key);
-    if (!cached) return null;
-    const data = JSON.parse(cached);
-    const timestamp = localStorage.getItem(`${key}_timestamp`);
-    if (!timestamp || Date.now() - parseInt(timestamp) > duration) {
-      localStorage.removeItem(key);
-      localStorage.removeItem(`${key}_timestamp`);
-      return null;
-    }
-    return data;
-  } catch {
-    return null;
-  }
-};
-
-const setCachedData = (key: string, data: unknown) => {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(key, JSON.stringify(data));
-    localStorage.setItem(`${key}_timestamp`, Date.now().toString());
-  } catch {
-    // Storage quota exceeded or other error
-  }
-};
-
 const OptimizedAcademicsPage = () => {
   const [showFilters, setShowFilters] = useState(true);
   const [filters, setFilters] = useState<FilterState>({
@@ -175,35 +142,9 @@ const OptimizedAcademicsPage = () => {
     fetchOptimizedData();
   }, []);
 
-  // Load cached data after hydration to prevent hydration mismatch
+  // Load initial data after hydration
   useEffect(() => {
     setIsHydrated(true);
-
-    // Load cached data only on client side
-    const cachedFilters = getCachedData(CACHE_KEYS.FILTERS);
-    const cachedResources = getCachedData(CACHE_KEYS.RESOURCES);
-    const cachedViewState = getCachedData(CACHE_KEYS.VIEW_STATE);
-    const cachedAcademicData = getCachedData(
-      CACHE_KEYS.ACADEMIC_DATA,
-      DATA_CACHE_DURATION
-    );
-
-    if (cachedFilters) {
-      setFilters(cachedFilters);
-    }
-
-    if (cachedResources) {
-      setResources(cachedResources);
-    }
-
-    if (cachedViewState?.showFilters === false) {
-      setShowFilters(false);
-    }
-
-    if (cachedAcademicData) {
-      setAcademicData(cachedAcademicData);
-      setInitialLoading(false);
-    }
   }, []);
 
   const fetchOptimizedData = async () => {
@@ -223,9 +164,6 @@ const OptimizedAcademicsPage = () => {
       };
 
       setAcademicData(optimizedData);
-
-      // Cache the academic data
-      setCachedData(CACHE_KEYS.ACADEMIC_DATA, optimizedData);
     } catch (error) {
       console.error("Error in fetchOptimizedData:", error);
       setBackendError(true);
@@ -242,9 +180,6 @@ const OptimizedAcademicsPage = () => {
     const updatedFilters = { ...filters, [field]: value };
     setFilters(updatedFilters);
 
-    // Cache the updated filters
-    setCachedData(CACHE_KEYS.FILTERS, updatedFilters);
-
     // Reset dependent fields
     if (field === "department") {
       const resetFilters = {
@@ -254,7 +189,6 @@ const OptimizedAcademicsPage = () => {
         subject_id: "",
       };
       setFilters(resetFilters);
-      setCachedData(CACHE_KEYS.FILTERS, resetFilters);
     }
     if (field === "scheme_id") {
       const resetFilters = {
@@ -263,7 +197,6 @@ const OptimizedAcademicsPage = () => {
         subject_id: "",
       };
       setFilters(resetFilters);
-      setCachedData(CACHE_KEYS.FILTERS, resetFilters);
     }
     if (field === "semester") {
       const resetFilters = {
@@ -271,7 +204,6 @@ const OptimizedAcademicsPage = () => {
         subject_id: "",
       };
       setFilters(resetFilters);
-      setCachedData(CACHE_KEYS.FILTERS, resetFilters);
     }
   };
 
@@ -325,11 +257,6 @@ const OptimizedAcademicsPage = () => {
 
       setResources(transformedResources);
 
-      // Cache the filters, resources, and view state
-      setCachedData(CACHE_KEYS.FILTERS, filters);
-      setCachedData(CACHE_KEYS.RESOURCES, transformedResources);
-      setCachedData(CACHE_KEYS.VIEW_STATE, { showFilters: false });
-
       setShowFilters(false);
     } catch (error) {
       console.error("Error fetching resources:", error);
@@ -343,8 +270,6 @@ const OptimizedAcademicsPage = () => {
 
   const handleBackToFilters = () => {
     setShowFilters(true);
-    // Update view state cache
-    setCachedData(CACHE_KEYS.VIEW_STATE, { showFilters: true });
   };
 
   const handleNewSearch = () => {
