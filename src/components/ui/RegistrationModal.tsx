@@ -508,15 +508,26 @@ export default function RegistrationModal({
                       type="button"
                       onClick={() => {
                         const amount = registrationFee?.replace(/[^0-9.]/g, '') || '';
-                        const upiUrl = `upi://pay?pa=${paymentUpiId}&pn=Event Registration&am=${amount}&cu=INR&tn=${encodeURIComponent(eventTitle)}`;
-                        window.location.href = upiUrl;
+                        // Proper UPI deep link format that works with Google Pay, PhonePe, Paytm, etc.
+                        const upiUrl = `upi://pay?pa=${encodeURIComponent(paymentUpiId)}&pn=${encodeURIComponent('EESA Event')}&am=${amount}&cu=INR&tn=${encodeURIComponent(`Registration for ${eventTitle}`)}`;
+                        
+                        // Try to open UPI apps
+                        const link = document.createElement('a');
+                        link.href = upiUrl;
+                        link.click();
+                        
+                        // Fallback: Open in new tab (for desktop users)
+                        setTimeout(() => {
+                          const googlePayUrl = `tez://upi/pay?pa=${encodeURIComponent(paymentUpiId)}&pn=${encodeURIComponent('EESA Event')}&am=${amount}&cu=INR&tn=${encodeURIComponent(`Registration for ${eventTitle}`)}`;
+                          window.open(googlePayUrl, '_blank');
+                        }, 500);
                       }}
-                      className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-colors shadow-md"
+                      className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all shadow-md hover:shadow-lg"
                     >
-                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M21.5 5h-19C1.67 5 1 5.67 1 6.5v11c0 .83.67 1.5 1.5 1.5h19c.83 0 1.5-.67 1.5-1.5v-11c0-.83-.67-1.5-1.5-1.5zm-1 11.5h-17v-9h17v9z"/>
                       </svg>
-                      Pay via UPI (Google Pay / PhonePe)
+                      Pay via Google Pay/PhonePe
                     </button>
                   </div>
                 )}
