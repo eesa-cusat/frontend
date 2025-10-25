@@ -95,7 +95,7 @@ const CACHE_KEYS = {
   ACADEMIC_DATA: "academic_data_v2",
 };
 
-const OptimizedAcademicsPage = () => {
+export default function AcademicsPage() {
   const [showFilters, setShowFilters] = useState(true);
   const [filters, setFilters] = useState<FilterState>({
     department: "",
@@ -622,6 +622,4 @@ const OptimizedAcademicsPage = () => {
       </div>
     </div>
   );
-};
-
-export default OptimizedAcademicsPage;
+}

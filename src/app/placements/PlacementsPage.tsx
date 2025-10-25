@@ -69,7 +69,7 @@ interface PlacementOverview {
   };
 }
 
-const OptimizedPlacementsPage = () => {
+export default function PlacementsPage() {
   const [drives, setDrives] = useState<PlacementDrive[]>([]);
   const [placedStudents, setPlacedStudents] = useState<PlacedStudent[]>([]);
   const [overview, setOverview] = useState<PlacementOverview["overview"] | null>(null);
@@ -711,6 +711,4 @@ const OptimizedPlacementsPage = () => {
       </section>
     </div>
   );
-};
-
-export default OptimizedPlacementsPage;
+}
