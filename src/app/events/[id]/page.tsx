@@ -32,6 +32,7 @@ interface Event {
   payment_upi_id?: string;
   upi_id?: string;
   payment_instructions?: string;
+  is_food_available?: boolean;
   flyer_url?: string;
   event_flyer?: string;
   banner_image?: string;
