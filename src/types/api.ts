@@ -161,6 +161,11 @@ export interface Event {
   max_participants?: number;
   registration_count: number;
   registration_fee: string;
+  payment_required?: boolean;
+  payment_qr_code?: string;
+  payment_upi_id?: string;
+  payment_instructions?: string;
+  is_food_available?: boolean;
   banner_image?: string;
   created_by_name: string;
   is_active?: boolean;
@@ -172,6 +177,7 @@ export interface Event {
   spots_remaining: number;
   created_at: string;
   updated_at?: string;
+  is_paid?: boolean;
 }
 
 export interface EventCreate {

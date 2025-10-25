@@ -182,9 +182,9 @@ function EventDetailPage() {
         year_of_study: formData.year_of_study?.trim() || '',
         organization: formData.organization?.trim() || '',
         designation: formData.designation?.trim() || '',
-        dietary_requirements: formData.dietary_requirements?.trim() || '',
+        food_preference: formData.food_preference?.trim() || '',
         special_needs: formData.special_needs?.trim() || '',
-        payment_reference: formData.payment_reference?.trim() || '',
+        payment_reference_id: formData.payment_reference_id?.trim() || '',
       };
 
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
@@ -202,16 +202,16 @@ function EventDetailPage() {
         alert("🎉 Registration successful! We're excited to have you join us for this event.");
       } else {
         const errorData = await response.json().catch(() => ({}));
-        if (
-          errorData.detail &&
-          errorData.detail.includes("already registered")
-        ) {
+        
+        // Check for duplicate email error
+        if (errorData.error && errorData.error.includes("already registered")) {
           setShowRegistrationModal(false);
           setIsRegistered(true);
-          alert("You are already registered for this event.");
+          alert("⚠️ This email address is already registered for this event.");
         } else {
           throw new Error(
-            errorData.message ||
+            errorData.error ||
+              errorData.message ||
               errorData.detail ||
               `Registration failed (${response.status})`
           );
@@ -648,6 +648,7 @@ function EventDetailPage() {
         paymentUpiId={upiId}
         registrationFee={event.registration_fee?.toString()}
         paymentInstructions={event.payment_instructions}
+        isFoodAvailable={event.is_food_available || false}
       />
     </div>
   );

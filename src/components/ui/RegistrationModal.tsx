@@ -27,6 +27,7 @@ interface RegistrationModalProps {
   paymentUpiId?: string;
   registrationFee?: string;
   paymentInstructions?: string;
+  isFoodAvailable?: boolean;
 }
 
 export interface RegistrationFormData {
@@ -42,9 +43,9 @@ export interface RegistrationFormData {
   organization?: string;
   designation?: string;
   // Optional fields
-  dietary_requirements?: string;
+  food_preference?: 'veg' | 'non_veg' | '';
   special_needs?: string;
-  payment_reference?: string;
+  payment_reference_id?: string;
 }
 
 export default function RegistrationModal({
@@ -58,6 +59,7 @@ export default function RegistrationModal({
   paymentUpiId,
   registrationFee,
   paymentInstructions,
+  isFoodAvailable = false,
 }: RegistrationModalProps) {
   const [formData, setFormData] = useState<RegistrationFormData>({
     name: "",
@@ -69,9 +71,9 @@ export default function RegistrationModal({
     year_of_study: "",
     organization: "",
     designation: "",
-    dietary_requirements: "",
+    food_preference: "",
     special_needs: "",
-    payment_reference: "",
+    payment_reference_id: "",
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof RegistrationFormData, string>>>({});
@@ -116,8 +118,8 @@ export default function RegistrationModal({
     }
 
     // Payment Reference required for paid events
-    if (isPaidEvent && !formData.payment_reference?.trim()) {
-      newErrors.payment_reference = "Payment Reference ID is required for paid events";
+    if (isPaidEvent && !formData.payment_reference_id?.trim()) {
+      newErrors.payment_reference_id = "Payment Reference ID is required for paid events";
     }
 
     setErrors(newErrors);
@@ -144,9 +146,9 @@ export default function RegistrationModal({
         year_of_study: "",
         organization: "",
         designation: "",
-        dietary_requirements: "",
+        food_preference: "",
         special_needs: "",
-        payment_reference: "",
+        payment_reference_id: "",
       });
       setErrors({});
     } catch (error) {
@@ -425,21 +427,25 @@ export default function RegistrationModal({
             )}
 
             {/* Optional Fields */}
-            <div>
-              <label className="block text-sm font-medium text-[#191A23] mb-2">
-                Dietary Requirements
-              </label>
-              <input
-                type="text"
-                value={formData.dietary_requirements || ''}
-                onChange={(e) =>
-                  handleInputChange("dietary_requirements", e.target.value)
-                }
-                disabled={isRegistering}
-                className="w-full px-4 py-3 border rounded-lg bg-white text-[#191A23] placeholder-[#191A23]/50 focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all border-gray-300"
-                placeholder="Any dietary restrictions or special meals needed (optional)"
-              />
-            </div>
+            {isFoodAvailable && (
+              <div>
+                <label className="block text-sm font-medium text-[#191A23] mb-2">
+                  Food Preference *
+                </label>
+                <select
+                  value={formData.food_preference || ''}
+                  onChange={(e) =>
+                    handleInputChange("food_preference", e.target.value)
+                  }
+                  disabled={isRegistering}
+                  className="w-full px-4 py-3 border rounded-lg bg-white text-[#191A23] focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all border-gray-300"
+                >
+                  <option value="">Select your food preference</option>
+                  <option value="veg">Vegetarian</option>
+                  <option value="non_veg">Non-Vegetarian</option>
+                </select>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-[#191A23] mb-2">
@@ -528,20 +534,20 @@ export default function RegistrationModal({
                   </label>
                   <input
                     type="text"
-                    value={formData.payment_reference || ''}
+                    value={formData.payment_reference_id || ''}
                     onChange={(e) =>
-                      handleInputChange("payment_reference", e.target.value)
+                      handleInputChange("payment_reference_id", e.target.value)
                     }
                     disabled={isRegistering}
                     required={isPaidEvent}
                     className={`w-full px-4 py-3 border rounded-lg bg-white text-[#191A23] placeholder-[#191A23]/50 focus:outline-none focus:ring-2 focus:ring-[#B9FF66] focus:border-transparent transition-all ${
-                      errors.payment_reference ? "border-red-500" : "border-gray-300"
+                      errors.payment_reference_id ? "border-red-500" : "border-gray-300"
                     }`}
                     placeholder={isPaidEvent ? "Enter UPI Reference/Transaction ID" : "Payment reference ID (if payment was made)"}
                   />
-                  {errors.payment_reference && (
+                  {errors.payment_reference_id && (
                     <p className="text-red-500 text-xs mt-1 font-semibold">
-                      {errors.payment_reference}
+                      {errors.payment_reference_id}
                     </p>
                   )}
                   {isPaidEvent && (
