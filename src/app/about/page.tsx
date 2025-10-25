@@ -43,34 +43,6 @@ interface TeamMember {
   order: number;
 }
 
-interface AlumniStats {
-  total_alumni: number;
-  employed_count: number;
-  higher_studies_count: number;
-  self_employed_count: number; // This represents self-employed alumni (different from entrepreneurs)
-  unemployment_rate: number;
-  top_companies: Array<{
-    current_company: string;
-    count: number;
-  }>;
-}
-
-interface EntrepreneurshipStats {
-  total_alumni: number;
-  total_entrepreneurs: number;
-  entrepreneurship_rate: number;
-  recent_entrepreneurs_count: number;
-  startup_sectors: Array<{
-    job_title: string;
-    count: number;
-  }>;
-  entrepreneurship_by_year: Array<{
-    year_of_passout: number;
-    count: number;
-  }>;
-  success_stories_count: number;
-}
-
 // Reusable Team Member Card component - Larger round design
 const TeamMemberCard = ({
   member,
@@ -244,9 +216,6 @@ const TechTeamSection = ({
 export default function AboutPage() {
   const [eesaTeam, setEesaTeam] = useState<TeamMember[]>([]);
   const [techTeam, setTechTeam] = useState<TeamMember[]>([]);
-  const [alumniStats, setAlumniStats] = useState<AlumniStats | null>(null);
-  const [entrepreneurshipStats, setEntrepreneurshipStats] =
-    useState<EntrepreneurshipStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
@@ -259,7 +228,7 @@ export default function AboutPage() {
       setLoading(true);
       setError(null);
       try {
-        // Consolidated API call for team members only (removed alumni and entrepreneurship stats)
+        // Fetch team members only
         const teamResponse = await fetch(`${API_BASE_URL}/accounts/team-members/`);
 
         if (teamResponse.ok) {
@@ -346,7 +315,7 @@ export default function AboutPage() {
                   </div>
                   <p className="text-lg text-gray-700 leading-relaxed mb-6 sm:mb-8 relative z-10">
                     To create a vibrant community of electrical and electronics
-                    engineering students, faculty, and alumni that fosters
+                    engineering students and faculty that fosters
                     learning, innovation, and professional growth through shared
                     knowledge, collaborative projects, and meaningful
                     connections.

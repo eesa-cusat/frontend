@@ -23,7 +23,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "EESA - Electrical and Electronics Students Association",
   description:
-    "Platform for EESA students, teachers, and alumni to share notes, projects, events, and career opportunities",
+    "Platform for EESA students and teachers to share notes, projects, events, and career opportunities",
   keywords:
     "EESA, electrical engineering, electronics, students, association, notes, projects, careers",
   authors: [{ name: "EESA Team" }],
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "EESA - Electrical and Electronics Students Association",
     description:
-      "Platform for EESA students, teachers, and alumni to share notes, projects, events, and career opportunities",
+      "Platform for EESA students and teachers to share notes, projects, events, and career opportunities",
     url: "https://eesacusat.in",
     siteName: "EESA CUSAT",
     type: "website",
@@ -50,7 +50,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "EESA - Electrical and Electronics Students Association",
     description:
-      "Platform for EESA students, teachers, and alumni to share notes, projects, events, and career opportunities",
+      "Platform for EESA students and teachers to share notes, projects, events, and career opportunities",
     images: ["/eesa-logo.svg"],
   },
 };
