@@ -88,7 +88,7 @@ interface AcademicData {
 
 // Cache keys for localStorage
 const CACHE_KEYS = {
-  FILTERS: "academics_filters_v2",
+  FILTERS: "academics_filters_v3",
   RESOURCES: "academics_resources_v2",
   TIMESTAMP: "academics_timestamp_v2",
   VIEW_STATE: "academics_view_state_v2",
@@ -110,6 +110,7 @@ export default function AcademicsPage() {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [backendError, setBackendError] = useState(false);
+  const [filtersLoaded, setFiltersLoaded] = useState(false);
 
   // Academic data state
   const [academicData, setAcademicData] = useState<AcademicData>({
@@ -142,9 +143,24 @@ export default function AcademicsPage() {
     fetchOptimizedData();
   }, []);
 
-  // Load initial data after hydration
+  // Load initial data after hydration and restore saved filters
   useEffect(() => {
     setIsHydrated(true);
+
+    // Load saved filters from localStorage
+    if (typeof window !== "undefined") {
+      try {
+        const savedFilters = localStorage.getItem(CACHE_KEYS.FILTERS);
+        if (savedFilters) {
+          const parsedFilters = JSON.parse(savedFilters);
+          console.log("📋 Restoring saved filters:", parsedFilters);
+          setFilters(parsedFilters);
+          setFiltersLoaded(true);
+        }
+      } catch (error) {
+        console.error("Error loading saved filters:", error);
+      }
+    }
   }, []);
 
   const fetchOptimizedData = async () => {
@@ -189,21 +205,39 @@ export default function AcademicsPage() {
         subject_id: "",
       };
       setFilters(resetFilters);
-    }
-    if (field === "scheme_id") {
+      // Save to localStorage
+      saveFiltersToStorage(resetFilters);
+    } else if (field === "scheme_id") {
       const resetFilters = {
         ...updatedFilters,
         semester: "",
         subject_id: "",
       };
       setFilters(resetFilters);
-    }
-    if (field === "semester") {
+      // Save to localStorage
+      saveFiltersToStorage(resetFilters);
+    } else if (field === "semester") {
       const resetFilters = {
         ...updatedFilters,
         subject_id: "",
       };
       setFilters(resetFilters);
+      // Save to localStorage
+      saveFiltersToStorage(resetFilters);
+    } else {
+      // Save to localStorage for other fields
+      saveFiltersToStorage(updatedFilters);
+    }
+  };
+
+  const saveFiltersToStorage = (filtersToSave: FilterState) => {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(CACHE_KEYS.FILTERS, JSON.stringify(filtersToSave));
+        console.log("💾 Saved filters to localStorage:", filtersToSave);
+      } catch (error) {
+        console.error("Error saving filters:", error);
+      }
     }
   };
 
@@ -273,21 +307,33 @@ export default function AcademicsPage() {
   };
 
   const handleNewSearch = () => {
-    // Clear all cache and reset state
+    // Clear resources cache but keep filter preferences
+    localStorage.removeItem(CACHE_KEYS.RESOURCES);
+    localStorage.removeItem(CACHE_KEYS.TIMESTAMP);
+    localStorage.removeItem(`${CACHE_KEYS.RESOURCES}_timestamp`);
+
+    setShowFilters(true);
+    setResources([]);
+  };
+
+  const handleClearAllFilters = () => {
+    // Clear ALL cache including saved filters
     Object.values(CACHE_KEYS).forEach((key) => {
       localStorage.removeItem(key);
       localStorage.removeItem(`${key}_timestamp`);
     });
     setShowFilters(true);
-    setFilters({
+    const emptyFilters = {
       department: "",
       scheme_id: "",
       semester: "",
       subject_id: "",
       category: "",
       module: "",
-    });
+    };
+    setFilters(emptyFilters);
     setResources([]);
+    console.log("🗑️ Cleared all filters and cache");
   };
 
   const getSelectedScheme = () => {
@@ -409,9 +455,7 @@ export default function AcademicsPage() {
             <div className="bg-gray-50 rounded-3xl p-8 min-h-[500px] flex items-center justify-center">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
-                <p className="text-gray-600">
-                  Loading academic data (optimized)...
-                </p>
+                <p className="text-gray-600">Loading academic data</p>
               </div>
             </div>
           ) : backendError ? (
