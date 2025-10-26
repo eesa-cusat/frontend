@@ -74,8 +74,8 @@ const TeamMemberCard = ({
       onClick={handleClick}
       className={`group flex flex-col items-center ${member.linkedin_url ? 'cursor-pointer' : ''}`}
     >
-      {/* Larger round profile image */}
-      <div className="relative w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 mb-3 rounded-full overflow-hidden border-4 border-white shadow-lg group-hover:shadow-2xl transition-all duration-300 group-hover:border-[#B9FF66] group-hover:scale-105">
+      {/* Larger round profile image - Recommended: 400x400px square images */}
+      <div className="relative w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 mb-3 rounded-full overflow-hidden border-4 border-white shadow-lg group-hover:shadow-2xl transition-all duration-300 group-hover:scale-105">
         {member.image ? (
           <img
             src={getImageUrl(member.image) || undefined}
@@ -90,7 +90,7 @@ const TeamMemberCard = ({
       </div>
 
       {/* Name and position */}
-      <h3 className="text-base sm:text-lg font-bold text-black text-center group-hover:text-[#B9FF66] transition-colors mb-1 px-2">
+      <h3 className="text-base sm:text-lg font-bold text-black text-center transition-colors mb-1 px-2">
         {member.name}
       </h3>
       <p className="text-sm text-gray-600 text-center px-2 line-clamp-2">
