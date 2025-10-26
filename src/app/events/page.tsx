@@ -97,12 +97,12 @@ export default function EventsPage() {
     });
   };
 
-  const getStatusColor = (status: string) => {
+    const getStatusColor = (status: string) => {
     switch (status) {
-      case 'upcoming': return 'bg-blue-100 text-blue-800';
-      case 'completed': return 'bg-[#191A23]/10 text-[#191A23]';
-      case 'ongoing': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'ongoing': return 'bg-green-100 text-green-800 border-green-300';
+      case 'upcoming': return 'bg-blue-100 text-blue-800 border-blue-300';
+      case 'completed': return 'bg-gray-100 text-gray-700 border-gray-300';
+      default: return 'bg-gray-100 text-gray-700';
     }
   };
 
@@ -330,19 +330,12 @@ export default function EventsPage() {
         <section className="h-[25vh] min-h-[300px] bg-gradient-to-b from-[#F3F3F3] to-white flex items-center">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
             <div className="text-center">
-              <div className="flex items-center justify-center mb-6">
-                <div className="w-16 h-16 bg-[#191A23] rounded-2xl flex items-center justify-center mr-4 shadow-lg transform rotate-3">
-                  <Calendar className="w-8 h-8 text-[#B9FF66]" />
-                </div>
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#191A23]">
-                  Events
-                </h1>
-              </div>
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-[#191A23] mb-6">
+                Events
+              </h1>
               <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed mb-6">
                 Discover cutting-edge workshops, inspiring seminars, and transformative technical events
               </p>
-              
-
             </div>
           </div>
         </section>
