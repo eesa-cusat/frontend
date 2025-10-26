@@ -101,7 +101,7 @@ export default function EventsPage() {
     switch (status) {
       case 'ongoing': return 'bg-green-100 text-green-800 border-green-300';
       case 'upcoming': return 'bg-blue-100 text-blue-800 border-blue-300';
-      case 'completed': return 'bg-gray-100 text-gray-700 border-gray-300';
+      case 'completed': return 'bg-orange-100 text-orange-800 border-orange-300';
       default: return 'bg-gray-100 text-gray-700';
     }
   };
@@ -326,24 +326,20 @@ export default function EventsPage() {
       <ToastContainer />
 
       <div className="min-h-screen bg-[#F3F3F3] font-sans">
-        {/* Hero Section - Quarter Height */}
-        <section className="h-[25vh] min-h-[300px] bg-gradient-to-b from-[#F3F3F3] to-white flex items-center">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-            <div className="text-center">
+        {/* Hero Section */}
+        <section className="py-20 bg-gradient-to-b from-[#F3F3F3] to-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-[#191A23] mb-6">
                 Events
               </h1>
-              <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed mb-6">
+              <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
                 Discover cutting-edge workshops, inspiring seminars, and transformative technical events
               </p>
             </div>
-          </div>
-        </section>
 
         {/* Search and Filters */}
-        <section className="bg-white shadow-lg border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 mb-12">
               <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
                 <div className="relative flex-1 max-w-md">
                   <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -458,7 +454,7 @@ export default function EventsPage() {
         <section className="py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center mb-8">
-              <h2 className="text-3xl font-bold text-[#191A23]">
+              <h2 className="text-2xl md:text-3xl font-bold text-[#191A23]">
                 {showPastEvents ? "Past Events" : "Upcoming Events"}
               </h2>
               <span className="text-[#191A23] font-semibold bg-[#B9FF66]/20 px-4 py-2 rounded-full">

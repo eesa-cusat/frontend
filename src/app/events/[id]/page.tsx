@@ -343,7 +343,7 @@ function EventDetailPage() {
       {/* Event Details */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl p-8">
-          <h1 className="text-2xl md:text-4xl font-bold text-[#191A23] mb-4">
+          <h1 className="text-xl md:text-4xl font-bold text-[#191A23] mb-4">
             {event.title}
           </h1>
 
