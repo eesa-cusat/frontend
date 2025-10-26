@@ -37,7 +37,9 @@ const Footer = () => {
                 />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-[#191A23]">EESA</h3>{" "}
+                <h3 className="text-xl font-bold text-[#191A23]">
+                  <span className="font-bold">EESA</span>
+                </h3>{" "}
                 {/* Slightly reduced font size for mobile */}
                 <p className="text-sm text-gray-600">
                   Electrical Engineering Students Association

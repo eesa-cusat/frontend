@@ -61,11 +61,6 @@ const GalleryPage: React.FC = () => {
   // Get URL search parameters
   const searchParams = useSearchParams();
   const albumIdFromUrl = searchParams.get('album');
-  
-  // Debug: Log URL parameters
-  if (albumIdFromUrl) {
-    console.log("🎯 Gallery page loaded with album ID from URL:", albumIdFromUrl);
-  }
 
   // Albums state
   const [albums, setAlbums] = useState<Album[]>([]);
@@ -329,17 +324,13 @@ const GalleryPage: React.FC = () => {
       
       // Check if we have a valid album ID
       if (isNaN(albumId)) {
-        console.error("Invalid album ID from URL:", albumIdFromUrl);
         return;
       }
-      
-      console.log("🔍 Loading album from URL parameter:", albumId);
       
       // First, try to find in current albums list if available
       if (albums.length > 0) {
         const album = albums.find(a => a.id === albumId);
         if (album) {
-          console.log("✅ Album found in current list:", album.name);
           setSelectedAlbum(album);
           setViewMode("photos");
           // Fetch photos for this album

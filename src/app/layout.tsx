@@ -90,11 +90,11 @@ export default function RootLayout({
             if ('serviceWorker' in navigator && window.location.hostname === 'eesacusat.in') {
               window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
-                  .then((registration) => {
-                    console.log('SW registered: ', registration);
+                  .then(() => {
+                    // Service worker registered successfully
                   })
-                  .catch((registrationError) => {
-                    console.log('SW registration failed: ', registrationError);
+                  .catch((error) => {
+                    console.error('SW registration failed:', error);
                   });
               });
             }

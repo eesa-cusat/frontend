@@ -20,8 +20,6 @@ export async function POST(
       guest_department: body.department?.toLowerCase() || 'other',
     };
 
-    console.log('Attempting guest registration with data:', guestRegistrationData);
-
     // Try the registrations endpoint directly
     const response = await fetch(`${API_BASE_URL}/events/registrations/`, {
       method: 'POST',
@@ -32,11 +30,8 @@ export async function POST(
       body: JSON.stringify(guestRegistrationData),
     });
 
-    console.log('Backend response status:', response.status);
-
     if (!response.ok) {
       const errorText = await response.text();
-      console.log('Backend error response:', errorText);
       
       // If authentication is required, return a helpful message
       if (response.status === 403 || response.status === 401) {
@@ -68,7 +63,6 @@ export async function POST(
     }
 
     const data = await response.json();
-    console.log('Registration successful:', data);
     return NextResponse.json(data);
   } catch (error) {
     console.error('Error registering for event:', error);

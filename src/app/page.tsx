@@ -99,9 +99,6 @@ export default function Home() {
         const projectsResponse = await Promise.race([projectsPromise, timeoutPromise]) as any;
         const featuredProjects = projectsResponse.data?.featured_projects || [];
         
-        console.log(
-          `🎯 Loaded ${featuredProjects.length} featured projects`
-        );
         setFeaturedProjects(featuredProjects); // Backend already limits to 6
       } catch (error) {
         console.error("Failed to fetch featured projects:", error instanceof Error ? error.message : error);

@@ -153,7 +153,6 @@ export default function AcademicsPage() {
         const savedFilters = localStorage.getItem(CACHE_KEYS.FILTERS);
         if (savedFilters) {
           const parsedFilters = JSON.parse(savedFilters);
-          console.log("📋 Restoring saved filters:", parsedFilters);
           setFilters(parsedFilters);
           setFiltersLoaded(true);
         }
@@ -234,7 +233,6 @@ export default function AcademicsPage() {
     if (typeof window !== "undefined") {
       try {
         localStorage.setItem(CACHE_KEYS.FILTERS, JSON.stringify(filtersToSave));
-        console.log("💾 Saved filters to localStorage:", filtersToSave);
       } catch (error) {
         console.error("Error saving filters:", error);
       }
@@ -333,7 +331,6 @@ export default function AcademicsPage() {
     };
     setFilters(emptyFilters);
     setResources([]);
-    console.log("🗑️ Cleared all filters and cache");
   };
 
   const getSelectedScheme = () => {
