@@ -18,7 +18,6 @@ interface Event {
   description: string;
   start_date: string;
   end_date: string;
-  registration_deadline?: string;
   location: string;
   is_online: boolean;
   meeting_link?: string;
@@ -300,7 +299,6 @@ function EventDetailPage() {
   }
 
   const flyerUrl = event.flyer_url || event.event_flyer;
-  const bannerUrl = event.banner_image;
   const upiId = event.upi_id || event.payment_upi_id;
 
   return (
@@ -318,33 +316,9 @@ function EventDetailPage() {
         </div>
       </div>
 
-      {/* Event Banner - Show First */}
-      {bannerUrl && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl overflow-hidden">
-            <div className="relative h-[100px] sm:h-48 md:h-56 lg:h-64 bg-gradient-to-br from-[#191A23] to-[#2A2B35]">
-              <Image
-                src={getImageUrl(bannerUrl) || bannerUrl}
-                alt={`${event.title} Banner`}
-                fill
-                className="object-cover cursor-pointer"
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
-                onClick={() => window.open(getImageUrl(bannerUrl) || bannerUrl, "_blank")}
-              />
-              {event.is_paid && (
-                <div className="absolute top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-full font-bold flex items-center gap-2 shadow-lg">
-                  <span className="text-lg">💳</span>
-                  Paid Event
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Event Flyer - Show After Banner, Before Details */}
+      {/* Event Flyer */}
       {flyerUrl && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="backdrop-blur-xl bg-white/70 border border-white/50 shadow-lg rounded-2xl overflow-hidden">
             <div className="relative bg-gradient-to-br from-[#191A23] to-[#2A2B35]">
               <Image
@@ -355,6 +329,12 @@ function EventDetailPage() {
                 className="w-full h-auto object-contain cursor-pointer"
                 onClick={() => window.open(getImageUrl(flyerUrl) || flyerUrl, "_blank")}
               />
+              {event.is_paid && (
+                <div className="absolute top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-full font-bold flex items-center gap-2 shadow-lg">
+                  <span className="text-lg">💳</span>
+                  Paid Event
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -369,42 +349,33 @@ function EventDetailPage() {
 
           {/* Date, Time and Location */}
           <div className="flex flex-wrap gap-4 mb-6">
-            <div className="flex items-start gap-2 text-gray-600">
-              <Calendar className="w-5 h-5 text-[#B9FF66] mt-0.5" />
-              <div className="flex flex-col">
-                <span className="font-bold">
-                  {(() => {
-                    const startDateTime = formatDateTime(event.start_date);
-                    const endDateTime = event.end_date && event.end_date !== event.start_date 
-                      ? formatDateTime(event.end_date) 
-                      : null;
-                    
-                    return (
-                      <span className="flex flex-col sm:inline">
-                        <span>
-                          {startDateTime.date}
-                          {startDateTime.time && ` ${startDateTime.time}`}
-                          {endDateTime && <span className="sm:hidden"> -</span>}
-                        </span>
-                        {endDateTime && (
-                          <span className="sm:inline">
-                            <span className="hidden sm:inline"> - </span>
-                            {endDateTime.date}
-                            {endDateTime?.time && ` ${endDateTime.time}`}
-                          </span>
-                        )}
+            <div className="flex items-center gap-2 text-gray-600">
+              <Calendar className="w-5 h-5 text-[#B9FF66]" />
+              <span className="font-bold">
+                {(() => {
+                  const startDateTime = formatDateTime(event.start_date);
+                  const endDateTime = event.end_date && event.end_date !== event.start_date 
+                    ? formatDateTime(event.end_date) 
+                    : null;
+                  
+                  return (
+                    <span className="flex flex-col sm:inline">
+                      <span>
+                        {startDateTime.date}
+                        {startDateTime.time && ` ${startDateTime.time}`}
+                        {endDateTime && <span className="sm:hidden"> -</span>}
                       </span>
-                    );
-                  })()}
-                </span>
-                {event.registration_deadline && (
-                  <span className="text-sm text-gray-500 mt-1">
-                    Registration closes: {formatDateTime(event.registration_deadline).date}
-                    {formatDateTime(event.registration_deadline).time && 
-                      ` ${formatDateTime(event.registration_deadline).time}`}
-                  </span>
-                )}
-              </div>
+                      {endDateTime && (
+                        <span className="sm:inline">
+                          <span className="hidden sm:inline"> - </span>
+                          {endDateTime.date}
+                          {endDateTime?.time && ` ${endDateTime.time}`}
+                        </span>
+                      )}
+                    </span>
+                  );
+                })()}
+              </span>
             </div>
             {event.location && (
               <div className="flex items-center gap-2 text-gray-600">

@@ -489,12 +489,12 @@ export default function EventsPage() {
                     className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-200 hover:border-[#B9FF66] cursor-pointer"
                     onClick={() => window.location.href = `/events/${event.id}`}
                   >
-                    {/* Cover Photo - Using Image component like homepage EventCard */}
+                    {/* Cover Photo - Prioritize banner_image for listing, fallback to flyer */}
                     <div className="relative h-32 md:h-36 overflow-hidden">
-                      {(event.event_flyer || event.banner_image || event.flyer_url) ? (
+                      {(event.banner_image || event.event_flyer || event.flyer_url) ? (
                         <>
                           <Image
-                            src={getImageUrl(event.event_flyer || event.banner_image || event.flyer_url) || ""}
+                            src={getImageUrl(event.banner_image || event.event_flyer || event.flyer_url) || ""}
                             alt={event.title}
                             fill
                             className="object-cover transition-all duration-500 hover:scale-105"
