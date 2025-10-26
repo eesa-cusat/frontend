@@ -24,23 +24,27 @@ const Footer = () => {
             {" "}
             {/* Reduced vertical spacing for mobile */}
             {/* Logo and name section */}
-            <div className="flex flex-row items-center space-x-4 text-center sm:text-left">
-              {" "}
-              {/* Changed to flex-row for mobile, removed flex-col sm:flex-row */}
-              <div className="relative">
-                <Image
-                  src="/eesa-logo.svg"
-                  alt="EESA Logo"
-                  width={56} // Slightly reduced logo size for better mobile fit
-                  height={56}
-                  className="w-14 h-14"
-                />
+            <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4 text-center sm:text-left">
+              <div className="flex items-center space-x-4">
+                <div className="relative">
+                  <Image
+                    src="/eesa-logo.svg"
+                    alt="EESA Logo"
+                    width={56}
+                    height={56}
+                    className="w-14 h-14"
+                  />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-[#191A23]">EESA</h3>
+                </div>
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-[#191A23]">
-                  <span className="font-bold">EESA</span>
-                </h3>{" "}
-                {/* Slightly reduced font size for mobile */}
+              <div className="sm:hidden">
+                <p className="text-sm text-gray-600">
+                  Electrical Engineering Students Association
+                </p>
+              </div>
+              <div className="hidden sm:block">
                 <p className="text-sm text-gray-600">
                   Electrical Engineering Students Association
                 </p>
