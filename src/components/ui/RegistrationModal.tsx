@@ -568,7 +568,7 @@ export default function RegistrationModal({
                 type="button"
                 onClick={onClose}
                 disabled={isRegistering}
-                className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-3 rounded-lg font-medium transition-all"
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-black py-3 rounded-lg font-medium transition-all"
               >
                 Cancel
               </Button>

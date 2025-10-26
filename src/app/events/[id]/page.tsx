@@ -18,6 +18,7 @@ interface Event {
   description: string;
   start_date: string;
   end_date: string;
+  registration_deadline?: string;
   location: string;
   is_online: boolean;
   meeting_link?: string;
@@ -368,33 +369,42 @@ function EventDetailPage() {
 
           {/* Date, Time and Location */}
           <div className="flex flex-wrap gap-4 mb-6">
-            <div className="flex items-center gap-2 text-gray-600">
-              <Calendar className="w-5 h-5 text-[#B9FF66]" />
-              <span className="font-bold">
-                {(() => {
-                  const startDateTime = formatDateTime(event.start_date);
-                  const endDateTime = event.end_date && event.end_date !== event.start_date 
-                    ? formatDateTime(event.end_date) 
-                    : null;
-                  
-                  return (
-                    <span className="flex flex-col sm:inline">
-                      <span>
-                        {startDateTime.date}
-                        {startDateTime.time && ` ${startDateTime.time}`}
-                        {endDateTime && <span className="sm:hidden"> -</span>}
-                      </span>
-                      {endDateTime && (
-                        <span className="sm:inline">
-                          <span className="hidden sm:inline"> - </span>
-                          {endDateTime.date}
-                          {endDateTime?.time && ` ${endDateTime.time}`}
+            <div className="flex items-start gap-2 text-gray-600">
+              <Calendar className="w-5 h-5 text-[#B9FF66] mt-0.5" />
+              <div className="flex flex-col">
+                <span className="font-bold">
+                  {(() => {
+                    const startDateTime = formatDateTime(event.start_date);
+                    const endDateTime = event.end_date && event.end_date !== event.start_date 
+                      ? formatDateTime(event.end_date) 
+                      : null;
+                    
+                    return (
+                      <span className="flex flex-col sm:inline">
+                        <span>
+                          {startDateTime.date}
+                          {startDateTime.time && ` ${startDateTime.time}`}
+                          {endDateTime && <span className="sm:hidden"> -</span>}
                         </span>
-                      )}
-                    </span>
-                  );
-                })()}
-              </span>
+                        {endDateTime && (
+                          <span className="sm:inline">
+                            <span className="hidden sm:inline"> - </span>
+                            {endDateTime.date}
+                            {endDateTime?.time && ` ${endDateTime.time}`}
+                          </span>
+                        )}
+                      </span>
+                    );
+                  })()}
+                </span>
+                {event.registration_deadline && (
+                  <span className="text-sm text-gray-500 mt-1">
+                    Registration closes: {formatDateTime(event.registration_deadline).date}
+                    {formatDateTime(event.registration_deadline).time && 
+                      ` ${formatDateTime(event.registration_deadline).time}`}
+                  </span>
+                )}
+              </div>
             </div>
             {event.location && (
               <div className="flex items-center gap-2 text-gray-600">

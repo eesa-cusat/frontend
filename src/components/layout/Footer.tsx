@@ -24,9 +24,9 @@ const Footer = () => {
             {" "}
             {/* Reduced vertical spacing for mobile */}
             {/* Logo and name section */}
-            <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4 text-center sm:text-left">
+            <div className="flex flex-row items-center space-x-4 text-center sm:text-left">
               {" "}
-              {/* Reduced vertical spacing for mobile */}
+              {/* Changed to flex-row for mobile, removed flex-col sm:flex-row */}
               <div className="relative">
                 <Image
                   src="/eesa-logo.svg"
