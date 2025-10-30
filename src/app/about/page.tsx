@@ -131,7 +131,7 @@ const StatCard = ({
   </div>
 );
 
-// EESA Team Section - Mobile: Staff coordinator first (single), then 2 per row | Desktop: First 3 centered, then full rows
+// EESA Team Section - Mobile: First member alone, then 2 per row | Desktop: First 3 centered, then full rows
 const EESATeamSection = ({
   title,
   description,
@@ -141,7 +141,7 @@ const EESATeamSection = ({
   description: string;
   teamMembers: TeamMember[];
 }) => {
-  const staffCoordinator = teamMembers.length > 0 ? teamMembers[0] : null;
+  const firstMember = teamMembers.length > 0 ? teamMembers[0] : null;
   const remainingMobile = teamMembers.slice(1);
   const firstThree = teamMembers.slice(0, 3);
   const remainingDesktop = teamMembers.slice(3);
@@ -155,14 +155,14 @@ const EESATeamSection = ({
         <p className="text-lg text-gray-600 max-w-4xl mx-auto">{description}</p>
       </div>
       
-      {/* Mobile Layout: Staff Coordinator first (single), then 2 per row */}
+      {/* Mobile Layout: First member alone, then 2 per row */}
       <div className="md:hidden">
-        {/* Staff Coordinator - Single, Centered */}
-        {staffCoordinator && (
+        {/* First member - Single, Centered */}
+        {firstMember && (
           <div className="flex justify-center mb-8">
             <TeamMemberCard
-              key={staffCoordinator.id}
-              member={staffCoordinator}
+              key={firstMember.id}
+              member={firstMember}
               index={0}
             />
           </div>
