@@ -6,9 +6,8 @@ Allow: /about
 Allow: /academics
 Allow: /events
 Allow: /projects
-Allow: /careers
+Allow: /career
 Allow: /gallery
-Allow: /alumni
 Allow: /library
 Allow: /placements
 
