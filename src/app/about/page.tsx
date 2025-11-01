@@ -131,7 +131,7 @@ const StatCard = ({
   </div>
 );
 
-// EESA Team Section - First 3 centered, then full rows
+// EESA Team Section - Mobile: First member alone, then 2 per row | Desktop: First 3 centered, then full rows
 const EESATeamSection = ({
   title,
   description,
@@ -141,8 +141,10 @@ const EESATeamSection = ({
   description: string;
   teamMembers: TeamMember[];
 }) => {
+  const firstMember = teamMembers.length > 0 ? teamMembers[0] : null;
+  const remainingMobile = teamMembers.slice(1);
   const firstThree = teamMembers.slice(0, 3);
-  const remaining = teamMembers.slice(3);
+  const remainingDesktop = teamMembers.slice(3);
 
   return (
     <div>
@@ -153,31 +155,61 @@ const EESATeamSection = ({
         <p className="text-lg text-gray-600 max-w-4xl mx-auto">{description}</p>
       </div>
       
-      {/* First 3 members centered */}
-      {firstThree.length > 0 && (
-        <div className="flex justify-center gap-6 sm:gap-8 md:gap-12 mb-8 sm:mb-12">
-          {firstThree.map((member, index) => (
+      {/* Mobile Layout: First member alone, then 2 per row */}
+      <div className="md:hidden">
+        {/* First member - Single, Centered */}
+        {firstMember && (
+          <div className="flex justify-center mb-8">
             <TeamMemberCard
-              key={member.id}
-              member={member}
-              index={index}
+              key={firstMember.id}
+              member={firstMember}
+              index={0}
             />
-          ))}
-        </div>
-      )}
-      
-      {/* Remaining members in grid */}
-      {remaining.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 sm:gap-8 md:gap-10">
-          {remaining.map((member, index) => (
-            <TeamMemberCard
-              key={member.id}
-              member={member}
-              index={index + 3}
-            />
-          ))}
-        </div>
-      )}
+          </div>
+        )}
+        
+        {/* Remaining members - 2 per row on mobile */}
+        {remainingMobile.length > 0 && (
+          <div className="grid grid-cols-2 gap-6">
+            {remainingMobile.map((member, index) => (
+              <TeamMemberCard
+                key={member.id}
+                member={member}
+                index={index + 1}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Layout: First 3 centered, then full grid rows */}
+      <div className="hidden md:block">
+        {/* First 3 members centered */}
+        {firstThree.length > 0 && (
+          <div className="flex justify-center gap-8 md:gap-12 mb-8 sm:mb-12">
+            {firstThree.map((member, index) => (
+              <TeamMemberCard
+                key={member.id}
+                member={member}
+                index={index}
+              />
+            ))}
+          </div>
+        )}
+        
+        {/* Remaining members in grid */}
+        {remainingDesktop.length > 0 && (
+          <div className="grid grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-8 md:gap-10">
+            {remainingDesktop.map((member, index) => (
+              <TeamMemberCard
+                key={member.id}
+                member={member}
+                index={index + 3}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
