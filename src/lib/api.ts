@@ -155,8 +155,12 @@ export const api = {
 
   // Alumni
   alumni: {
-    list: (params?: any) => apiClient.get('/alumni/', { params }),
-    get: (id: string) => apiClient.get(`/alumni/${id}/`),
+    list: (params?: any) => apiClient.get('/alumni/alumni/', { params }),
+    get: (id: string) => apiClient.get(`/alumni/alumni/${id}/`),
+    stats: () => apiClient.get('/alumni/alumni/stats/'),
+    batchStats: () => apiClient.get('/alumni/alumni/batch_stats/'),
+    batches: (params?: any) => apiClient.get('/alumni/batches/', { params }),
+    getBatch: (id: string) => apiClient.get(`/alumni/batches/${id}/`),
   },
 };
 
