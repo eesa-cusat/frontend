@@ -260,23 +260,32 @@ export default function AboutPage() {
       setLoading(true);
       setError(null);
       try {
-        // Fetch team members only
-        const teamResponse = await fetch(`${API_BASE_URL}/accounts/team-members/`);
-
-        if (teamResponse.ok) {
-          const teamData = await teamResponse.json();
-          const allMembers = teamData.results || [];
-          const eesaTeamFiltered = allMembers.filter(
-            (member: { team_type: string }) => member.team_type === "eesa"
-          );
-          const techTeamFiltered = allMembers.filter(
-            (member: { team_type: string }) => member.team_type === "tech"
-          );
-          setEesaTeam(eesaTeamFiltered);
-          setTechTeam(techTeamFiltered);
-        } else {
-          throw new Error("Failed to fetch team data.");
+        // Fetch all team members (handle pagination)
+        let allMembers: TeamMember[] = [];
+        let nextUrl: string | null = `${API_BASE_URL}/accounts/team-members/`;
+        
+        // Fetch all pages
+        while (nextUrl) {
+          const teamResponse = await fetch(nextUrl);
+          
+          if (teamResponse.ok) {
+            const teamData = await teamResponse.json();
+            allMembers = [...allMembers, ...(teamData.results || [])];
+            nextUrl = teamData.next; // Get next page URL
+          } else {
+            throw new Error("Failed to fetch team data.");
+          }
         }
+        
+        // Filter team members by type
+        const eesaTeamFiltered = allMembers.filter(
+          (member: { team_type: string }) => member.team_type === "eesa"
+        );
+        const techTeamFiltered = allMembers.filter(
+          (member: { team_type: string }) => member.team_type === "tech"
+        );
+        setEesaTeam(eesaTeamFiltered);
+        setTechTeam(techTeamFiltered);
       } catch (e: unknown) {
         console.error("Error fetching about page data:", e);
         setError(
