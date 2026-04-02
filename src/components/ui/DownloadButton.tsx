@@ -11,6 +11,7 @@ interface DownloadButtonProps {
   resourceTitle: string;
   resourceFile?: string;
   initialCount?: number;
+  disableInitialStatsFetch?: boolean;
   onDownloadChange?: (newCount: number) => void;
 }
 
@@ -108,12 +109,17 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
   resourceTitle,
   resourceFile,
   initialCount = 0,
+  disableInitialStatsFetch = false,
   onDownloadChange
 }) => {
   const [downloadCount, setDownloadCount] = useState<number>(initialCount);
   const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
+    if (disableInitialStatsFetch) {
+      setDownloadCount(initialCount);
+      return;
+    }
     // Load initial download count from backend
     const loadResourceStats = async () => {
       try {
@@ -127,7 +133,7 @@ const DownloadButton: React.FC<DownloadButtonProps> = ({
     };
     
     loadResourceStats();
-  }, [resourceId, initialCount]);
+  }, [resourceId, initialCount, disableInitialStatsFetch]);
 
   const handleDownload = async () => {
     if (loading) return;

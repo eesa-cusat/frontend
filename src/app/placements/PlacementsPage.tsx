@@ -57,7 +57,7 @@ interface PaginationInfo {
   count: number;
   next: string | null;
   previous: string | null;
-  results: any[];
+  results: unknown[];
 }
 
 interface PlacementOverview {

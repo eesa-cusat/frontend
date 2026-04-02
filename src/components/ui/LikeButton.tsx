@@ -9,6 +9,8 @@ import { Heart } from 'lucide-react';
 interface LikeButtonProps {
   resourceId: number;
   initialCount?: number;
+  initialLiked?: boolean;
+  disableInitialStatsFetch?: boolean;
   onLikeChange?: (newCount: number) => void;
 }
 
@@ -94,13 +96,20 @@ const getResourceStats = async (resourceId: number) => {
 const LikeButton: React.FC<LikeButtonProps> = ({
   resourceId,
   initialCount = 0,
+  initialLiked = false,
+  disableInitialStatsFetch = false,
   onLikeChange
 }) => {
-  const [liked, setLiked] = useState<boolean>(false);
+  const [liked, setLiked] = useState<boolean>(initialLiked);
   const [likeCount, setLikeCount] = useState<number>(initialCount);
   const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
+    if (disableInitialStatsFetch) {
+      setLiked(initialLiked);
+      setLikeCount(initialCount);
+      return;
+    }
     // Load initial like status and stats from backend
     const loadResourceStats = async () => {
       try {
@@ -116,7 +125,7 @@ const LikeButton: React.FC<LikeButtonProps> = ({
     };
     
     loadResourceStats();
-  }, [resourceId, initialCount]);
+  }, [resourceId, initialCount, initialLiked, disableInitialStatsFetch]);
 
   const handleLike = async () => {
     if (loading) return;

@@ -20,6 +20,32 @@ import { formatDate } from "@/lib/utils";
 
 import { Note } from "@/types/api";
 
+type AcademicDataResponse = {
+  schemes: Array<{ id: number; name: string; year: number }>;
+  subjects: Record<
+    string,
+    Record<string, Record<string, Array<{ id: string; name: string; code: string; semester: number }>>>
+  >;
+};
+type SchemeOption = { id: number; name: string; year: number };
+type SubjectOption = { id: string; name: string; code: string; semester: number };
+type ResourceApiItem = {
+  id: string;
+  title: string;
+  description: string;
+  module_number?: number;
+  file?: string | null;
+  created_at: string;
+  uploaded_by?: { id?: string | number; name?: string };
+  subject?: {
+    id?: string | number;
+    name?: string;
+    code?: string;
+    semester?: number;
+    scheme?: { id: number; year: number; name: string };
+  };
+};
+
 export default function LibraryPage() {
   // For demo purposes, hide upload button
   // In production, this would be controlled by staff login
@@ -29,13 +55,12 @@ export default function LibraryPage() {
   const [selectedScheme, setSelectedScheme] = useState("");
   const [selectedSemester, setSelectedSemester] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
-  const [sortBy, setSortBy] = useState("upload_date");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [availableSchemes, setAvailableSchemes] = useState<any[]>([]);
+  const [availableSchemes, setAvailableSchemes] = useState<SchemeOption[]>([]);
   const [availableSemesters, setAvailableSemesters] = useState<number[]>([]);
-  const [availableSubjects, setAvailableSubjects] = useState<any[]>([]);
+  const [availableSubjects, setAvailableSubjects] = useState<SubjectOption[]>([]);
   const [selectedNoteType, setSelectedNoteType] = useState("");
   const [selectedModule, setSelectedModule] = useState("");
   const [folderView, setFolderView] = useState(false);
@@ -43,39 +68,17 @@ export default function LibraryPage() {
   const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
 
-  // Fetch available schemes on component mount
-  const fetchSchemes = useCallback(async () => {
+  // Fetch all academic metadata in one request
+  const fetchAcademicData = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/academics/schemes/`);
-      if (!response.ok) throw new Error("Failed to fetch schemes");
-      const data = await response.json();
+      const response = await fetch(`${API_BASE_URL}/academics/data/`);
+      if (!response.ok) throw new Error("Failed to fetch academic data");
+      const data: AcademicDataResponse = await response.json();
       setAvailableSchemes(data.schemes || []);
     } catch (err) {
-      console.error("Error fetching schemes:", err);
+      console.error("Error fetching academic data:", err);
     }
   }, [API_BASE_URL]);
-
-  // Fetch available semesters when scheme changes
-  const fetchSemesters = useCallback(
-    async (schemeId: string) => {
-      try {
-        if (!schemeId) {
-          setAvailableSemesters([]);
-          return;
-        }
-        const response = await fetch(
-          `${API_BASE_URL}/academics/semesters/?scheme_id=${schemeId}`
-        );
-        if (!response.ok) throw new Error("Failed to fetch semesters");
-        const data = await response.json();
-        setAvailableSemesters(data.semesters || []);
-      } catch (err) {
-        console.error("Error fetching semesters:", err);
-        setAvailableSemesters([]);
-      }
-    },
-    [API_BASE_URL]
-  );
 
   // Fetch available subjects when scheme or semester changes
   const fetchSubjects = useCallback(
@@ -86,11 +89,11 @@ export default function LibraryPage() {
           return;
         }
         const response = await fetch(
-          `${API_BASE_URL}/academics/subjects/by-scheme-semester/?scheme_id=${schemeId}&semester=${semester}`
+          `${API_BASE_URL}/academics/subjects/?scheme=${schemeId}&semester=${semester}`
         );
         if (!response.ok) throw new Error("Failed to fetch subjects");
         const data = await response.json();
-        setAvailableSubjects(data.subjects || []);
+        setAvailableSubjects(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("Error fetching subjects:", err);
         setAvailableSubjects([]);
@@ -101,13 +104,13 @@ export default function LibraryPage() {
 
   // Load schemes on mount
   useEffect(() => {
-    fetchSchemes();
-  }, [fetchSchemes]);
+    fetchAcademicData();
+  }, [fetchAcademicData]);
 
   // Fetch semesters when scheme changes
   useEffect(() => {
     if (selectedScheme) {
-      fetchSemesters(selectedScheme);
+      setAvailableSemesters([1, 2, 3, 4, 5, 6, 7, 8]);
       setSelectedSemester(""); // Reset semester when scheme changes
       setSelectedSubject(""); // Reset subject when scheme changes
     } else {
@@ -115,7 +118,7 @@ export default function LibraryPage() {
       setSelectedSemester("");
       setSelectedSubject("");
     }
-  }, [selectedScheme, fetchSemesters]);
+  }, [selectedScheme]);
 
   // Fetch subjects when scheme or semester changes
   useEffect(() => {
@@ -143,7 +146,7 @@ export default function LibraryPage() {
         if (selectedModule) params.append("module_number", selectedModule);
         if (searchTerm) params.append("search", searchTerm);
 
-        const url = `${API_BASE_URL}/academics/notes/?${params.toString()}`;
+        const url = `${API_BASE_URL}/academics/resources/?${params.toString()}`;
 
         const response = await fetch(url);
 
@@ -152,7 +155,46 @@ export default function LibraryPage() {
         }
 
         const data = await response.json();
-        const fetchedNotes = data.notes || [];
+        const fetchedNotes = ((data.results || []) as ResourceApiItem[]).map((item) => ({
+          id: item.id,
+          title: item.title,
+          description: item.description,
+          note_type: "other",
+          module_number: item.module_number || 0,
+          file: item.file,
+          uploaded_by: {
+            id: String(item.uploaded_by?.id || ""),
+            username: "",
+            first_name: item.uploaded_by?.name || "Unknown",
+            last_name: "",
+          },
+          is_approved: true,
+          created_at: item.created_at,
+          updated_at: item.created_at,
+          subject: String(item.subject?.id || ""),
+          subject_details: {
+            id: String(item.subject?.id || ""),
+            name: item.subject?.name || "Unknown Subject",
+            code: item.subject?.code || "",
+            scheme_year: item.subject?.scheme?.year || 0,
+            scheme_details: item.subject?.scheme
+              ? {
+                  id: item.subject.scheme.id,
+                  year: item.subject.scheme.year,
+                  name: item.subject.scheme.name,
+                  description: "",
+                  is_active: true,
+                  created_at: "",
+                  updated_at: "",
+                }
+              : undefined,
+            semester: item.subject?.semester || 0,
+            credits: 0,
+            is_active: true,
+            created_at: "",
+            updated_at: "",
+          },
+        }));
         setNotes(fetchedNotes);
       } catch (err) {
         const errorMessage =

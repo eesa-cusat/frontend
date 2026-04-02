@@ -130,7 +130,7 @@ const ProjectsPage: React.FC = () => {
       
       try {
         // Build params object
-        const params: any = {
+        const params: Record<string, string> = {
           page: page.toString(),
           page_size: "12",
         };

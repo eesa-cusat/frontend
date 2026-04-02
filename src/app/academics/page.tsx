@@ -41,6 +41,7 @@ interface AcademicResource {
   exam_type?: string;
   exam_year?: number;
 }
+type ResourceResponseItem = AcademicResource & { like_count?: number };
 
 interface Scheme {
   id: number;
@@ -106,11 +107,9 @@ export default function AcademicsPage() {
     module: "",
   });
   const [resources, setResources] = useState<AcademicResource[]>([]);
-  const [isHydrated, setIsHydrated] = useState(false);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [backendError, setBackendError] = useState(false);
-  const [filtersLoaded, setFiltersLoaded] = useState(false);
 
   // Academic data state
   const [academicData, setAcademicData] = useState<AcademicData>({
@@ -145,8 +144,6 @@ export default function AcademicsPage() {
 
   // Load initial data after hydration and restore saved filters
   useEffect(() => {
-    setIsHydrated(true);
-
     // Load saved filters from localStorage
     if (typeof window !== "undefined") {
       try {
@@ -154,7 +151,6 @@ export default function AcademicsPage() {
         if (savedFilters) {
           const parsedFilters = JSON.parse(savedFilters);
           setFilters(parsedFilters);
-          setFiltersLoaded(true);
         }
       } catch (error) {
         console.error("Error loading saved filters:", error);
@@ -259,18 +255,6 @@ export default function AcademicsPage() {
 
     setLoading(true);
     try {
-      // Build query parameters as per the filtering guide
-      const queryParams = new URLSearchParams();
-
-      // Add all available filter parameters
-      if (filters.category) queryParams.append("category", filters.category);
-      if (filters.scheme_id) queryParams.append("scheme", filters.scheme_id);
-      if (filters.subject_id) queryParams.append("subject", filters.subject_id);
-      if (filters.semester) queryParams.append("semester", filters.semester);
-      if (filters.department)
-        queryParams.append("department", filters.department);
-      if (filters.module) queryParams.append("module_number", filters.module);
-
       // Use the optimized API call
       const response = await api.academics.resources({
         category: filters.category,
@@ -284,7 +268,10 @@ export default function AcademicsPage() {
       // Handle different response formats (results array or direct array)
       const resourcesArray = response.data.results || response.data || [];
       const transformedResources = Array.isArray(resourcesArray)
-        ? resourcesArray
+        ? resourcesArray.map((resource: ResourceResponseItem) => ({
+            ...resource,
+            likes_count: resource.likes_count ?? resource.like_count ?? 0,
+          }))
         : [];
 
       setResources(transformedResources);
@@ -311,25 +298,6 @@ export default function AcademicsPage() {
     localStorage.removeItem(`${CACHE_KEYS.RESOURCES}_timestamp`);
 
     setShowFilters(true);
-    setResources([]);
-  };
-
-  const handleClearAllFilters = () => {
-    // Clear ALL cache including saved filters
-    Object.values(CACHE_KEYS).forEach((key) => {
-      localStorage.removeItem(key);
-      localStorage.removeItem(`${key}_timestamp`);
-    });
-    setShowFilters(true);
-    const emptyFilters = {
-      department: "",
-      scheme_id: "",
-      semester: "",
-      subject_id: "",
-      category: "",
-      module: "",
-    };
-    setFilters(emptyFilters);
     setResources([]);
   };
 
@@ -639,6 +607,7 @@ export default function AcademicsPage() {
                       resourceTitle={resource.title}
                       resourceFile={resource.file}
                       initialCount={resource.download_count}
+                      disableInitialStatsFetch
                       onDownloadChange={(newCount) => {
                         setResources((prev) =>
                           prev.map((res) =>
@@ -653,6 +622,8 @@ export default function AcademicsPage() {
                     <LikeButton
                       resourceId={resource.id}
                       initialCount={resource.likes_count}
+                      initialLiked={resource.is_liked}
+                      disableInitialStatsFetch
                     />
                   </div>
                 </div>

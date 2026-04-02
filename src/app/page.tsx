@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import MarqueeNotifications from "@/components/ui/MarqueeNotifications";
 import AutoScrollCarousel from "@/components/ui/AutoScrollCarousel";
 import { EventCard, ProjectCard } from "@/components/ui/CarouselCards";
+import { api } from "@/lib/api";
 
 interface FeaturedEvent {
   id: number;
@@ -34,6 +35,10 @@ interface FeaturedProject {
   demo_url?: string;
 }
 
+interface FeaturedProjectsResponse {
+  featured_projects?: FeaturedProject[];
+}
+
 export default function Home() {
   const [featuredEvents, setFeaturedEvents] = useState<FeaturedEvent[]>([]);
   const [featuredProjects, setFeaturedProjects] = useState<FeaturedProject[]>(
@@ -46,41 +51,9 @@ export default function Home() {
       setLoading(true);
 
       try {
-        // Fetch featured events - backend handles caching
-        const eventsResponse = await import("@/lib/api").then((m) =>
-          m.api.events.featured()
-        );
-        const featuredEvents = eventsResponse.data || [];
-
-        // Fetch detailed data for each featured event to get event_flyer field
-        const eventsWithFlyers = await Promise.all(
-          featuredEvents.map(async (event: any) => {
-            try {
-              const detailResponse = await fetch(
-                `${
-                  process.env.NEXT_PUBLIC_API_BASE_URL ||
-                  "http://localhost:8000/api"
-                }/events/${event.id}/`
-              );
-              if (detailResponse.ok) {
-                const detailData = await detailResponse.json();
-                return {
-                  ...event,
-                  event_flyer: detailData.event_flyer || null,
-                };
-              }
-              return event;
-            } catch (error) {
-              console.error(
-                `Failed to fetch details for featured event ${event.id}:`,
-                error
-              );
-              return event;
-            }
-          })
-        );
-
-        setFeaturedEvents(eventsWithFlyers);
+        // Featured endpoint already includes fields needed by cards.
+        const eventsResponse = await api.events.featured();
+        setFeaturedEvents(eventsResponse.data || []);
       } catch (error) {
         console.error("Error fetching featured events:", error);
         setFeaturedEvents([]);
@@ -92,11 +65,11 @@ export default function Home() {
           setTimeout(() => reject(new Error('Featured projects request timeout')), 5000);
         });
         
-        const projectsPromise = import("@/lib/api").then((m) =>
-          m.api.projects.featured()
-        );
+        const projectsPromise = api.projects.featured();
         
-        const projectsResponse = await Promise.race([projectsPromise, timeoutPromise]) as any;
+        const projectsResponse = (await Promise.race([projectsPromise, timeoutPromise])) as {
+          data?: FeaturedProjectsResponse;
+        };
         const featuredProjects = projectsResponse.data?.featured_projects || [];
         
         setFeaturedProjects(featuredProjects); // Backend already limits to 6

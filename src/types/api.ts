@@ -334,3 +334,52 @@ export interface CertificateOpportunity {
   posted_at: string;
   is_active: boolean;
 }
+
+export interface AlumniRegistrationPayload {
+  reg_no: string;
+  full_name: string;
+  batch: number | null;
+  current_engagement: "working" | "higher_studies" | "other";
+  linkedin_profile?: string;
+  willing_to_mentor: boolean;
+  phone_number?: string;
+  profile_image?: File | null;
+}
+
+export interface AlumniBatchItem {
+  id: number;
+  batch_year_range: string;
+  batch_name: string;
+  total_alumni: number;
+}
+
+export interface AlumniListItem {
+  id: number;
+  reg_no: string | null;
+  full_name: string;
+  email: string;
+  profile_image?: string | null;
+  current_company?: string | null;
+  current_location?: string | null;
+  employment_status: string;
+  current_engagement: "working" | "higher_studies" | "other";
+  willing_to_mentor: boolean;
+  batch_year_range?: string;
+  batch_name?: string;
+  years_since_graduation?: number | null;
+  created_at: string;
+}
+
+export interface PaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
+export interface AlumniCsvSyncResult {
+  created: number;
+  updated: number;
+  unchanged: number;
+  errors: string[];
+}
