@@ -339,7 +339,7 @@ export interface AlumniRegistrationPayload {
   full_name: string;
   email?: string;
   batch: number | null;
-  current_engagement: "working" | "higher_studies" | "other";
+  employment_status: "employed" | "self_employed" | "unemployed" | "higher_studies" | "entrepreneur" | "other";
   job_title?: string;
   current_company?: string;
   current_location?: string;
@@ -364,7 +364,6 @@ export interface AlumniListItem {
   current_company?: string | null;
   current_location?: string | null;
   employment_status: string;
-  current_engagement: "working" | "higher_studies" | "other";
   willing_to_mentor: boolean;
   batch_year_range?: string;
   batch_name?: string;

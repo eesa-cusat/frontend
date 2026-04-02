@@ -18,7 +18,7 @@ const initialFormState: AlumniRegistrationPayload = {
   full_name: "",
   email: "",
   batch: null,
-  current_engagement: "working",
+  employment_status: "other",
   job_title: "",
   current_company: "",
   current_location: "",
@@ -34,7 +34,7 @@ export default function AlumniPage() {
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [listLoading, setListLoading] = useState(true);
-  const [engagementFilter, setEngagementFilter] = useState<"all" | "working" | "higher_studies" | "other">("all");
+  const [employmentFilter, setEmploymentFilter] = useState<"all" | "employed" | "self_employed" | "unemployed" | "higher_studies" | "entrepreneur" | "other">("all");
   const [mentorFilter, setMentorFilter] = useState<"all" | "yes" | "no">("all");
   const [batchFilter, setBatchFilter] = useState<"all" | string>("all");
 
@@ -69,8 +69,8 @@ export default function AlumniPage() {
         page_size: PAGE_SIZE,
       };
 
-      if (engagementFilter !== "all") {
-        params.current_engagement = engagementFilter;
+      if (employmentFilter !== "all") {
+        params.employment_status = employmentFilter;
       }
       if (mentorFilter !== "all") {
         params.willing_to_mentor = mentorFilter === "yes";
@@ -93,11 +93,11 @@ export default function AlumniPage() {
 
   useEffect(() => {
     loadAlumni(page);
-  }, [page, engagementFilter, mentorFilter, batchFilter]);
+  }, [page, employmentFilter, mentorFilter, batchFilter]);
 
   useEffect(() => {
     setPage(1);
-  }, [engagementFilter, mentorFilter, batchFilter]);
+  }, [employmentFilter, mentorFilter, batchFilter]);
 
   const onImageChange = (file: File | null) => {
     if (!file) {
@@ -174,15 +174,18 @@ export default function AlumniPage() {
 
           <div className="bg-white rounded-xl border border-gray-200 p-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <div>
-              <label className="block text-sm font-medium mb-1">Engagement</label>
+              <label className="block text-sm font-medium mb-1">Employment Status</label>
               <select
-                value={engagementFilter}
-                onChange={(e) => setEngagementFilter(e.target.value as typeof engagementFilter)}
+                value={employmentFilter}
+                onChange={(e) => setEmploymentFilter(e.target.value as typeof employmentFilter)}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2"
               >
                 <option value="all">All</option>
-                <option value="working">Working</option>
+                <option value="employed">Employed</option>
+                <option value="self_employed">Self Employed</option>
+                <option value="unemployed">Unemployed</option>
                 <option value="higher_studies">Higher Studies</option>
+                <option value="entrepreneur">Entrepreneur</option>
                 <option value="other">Other</option>
               </select>
             </div>
@@ -248,7 +251,7 @@ export default function AlumniPage() {
                       </div>
                       <div className="mt-3 text-sm text-gray-700 space-y-1">
                         <p>
-                          <span className="font-medium">Status:</span> {person.current_engagement.replace("_", " ")}
+                          <span className="font-medium">Status:</span> {person.employment_status.replace("_", " ")}
                         </p>
                         {person.current_company && (
                           <p>
@@ -344,19 +347,22 @@ export default function AlumniPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Current Engagement *</label>
+              <label className="block text-sm font-medium mb-1">Employment Status *</label>
               <select
-                value={formData.current_engagement}
+                value={formData.employment_status}
                 onChange={(e) =>
                   setFormData((prev) => ({
                     ...prev,
-                    current_engagement: e.target.value as AlumniRegistrationPayload["current_engagement"],
+                    employment_status: e.target.value as AlumniRegistrationPayload["employment_status"],
                   }))
                 }
                 className="w-full rounded-lg border border-gray-300 px-3 py-2"
               >
-                <option value="working">Working</option>
+                <option value="employed">Employed</option>
+                <option value="self_employed">Self Employed</option>
+                <option value="unemployed">Unemployed</option>
                 <option value="higher_studies">Higher Studies</option>
+                <option value="entrepreneur">Entrepreneur</option>
                 <option value="other">Other</option>
               </select>
             </div>
