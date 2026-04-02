@@ -130,7 +130,7 @@ export default function AlumniPage() {
         phone_number: formData.phone_number?.trim() || undefined,
       });
 
-      setMessage("Alumni registration submitted successfully.");
+      setMessage("Alumni registration submitted successfully. Your profile will be visible after admin approval.");
       setFormData(initialFormState);
       setPage(1);
       await loadAlumni(1);
@@ -289,7 +289,12 @@ export default function AlumniPage() {
         </section>
 
         <section id="alumni-register-form" className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
-          <h2 className="text-2xl font-bold text-[#191A23]">Register as Alumni</h2>
+          <div>
+            <h2 className="text-2xl font-bold text-[#191A23]">Register as Alumni</h2>
+            <p className="text-sm text-gray-600 mt-2">
+              Your profile will be reviewed and approved by our admin team before appearing on the public alumni list.
+            </p>
+          </div>
 
           <form onSubmit={onSubmit} className="space-y-5">
             <div>
@@ -401,7 +406,7 @@ export default function AlumniPage() {
               Ready to mentor
             </label>
 
-            {message && <p className="text-green-700 text-sm">{message}</p>}
+            {message && <p className="text-green-700 text-sm font-medium bg-green-50 p-3 rounded-lg border border-green-200">{message}</p>}
             {error && <p className="text-red-600 text-sm">{error}</p>}
 
             <button
