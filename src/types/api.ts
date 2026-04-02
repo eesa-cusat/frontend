@@ -337,9 +337,12 @@ export interface CertificateOpportunity {
 
 export interface AlumniRegistrationPayload {
   full_name: string;
-  email: string;
+  email?: string;
   batch: number | null;
   current_engagement: "working" | "higher_studies" | "other";
+  job_title?: string;
+  current_company?: string;
+  current_location?: string;
   linkedin_profile?: string;
   willing_to_mentor: boolean;
   phone_number?: string;

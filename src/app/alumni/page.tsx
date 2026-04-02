@@ -19,6 +19,9 @@ const initialFormState: AlumniRegistrationPayload = {
   email: "",
   batch: null,
   current_engagement: "working",
+  job_title: "",
+  current_company: "",
+  current_location: "",
   linkedin_profile: "",
   willing_to_mentor: false,
   phone_number: "",
@@ -298,11 +301,10 @@ export default function AlumniPage() {
 
           <form onSubmit={onSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium mb-1">Email Address *</label>
+              <label className="block text-sm font-medium mb-1">Email Address (optional)</label>
               <input
-                required
                 type="email"
-                value={formData.email}
+                value={formData.email || ""}
                 onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2"
                 placeholder="your.email@example.com"
@@ -357,6 +359,39 @@ export default function AlumniPage() {
                 <option value="higher_studies">Higher Studies</option>
                 <option value="other">Other</option>
               </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Job Title (optional)</label>
+              <input
+                type="text"
+                value={formData.job_title || ""}
+                onChange={(e) => setFormData((prev) => ({ ...prev, job_title: e.target.value }))}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2"
+                placeholder="e.g., Software Engineer, Product Manager"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Current Company (optional)</label>
+              <input
+                type="text"
+                value={formData.current_company || ""}
+                onChange={(e) => setFormData((prev) => ({ ...prev, current_company: e.target.value }))}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2"
+                placeholder="e.g., Google, Microsoft, Startup Inc"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Current Location (optional)</label>
+              <input
+                type="text"
+                value={formData.current_location || ""}
+                onChange={(e) => setFormData((prev) => ({ ...prev, current_location: e.target.value }))}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2"
+                placeholder="e.g., Bangalore, New York"
+              />
             </div>
 
             <div>
