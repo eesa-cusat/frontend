@@ -174,8 +174,8 @@ export const api = {
     get: (id: string) => apiClient.get(`/alumni/alumni/${id}/`),
     register: (data: AlumniRegistrationPayload) => {
       const formData = new FormData();
-      formData.append('reg_no', data.reg_no);
       formData.append('full_name', data.full_name);
+      formData.append('email', data.email);
       if (data.batch) formData.append('batch', String(data.batch));
       formData.append('current_engagement', data.current_engagement);
       formData.append('willing_to_mentor', String(data.willing_to_mentor));
@@ -184,6 +184,13 @@ export const api = {
       if (data.profile_image) formData.append('profile_image', data.profile_image);
 
       return apiClient.post('/alumni/alumni/register/', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+    },
+    bulkImportCsv: (csvFile: File) => {
+      const formData = new FormData();
+      formData.append('csv_file', csvFile);
+      return apiClient.post('/alumni/alumni/bulk_import_csv/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
     },

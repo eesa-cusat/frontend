@@ -15,8 +15,8 @@ const MAX_IMAGE_SIZE_KB = 300;
 const PAGE_SIZE = 12;
 
 const initialFormState: AlumniRegistrationPayload = {
-  reg_no: "",
   full_name: "",
+  email: "",
   batch: null,
   current_engagement: "working",
   linkedin_profile: "",
@@ -124,8 +124,8 @@ export default function AlumniPage() {
     try {
       await api.alumni.register({
         ...formData,
-        reg_no: formData.reg_no.trim().toUpperCase(),
         full_name: formData.full_name.trim(),
+        email: formData.email.trim().toLowerCase(),
         linkedin_profile: formData.linkedin_profile?.trim() || undefined,
         phone_number: formData.phone_number?.trim() || undefined,
       });
@@ -135,9 +135,9 @@ export default function AlumniPage() {
       setPage(1);
       await loadAlumni(1);
     } catch (err: unknown) {
-      const axiosErr = err as AxiosError<{ reg_no?: string[]; detail?: string; message?: string }>;
+      const axiosErr = err as AxiosError<{ email?: string[]; detail?: string; message?: string }>;
       const apiError =
-        axiosErr.response?.data?.reg_no?.[0] ||
+        axiosErr.response?.data?.email?.[0] ||
         axiosErr.response?.data?.detail ||
         axiosErr.response?.data?.message ||
         "Registration failed. Please check your details and try again.";
@@ -240,7 +240,7 @@ export default function AlumniPage() {
                         )}
                         <div>
                           <h3 className="font-semibold text-[#191A23]">{person.full_name}</h3>
-                          <p className="text-sm text-gray-600">{person.reg_no || "Reg no unavailable"}</p>
+                          <p className="text-sm text-gray-600">{person.email}</p>
                         </div>
                       </div>
                       <div className="mt-3 text-sm text-gray-700 space-y-1">
@@ -293,13 +293,14 @@ export default function AlumniPage() {
 
           <form onSubmit={onSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium mb-1">Registration Number *</label>
+              <label className="block text-sm font-medium mb-1">Email Address *</label>
               <input
                 required
-                value={formData.reg_no}
-                onChange={(e) => setFormData((prev) => ({ ...prev, reg_no: e.target.value }))}
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2"
-                placeholder="e.g. EEE2020A123"
+                placeholder="your.email@example.com"
               />
             </div>
 
@@ -311,24 +312,6 @@ export default function AlumniPage() {
                 onChange={(e) => setFormData((prev) => ({ ...prev, full_name: e.target.value }))}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2"
               />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Current Engagement *</label>
-              <select
-                value={formData.current_engagement}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    current_engagement: e.target.value as AlumniRegistrationPayload["current_engagement"],
-                  }))
-                }
-                className="w-full rounded-lg border border-gray-300 px-3 py-2"
-              >
-                <option value="working">Working</option>
-                <option value="higher_studies">Higher Studies</option>
-                <option value="other">Other</option>
-              </select>
             </div>
 
             <div>
@@ -350,6 +333,24 @@ export default function AlumniPage() {
                     {batch.batch_name}
                   </option>
                 ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Current Engagement *</label>
+              <select
+                value={formData.current_engagement}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    current_engagement: e.target.value as AlumniRegistrationPayload["current_engagement"],
+                  }))
+                }
+                className="w-full rounded-lg border border-gray-300 px-3 py-2"
+              >
+                <option value="working">Working</option>
+                <option value="higher_studies">Higher Studies</option>
+                <option value="other">Other</option>
               </select>
             </div>
 

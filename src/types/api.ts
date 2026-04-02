@@ -336,8 +336,8 @@ export interface CertificateOpportunity {
 }
 
 export interface AlumniRegistrationPayload {
-  reg_no: string;
   full_name: string;
+  email: string;
   batch: number | null;
   current_engagement: "working" | "higher_studies" | "other";
   linkedin_profile?: string;
@@ -355,7 +355,6 @@ export interface AlumniBatchItem {
 
 export interface AlumniListItem {
   id: number;
-  reg_no: string | null;
   full_name: string;
   email: string;
   profile_image?: string | null;
@@ -378,8 +377,10 @@ export interface PaginatedResponse<T> {
 }
 
 export interface AlumniCsvSyncResult {
-  created: number;
-  updated: number;
-  unchanged: number;
+  created?: number;
+  updated?: number;
+  unchanged?: number;
+  successful_imports?: number;
+  total_rows?: number;
   errors: string[];
 }
